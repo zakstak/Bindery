@@ -1,3 +1,8 @@
+/**
+ * Gemini CLI OAuth flow (Google Cloud Code Assist)
+ * Standard Gemini models only (gemini-2.0-flash, gemini-2.5-*)
+ */
+
 import { createHash, randomBytes } from "crypto";
 import { createServer, type Server } from "http";
 import { type OAuthCredentials, saveOAuthCredentials } from "./storage.js";
@@ -217,9 +222,47 @@ async function getUserEmail(accessToken: string): Promise<string | undefined> {
 }
 
 /**
- * Login with Google Cloud OAuth
+ * Refresh Google Cloud Code Assist token
  */
-export async function loginGoogleCloud(
+export async function refreshGoogleCloudToken(refreshToken: string, projectId: string): Promise<OAuthCredentials> {
+	const response = await fetch(TOKEN_URL, {
+		method: "POST",
+		headers: { "Content-Type": "application/x-www-form-urlencoded" },
+		body: new URLSearchParams({
+			client_id: CLIENT_ID,
+			client_secret: CLIENT_SECRET,
+			refresh_token: refreshToken,
+			grant_type: "refresh_token",
+		}),
+	});
+
+	if (!response.ok) {
+		const error = await response.text();
+		throw new Error(`Google Cloud token refresh failed: ${error}`);
+	}
+
+	const data = (await response.json()) as {
+		access_token: string;
+		expires_in: number;
+		refresh_token?: string;
+	};
+
+	return {
+		type: "oauth",
+		refresh: data.refresh_token || refreshToken,
+		access: data.access_token,
+		expires: Date.now() + data.expires_in * 1000 - 5 * 60 * 1000,
+		projectId,
+	};
+}
+
+/**
+ * Login with Gemini CLI (Google Cloud Code Assist) OAuth
+ *
+ * @param onAuth - Callback with URL and optional instructions
+ * @param onProgress - Optional progress callback
+ */
+export async function loginGeminiCli(
 	onAuth: (info: { url: string; instructions?: string }) => void,
 	onProgress?: (message: string) => void,
 ): Promise<GoogleCloudCredentials> {
@@ -311,63 +354,10 @@ export async function loginGoogleCloud(
 			email,
 		};
 
-		saveOAuthCredentials("google-cloud-code-assist", credentials);
+		saveOAuthCredentials("google-gemini-cli", credentials);
 
 		return credentials;
 	} finally {
 		server.close();
 	}
-}
-
-/**
- * Refresh Google Cloud OAuth token using refresh token
- */
-export async function refreshGoogleCloudToken(
-	refreshToken: string,
-	existingProjectId?: string,
-): Promise<GoogleCloudCredentials> {
-	const tokenResponse = await fetch(TOKEN_URL, {
-		method: "POST",
-		headers: {
-			"Content-Type": "application/x-www-form-urlencoded",
-		},
-		body: new URLSearchParams({
-			client_id: CLIENT_ID,
-			client_secret: CLIENT_SECRET,
-			refresh_token: refreshToken,
-			grant_type: "refresh_token",
-		}),
-	});
-
-	if (!tokenResponse.ok) {
-		const error = await tokenResponse.text();
-		throw new Error(`Token refresh failed: ${error}`);
-	}
-
-	const tokenData = (await tokenResponse.json()) as {
-		access_token: string;
-		expires_in: number;
-		refresh_token?: string; // May or may not be returned
-	};
-
-	// Calculate expiry time (current time + expires_in seconds - 5 min buffer)
-	const expiresAt = Date.now() + tokenData.expires_in * 1000 - 5 * 60 * 1000;
-
-	// Get user email
-	const email = await getUserEmail(tokenData.access_token);
-
-	// Use existing project ID or discover new one
-	let projectId = existingProjectId;
-	if (!projectId) {
-		projectId = await discoverProject(tokenData.access_token);
-	}
-
-	return {
-		type: "oauth",
-		refresh: tokenData.refresh_token || refreshToken, // Use new refresh token if provided, otherwise keep existing
-		access: tokenData.access_token,
-		expires: expiresAt,
-		projectId,
-		email,
-	};
 }
