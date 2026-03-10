@@ -57,7 +57,6 @@ fi
 # Post-merge: strip package directories upstream may have added cleanly.
 STRIPPED_PKGS=(
     packages/mom
-    packages/web-ui
     packages/pods
     packages/agent-old
     packages/ai
