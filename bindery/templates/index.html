@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bindery</title>
+  <script src="/assets/htmx.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f0f0f;
+      color: #e8e8e8;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #2a2a2a;
+      font-size: 0.875rem;
+      color: #888;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .msg { max-width: 42rem; line-height: 1.6; }
+    .msg.user { align-self: flex-end; background: #1a2a1a; border: 1px solid #2a3a2a; border-radius: 8px; padding: 0.6rem 0.9rem; }
+    .msg.assistant { align-self: flex-start; }
+    .msg.tool { align-self: flex-start; font-size: 0.8rem; color: #666; font-family: monospace; }
+    form {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      border-top: 1px solid #2a2a2a;
+    }
+    input[type=text] {
+      flex: 1;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #e8e8e8;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.9rem;
+      outline: none;
+    }
+    input[type=text]:focus { border-color: #555; }
+    button {
+      background: #2a3a2a;
+      border: 1px solid #3a4a3a;
+      border-radius: 6px;
+      color: #8bc88b;
+      padding: 0.6rem 1.1rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    button:hover { background: #3a4a3a; }
+  </style>
+</head>
+<body>
+  <header>bindery</header>
+  <div id="messages"></div>
+  <form id="chat-form">
+    <input type="text" id="prompt" autocomplete="off" placeholder="Message the agent..." required>
+    <button type="submit">Send</button>
+  </form>
+  <script>
+    const messages = document.getElementById('messages');
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('prompt');
+
+    const ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.onmessage = (ev) => {
+      const event = JSON.parse(ev.data);
+      const type = event.type;
+
+      if (type === 'assistant_message_stream_event') {
+        const ae = event.assistantMessageEvent;
+        if (ae?.type === 'text_delta') {
+          let last = messages.querySelector('.msg.assistant:last-child');
+          if (!last) {
+            last = document.createElement('div');
+            last.className = 'msg assistant';
+            messages.appendChild(last);
+          }
+          last.textContent += ae.delta;
+        }
+      } else if (type === 'tool_call_start' || type === 'tool_call_complete') {
+        const div = document.createElement('div');
+        div.className = 'msg tool';
+        div.textContent = type === 'tool_call_start'
+          ? `▶ ${event.toolCall?.name ?? 'tool'}`
+          : `✓ ${event.toolCall?.name ?? 'tool'}`;
+        messages.appendChild(div);
+      } else if (type === 'error') {
+        const div = document.createElement('div');
+        div.className = 'msg tool';
+        div.textContent = `✗ error: ${event.message}`;
+        messages.appendChild(div);
+      }
+
+      messages.scrollTop = messages.scrollHeight;
+    };
+
+    ws.onclose = () => {
+      const div = document.createElement('div');
+      div.className = 'msg tool';
+      div.textContent = '— connection closed';
+      messages.appendChild(div);
+    };
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const msg = input.value.trim();
+      if (!msg || ws.readyState !== WebSocket.OPEN) return;
+
+      const div = document.createElement('div');
+      div.className = 'msg user';
+      div.textContent = msg;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+
+      ws.send(JSON.stringify({ type: 'prompt', message: msg }));
+      input.value = '';
+    });
+  </script>
+</body>
+</html>
