@@ -1,0 +1,14 @@
+[server]
+bind_address = "127.0.0.1:3002"
+
+[agent]
+# Path to the pi CLI entrypoint.
+# Use pi-test.sh for running from source, or the installed `pi` binary on the agent VM.
+cli_path = "/path/to/Bindery/pi-test.sh"
+cwd = "/workspace"
+
+# Optional: diffy integration for file diff rendering (see TODO in implementation_plan.md).
+# Uncomment when diffy is running alongside bindery on the agent VM.
+#
+# [diffy]
+# url = "http://127.0.0.1:3001"

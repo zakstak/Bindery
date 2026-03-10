@@ -1,0 +1,30 @@
+[package]
+name = "bindery"
+version = "0.1.0"
+edition = "2021"
+default-run = "bindery"
+
+[[bin]]
+name = "bindery"
+path = "src/main.rs"
+
+[lib]
+name = "bindery"
+path = "src/lib.rs"
+
+[dependencies]
+anyhow = "1"
+askama = { version = "0.12", default-features = false, features = ["with-axum"] }
+askama_axum = "0.4"
+axum = { version = "0.7", features = ["ws"] }
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+toml = "0.8"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[dev-dependencies]
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["full"] }
