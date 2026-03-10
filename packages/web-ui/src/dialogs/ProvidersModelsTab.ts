@@ -72,7 +72,7 @@ export class ProvidersModelsTab extends SettingsTab {
 	}
 
 	private renderKnownProviders(): TemplateResult {
-		const providers = getProviders();
+		const providers = getProviders().filter((p) => p === "google" || p === "openai");
 
 		return html`
 			<div class="flex flex-col gap-6">
@@ -111,7 +111,6 @@ export class ProvidersModelsTab extends SettingsTab {
 							{ value: "lmstudio", label: "LM Studio" },
 							{ value: "openai-completions", label: i18n("OpenAI Completions Compatible") },
 							{ value: "openai-responses", label: i18n("OpenAI Responses Compatible") },
-							{ value: "anthropic-messages", label: i18n("Anthropic Messages Compatible") },
 						],
 						onChange: (value: string) => this.addCustomProvider(value as CustomProviderType),
 						variant: "outline",
