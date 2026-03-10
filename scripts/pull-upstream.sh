@@ -41,7 +41,7 @@ BEHIND=$(git rev-list --count HEAD..upstream/main)
 echo "Merging $BEHIND upstream commit(s) into main..."
 
 # Merge - .gitattributes handles conflict resolution automatically for our owned files.
-# Any remaining conflict in un-owned files (e.g. packages/ai, packages/tui) surfaces
+# Any remaining conflict in un-owned files (e.g. packages/coding-agent src changes) surfaces
 # for manual resolution as normal.
 if ! git merge upstream/main --no-edit -m "chore: sync upstream main"; then
     echo ""
@@ -54,8 +54,16 @@ if ! git merge upstream/main --no-edit -m "chore: sync upstream main"; then
     exit 1
 fi
 
-# Post-merge: strip paths upstream may have added cleanly to packages we've dropped.
-STRIPPED_PKGS=(packages/mom packages/web-ui packages/pods packages/agent-old packages/ai packages/agent packages/tui)
+# Post-merge: strip package directories upstream may have added cleanly.
+STRIPPED_PKGS=(
+    packages/mom
+    packages/web-ui
+    packages/pods
+    packages/agent-old
+    packages/ai
+    packages/agent
+    packages/tui
+)
 NEED_COMMIT=false
 
 for pkg in "${STRIPPED_PKGS[@]}"; do
@@ -73,8 +81,27 @@ if [ -d "packages/coding-agent/examples" ] && git ls-files --error-unmatch "pack
     NEED_COMMIT=true
 fi
 
+# Strip individual upstream files we've removed
+STRIPPED_FILES=(
+    .github
+    CONTRIBUTING.md
+    test.sh
+    scripts/build-binaries.sh
+    scripts/release.mjs
+    scripts/sync-versions.js
+    scripts/browser-smoke-entry.ts
+)
+
+for f in "${STRIPPED_FILES[@]}"; do
+    if git ls-files --error-unmatch "$f" &>/dev/null 2>&1; then
+        echo "Removing upstream file: $f"
+        git rm -rf "$f" 2>/dev/null || true
+        NEED_COMMIT=true
+    fi
+done
+
 if [ "$NEED_COMMIT" = true ] && ! git diff --cached --quiet; then
-    git commit -m "chore: re-strip upstream-only packages after sync"
+    git commit -m "chore: re-strip upstream-only paths after sync"
 fi
 
 echo ""

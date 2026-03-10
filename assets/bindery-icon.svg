@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" shape-rendering="crispEdges">
+  <!-- background -->
+  <rect width="64" height="64" fill="#0F1115"/>
+  <!-- left page -->
+  <rect x="10" y="14" width="12" height="36" fill="#D0D4DA"/>
+  <!-- spine (center, slightly wider) -->
+  <rect x="26" y="14" width="12" height="36" fill="#5C6370"/>
+  <!-- right page -->
+  <rect x="42" y="14" width="12" height="36" fill="#D0D4DA"/>
+</svg>

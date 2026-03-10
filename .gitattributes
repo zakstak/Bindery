@@ -38,3 +38,12 @@ packages/agent-old/** merge=ours
 packages/ai/** merge=ours
 packages/agent/** merge=ours
 packages/tui/** merge=ours
+
+# Upstream files/dirs stripped from this fork
+.github/** merge=ours
+CONTRIBUTING.md merge=ours
+test.sh merge=ours
+scripts/build-binaries.sh merge=ours
+scripts/release.mjs merge=ours
+scripts/sync-versions.js merge=ours
+scripts/browser-smoke-entry.ts merge=ours
