@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"workspaces": [
-		"packages/coding-agent"
+		"packages/coding-agent",
+		"packages/web-ui"
 	],
 	"scripts": {
 		"clean": "npm run clean --workspaces",
