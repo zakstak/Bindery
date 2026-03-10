@@ -55,7 +55,7 @@ if ! git merge upstream/main --no-edit -m "chore: sync upstream main"; then
 fi
 
 # Post-merge: strip paths upstream may have added cleanly to packages we've dropped.
-STRIPPED_PKGS=(packages/mom packages/web-ui packages/pods packages/agent-old)
+STRIPPED_PKGS=(packages/mom packages/web-ui packages/pods packages/agent-old packages/ai packages/agent packages/tui)
 NEED_COMMIT=false
 
 for pkg in "${STRIPPED_PKGS[@]}"; do

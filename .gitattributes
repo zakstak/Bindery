@@ -35,3 +35,6 @@ packages/mom/** merge=ours
 packages/web-ui/** merge=ours
 packages/pods/** merge=ours
 packages/agent-old/** merge=ours
+packages/ai/** merge=ours
+packages/agent/** merge=ours
+packages/tui/** merge=ours
