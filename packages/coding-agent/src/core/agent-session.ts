@@ -96,6 +96,7 @@ import {
 	createTaskPacket,
 	createTaskResultSummary,
 	getLatestTaskPacket,
+	getTaskResultByTaskId,
 	TASK_CONTEXT_CUSTOM_TYPE,
 	TASK_PACKET_CUSTOM_TYPE,
 	TASK_RESULT_CONTEXT_CUSTOM_TYPE,
@@ -2863,9 +2864,13 @@ export class AgentSession {
 		nextStep?: string;
 		notes?: string;
 	}): ReturnType<typeof createTaskResultSummary> {
-		const packet = getLatestTaskPacket(this.sessionManager.getEntries());
+		const sessionEntries = this.sessionManager.getEntries();
+		const packet = getLatestTaskPacket(sessionEntries);
 		if (!packet) {
 			throw new Error("No active task packet found in this session.");
+		}
+		if (getTaskResultByTaskId(sessionEntries, packet.taskId)) {
+			throw new Error("Task result already recorded for this task.");
 		}
 
 		const header = this.sessionManager.getHeader();
@@ -2890,12 +2895,42 @@ export class AgentSession {
 
 		if (parentSessionFile) {
 			const parentSessionManager = SessionManager.open(parentSessionFile, this.sessionManager.getSessionDir());
-			parentSessionManager.appendCustomEntry(TASK_RESULT_CUSTOM_TYPE, result);
-			parentSessionManager.appendCustomMessageEntry(TASK_RESULT_CONTEXT_CUSTOM_TYPE, resultMarkdown, true, result);
-			parentSessionManager.ensurePersisted();
+			if (!getTaskResultByTaskId(parentSessionManager.getEntries(), result.taskId)) {
+				parentSessionManager.appendCustomEntry(TASK_RESULT_CUSTOM_TYPE, result);
+				parentSessionManager.appendCustomMessageEntry(
+					TASK_RESULT_CONTEXT_CUSTOM_TYPE,
+					resultMarkdown,
+					true,
+					result,
+				);
+				parentSessionManager.ensurePersisted();
+			}
 		}
 
 		return result;
+	}
+
+	async completeTaskSessionAndResumeParent(options: {
+		summary: string;
+		openRisks?: string[];
+		nextStep?: string;
+		notes?: string;
+	}): Promise<{
+		result: ReturnType<typeof createTaskResultSummary>;
+		resumedParent: boolean;
+		parentSessionFile?: string;
+	}> {
+		const result = this.completeTaskSession(options);
+		if (!result.parentSessionFile) {
+			return { result, resumedParent: false };
+		}
+
+		const resumedParent = await this.switchSession(result.parentSessionFile);
+		return {
+			result,
+			resumedParent,
+			parentSessionFile: result.parentSessionFile,
+		};
 	}
 
 	/**

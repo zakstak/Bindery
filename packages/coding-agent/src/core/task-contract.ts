@@ -113,6 +113,20 @@ function isTaskResultSummary(value: unknown): value is TaskResultSummary {
 	);
 }
 
+function readTaskResultSummary(entry: SessionCustomEntryLike): TaskResultSummary | undefined {
+	if (entry.type === "custom" && entry.customType === TASK_RESULT_CUSTOM_TYPE && isTaskResultSummary(entry.data)) {
+		return entry.data;
+	}
+	if (
+		entry.type === "custom_message" &&
+		entry.customType === TASK_RESULT_CONTEXT_CUSTOM_TYPE &&
+		isTaskResultSummary(entry.details)
+	) {
+		return entry.details;
+	}
+	return undefined;
+}
+
 function normalizeList(items: readonly string[] | undefined): string[] {
 	if (!items) return [];
 	const unique = new Set<string>();
@@ -234,16 +248,22 @@ export function getLatestTaskPacket(entries: ReadonlyArray<SessionCustomEntryLik
 
 export function getLatestTaskResult(entries: ReadonlyArray<SessionCustomEntryLike>): TaskResultSummary | undefined {
 	for (let i = entries.length - 1; i >= 0; i--) {
-		const entry = entries[i];
-		if (entry.type === "custom" && entry.customType === TASK_RESULT_CUSTOM_TYPE && isTaskResultSummary(entry.data)) {
-			return entry.data;
+		const result = readTaskResultSummary(entries[i]);
+		if (result) {
+			return result;
 		}
-		if (
-			entry.type === "custom_message" &&
-			entry.customType === TASK_RESULT_CONTEXT_CUSTOM_TYPE &&
-			isTaskResultSummary(entry.details)
-		) {
-			return entry.details;
+	}
+	return undefined;
+}
+
+export function getTaskResultByTaskId(
+	entries: ReadonlyArray<SessionCustomEntryLike>,
+	taskId: string,
+): TaskResultSummary | undefined {
+	for (let i = entries.length - 1; i >= 0; i--) {
+		const result = readTaskResultSummary(entries[i]);
+		if (result?.taskId === taskId) {
+			return result;
 		}
 	}
 	return undefined;
