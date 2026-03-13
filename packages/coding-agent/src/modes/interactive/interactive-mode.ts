@@ -1939,6 +1939,11 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
+			if (text === "/handoff" || text.startsWith("/handoff ")) {
+				this.editor.setText("");
+				await this.handleHandoffCommand(text);
+				return;
+			}
 			if (text === "/scoped-models") {
 				this.editor.setText("");
 				await this.showModelsSelector();
@@ -4312,6 +4317,35 @@ export class InteractiveMode {
 
 		this.chatContainer.addChild(new Spacer(1));
 		this.chatContainer.addChild(new Text(`${theme.fg("accent", "✓ New session started")}`, 1, 1));
+		this.ui.requestRender();
+	}
+
+	private async handleHandoffCommand(text: string): Promise<void> {
+		if (this.session.isStreaming) {
+			this.showWarning("Wait for the current response to finish before creating a handoff.");
+			return;
+		}
+		if (this.session.isCompacting) {
+			this.showWarning("Wait for compaction to finish before creating a handoff.");
+			return;
+		}
+
+		const notes = text.startsWith("/handoff ") ? text.slice(9).trim() : undefined;
+		const result = await this.session.handoffToNewSession({ notes });
+		if (result.cancelled) {
+			this.showStatus("Handoff cancelled");
+			return;
+		}
+
+		this.chatContainer.clear();
+		this.pendingMessagesContainer.clear();
+		this.compactionQueuedMessages = [];
+		this.streamingComponent = undefined;
+		this.streamingMessage = undefined;
+		this.pendingTools.clear();
+
+		this.renderInitialMessages();
+		this.showStatus("Started fresh session from handoff artifact");
 		this.ui.requestRender();
 	}
 
