@@ -1,6 +1,6 @@
 # Self-Hosting Roadmap
 
-This is the bootstrap order for getting pi to build pi.
+This is the bootstrap order for getting the agent to build itself.
 
 The rule is simple: improve continuity first, then delegation, then learning.
 
@@ -71,7 +71,7 @@ Best insertion points in Bindery:
 - `packages/coding-agent/src/core/agent-session.ts`
 - `packages/coding-agent/src/core/resource-loader.ts`
 
-## Phase 2: Teach pi From Its Own Sessions
+## Phase 2: Teach the Agent From Its Own Sessions
 
 ### 5. Turn session mining into a first-class loop
 
@@ -104,7 +104,7 @@ Build these later, not first:
 - checkpoints or shadow repos
 - repo-map indexing
 
-These are valuable, but they are not the best first moves for getting pi off the ground.
+These are valuable, but they are not the best first moves for getting the agent off the ground.
 
 ## Maintenance Rules
 
