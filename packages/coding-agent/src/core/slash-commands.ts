@@ -29,6 +29,8 @@ export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
 	{ name: "hotkeys", description: "Show all keyboard shortcuts" },
 	{ name: "fork", description: "Create a new fork from a previous message" },
 	{ name: "handoff", description: "Create a handoff artifact and continue in a fresh session" },
+	{ name: "task", description: "Create a task packet and continue in a fresh child session" },
+	{ name: "task-done", description: "Record a structured result summary for the active task" },
 	{ name: "tree", description: "Navigate session tree (switch branches)" },
 	{ name: "login", description: "Login with OAuth provider" },
 	{ name: "logout", description: "Logout from OAuth provider" },
