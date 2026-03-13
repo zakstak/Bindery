@@ -31,7 +31,24 @@ function createRpcSession(): AgentSession {
 		prompt: vi.fn(),
 		steer: vi.fn(),
 		followUp: vi.fn(),
+		isStreaming: false,
+		isCompacting: false,
 		newSession: async () => true,
+		startTaskSession: vi.fn(async ({ goal }: { goal: string }) => ({
+			cancelled: false,
+			packet: { taskId: `task-${goal}` },
+			previousSessionFile: "/tmp/parent.jsonl",
+			nextSessionFile: "/tmp/child.jsonl",
+		})),
+		completeTaskSession: vi.fn(({ summary }: { summary: string }) => ({
+			taskId: `task-${summary}`,
+			parentSessionFile: "/tmp/parent.jsonl",
+		})),
+		completeTaskSessionAndResumeParent: vi.fn(async ({ summary }: { summary: string }) => ({
+			result: { taskId: `task-${summary}`, parentSessionFile: "/tmp/parent.jsonl" },
+			resumedParent: true,
+			parentSessionFile: "/tmp/parent.jsonl",
+		})),
 		fork: async () => ({ selectedText: "", cancelled: false }),
 		navigateTree: async () => ({ cancelled: false }),
 		switchSession: async () => true,
@@ -129,6 +146,101 @@ describe("/task mode safety", () => {
 			});
 			expect(session.steer).not.toHaveBeenCalled();
 			expect(session.followUp).not.toHaveBeenCalled();
+		});
+
+		it("allows typed start_task_session commands", async () => {
+			const session = createRpcSession();
+			void runRpcMode(session);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			rpcInputHandlers[0](
+				JSON.stringify({
+					id: "4",
+					type: "start_task_session",
+					goal: "do work",
+					constraints: ["stay focused"],
+				}),
+			);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			const responses = parseRpcWrites(writeSpy);
+			expect(responses).toContainEqual({
+				id: "4",
+				type: "response",
+				command: "start_task_session",
+				success: true,
+				data: {
+					cancelled: false,
+					packet: { taskId: "task-do work" },
+					previousSessionFile: "/tmp/parent.jsonl",
+					nextSessionFile: "/tmp/child.jsonl",
+				},
+			});
+			expect(session.startTaskSession).toHaveBeenCalledWith({
+				goal: "do work",
+				constraints: ["stay focused"],
+				doneDefinition: undefined,
+				notes: undefined,
+			});
+		});
+
+		it("uses parent resume by default for typed complete_task_session commands", async () => {
+			const session = createRpcSession();
+			void runRpcMode(session);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			rpcInputHandlers[0](JSON.stringify({ id: "5", type: "complete_task_session", summary: "wrapped up" }));
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			const responses = parseRpcWrites(writeSpy);
+			expect(responses).toContainEqual({
+				id: "5",
+				type: "response",
+				command: "complete_task_session",
+				success: true,
+				data: {
+					result: { taskId: "task-wrapped up", parentSessionFile: "/tmp/parent.jsonl" },
+					resumedParent: true,
+					parentSessionFile: "/tmp/parent.jsonl",
+				},
+			});
+			expect(session.completeTaskSessionAndResumeParent).toHaveBeenCalledWith({
+				summary: "wrapped up",
+				openRisks: undefined,
+				nextStep: undefined,
+				notes: undefined,
+			});
+			expect(session.completeTaskSession).not.toHaveBeenCalled();
+		});
+
+		it("can complete a typed task session without resuming the parent", async () => {
+			const session = createRpcSession();
+			void runRpcMode(session);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			rpcInputHandlers[0](
+				JSON.stringify({ id: "6", type: "complete_task_session", summary: "wrapped up", resumeParent: false }),
+			);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			const responses = parseRpcWrites(writeSpy);
+			expect(responses).toContainEqual({
+				id: "6",
+				type: "response",
+				command: "complete_task_session",
+				success: true,
+				data: {
+					result: { taskId: "task-wrapped up", parentSessionFile: "/tmp/parent.jsonl" },
+					resumedParent: false,
+					parentSessionFile: "/tmp/parent.jsonl",
+				},
+			});
+			expect(session.completeTaskSession).toHaveBeenCalledWith({
+				summary: "wrapped up",
+				openRisks: undefined,
+				nextStep: undefined,
+				notes: undefined,
+			});
 		});
 	});
 });

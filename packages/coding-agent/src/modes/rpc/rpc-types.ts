@@ -10,6 +10,7 @@ import type { ImageContent, Model } from "@mariozechner/pi-ai";
 import type { SessionStats } from "../../core/agent-session.js";
 import type { BashResult } from "../../core/bash-executor.js";
 import type { CompactionResult } from "../../core/compaction/index.js";
+import type { TaskPacket, TaskResultSummary } from "../../core/task-contract.js";
 
 // ============================================================================
 // RPC Commands (stdin)
@@ -22,6 +23,23 @@ export type RpcCommand =
 	| { id?: string; type: "follow_up"; message: string; images?: ImageContent[] }
 	| { id?: string; type: "abort" }
 	| { id?: string; type: "new_session"; parentSession?: string }
+	| {
+			id?: string;
+			type: "start_task_session";
+			goal: string;
+			constraints?: string[];
+			doneDefinition?: string;
+			notes?: string;
+	  }
+	| {
+			id?: string;
+			type: "complete_task_session";
+			summary: string;
+			openRisks?: string[];
+			nextStep?: string;
+			notes?: string;
+			resumeParent?: boolean;
+	  }
 
 	// State
 	| { id?: string; type: "get_state" }
@@ -115,6 +133,29 @@ export type RpcResponse =
 	| { id?: string; type: "response"; command: "follow_up"; success: true }
 	| { id?: string; type: "response"; command: "abort"; success: true }
 	| { id?: string; type: "response"; command: "new_session"; success: true; data: { cancelled: boolean } }
+	| {
+			id?: string;
+			type: "response";
+			command: "start_task_session";
+			success: true;
+			data: {
+				cancelled: boolean;
+				packet: TaskPacket;
+				previousSessionFile?: string;
+				nextSessionFile?: string;
+			};
+	  }
+	| {
+			id?: string;
+			type: "response";
+			command: "complete_task_session";
+			success: true;
+			data: {
+				result: TaskResultSummary;
+				resumedParent: boolean;
+				parentSessionFile?: string;
+			};
+	  }
 
 	// State
 	| { id?: string; type: "response"; command: "get_state"; success: true; data: RpcSessionState }
