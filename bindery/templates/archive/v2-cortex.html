@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Cortex</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Red+Hat+Mono:wght@400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#000000;--bg1:#080808;--bg2:#0e0e0e;--bg3:#161616;
+  --border:#1e1e1e;--border2:#2a2a2a;
+  --text:#e0e0e0;--text2:#808080;--text3:#505050;
+  --cyan:#00d4e5;--cyan-dim:rgba(0,212,229,.12);
+  --green:#00e676;--red:#ff5252;--amber:#ffc400;
+  --r:4px;
+}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:'Lexend',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;display:flex}
+
+/* ═══ Rail ═══ */
+.rail{width:52px;min-width:52px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;flex-shrink:0}
+.rail-logo{width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-family:'Red Hat Mono',monospace;font-size:16px;font-weight:700;color:var(--cyan);margin-bottom:12px;border:1px solid rgba(0,212,229,.2);border-radius:var(--r)}
+.rail-btn{width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:var(--r);border:none;background:transparent;color:var(--text3);cursor:pointer;font-size:16px;transition:.15s;position:relative}
+.rail-btn:hover{background:var(--bg3);color:var(--text)}
+.rail-btn.active{color:var(--cyan);background:var(--cyan-dim)}
+.rail-btn.active::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:2px;background:var(--cyan);border-radius:0 2px 2px 0}
+.rail-spacer{flex:1}
+
+/* ═══ Main ═══ */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+
+/* ═══ Top bar ═══ */
+.topbar{height:40px;min-height:40px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:12px;flex-shrink:0}
+.topbar-title{font-size:12px;font-weight:500;color:var(--text2);letter-spacing:.03em}
+.topbar-sep{flex:1}
+.topbar-tag{font-size:11px;color:var(--text3);font-family:'Red Hat Mono',monospace;background:var(--bg3);border:1px solid var(--border2);padding:2px 8px;border-radius:99px}
+.topbar-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.topbar-dot.run{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.2s infinite}
+.topbar-dot.live{background:var(--green);box-shadow:0 0 5px var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══ Content split ═══ */
+.content-split{flex:1;display:flex;min-height:0}
+
+/* ═══ Activity panel ═══ */
+.activity{width:240px;min-width:240px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.act-header{padding:10px 14px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);border-bottom:1px solid var(--border)}
+.act-list{flex:1;overflow-y:auto;padding:6px 0}
+.act-item{display:flex;align-items:center;gap:8px;padding:7px 14px;cursor:pointer;transition:.1s;border-left:2px solid transparent;font-size:12px}
+.act-item:hover{background:var(--bg2)}
+.act-item.active{background:var(--bg2);border-left-color:var(--cyan)}
+.act-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.act-dot.run{animation:pulse 1.2s infinite}
+.act-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2);font-family:'Red Hat Mono',monospace}
+.act-time{font-size:10px;color:var(--text3);font-family:'Red Hat Mono',monospace;flex-shrink:0}
+
+/* indent for nested */
+.act-item[data-depth="1"]{padding-left:28px}
+.act-item[data-depth="2"]{padding-left:42px}
+
+/* ═══ Chat area ═══ */
+.chat{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat-scroll{flex:1;overflow-y:auto;padding:12px 0 8px}
+.chat-inner{max-width:100%;margin:0;padding:0 16px;display:flex;flex-direction:column;gap:10px;width:100%}
+
+.msg-user{align-self:flex-end;max-width:80%;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r) var(--r) 2px var(--r);padding:8px 12px;font-size:13px;line-height:1.5}
+.msg-ai{padding:2px 0;line-height:1.55;color:var(--text);font-size:13px}
+.msg-ai p+p{margin-top:6px}
+.msg-ai code{font-family:'Red Hat Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);padding:1px 4px;border-radius:2px;color:var(--cyan)}
+
+/* run block in chat */
+.run-block{background:var(--bg1);border:1px solid var(--border);border-left:2px solid var(--cyan);border-radius:var(--r);overflow:hidden}
+.run-header{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;user-select:none;transition:.1s}
+.run-header:hover{background:var(--bg2)}
+.run-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.run-dot.run{animation:pulse 1.2s infinite}
+.run-name{font-family:'Red Hat Mono',monospace;font-size:12px;font-weight:500}
+.run-sub{font-size:11px;color:var(--text3)}
+.run-spacer{flex:1}
+.run-time{font-family:'Red Hat Mono',monospace;font-size:10px;color:var(--text3)}
+.run-chev{font-size:9px;color:var(--text3);transition:.2s}
+.run-block.col .run-chev{transform:rotate(-90deg)}
+.run-body{border-top:1px solid var(--border)}
+.run-block.col .run-body{display:none}
+.nested{margin:4px 10px 4px 16px;border-left:1px solid var(--border2);padding-left:10px}
+
+.tool-row{display:flex;align-items:center;gap:7px;padding:4px 12px;font-family:'Red Hat Mono',monospace;font-size:11px;color:var(--text2);transition:.1s}
+.tool-row:hover{background:var(--bg2)}
+.tool-name{flex-shrink:0}
+.tool-args{color:var(--text3);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-st{flex-shrink:0;font-size:10px}
+.st-d{color:var(--green)}.st-r{color:var(--amber);animation:pulse 1.2s infinite}.st-e{color:var(--red)}
+
+.think-bl{margin:4px 12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.think-hd{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;font-size:11px;color:var(--text3);user-select:none}
+.think-hd:hover{background:var(--bg3)}
+.think-bd{padding:6px 10px;font-size:11px;color:var(--text3);line-height:1.6;white-space:pre-wrap;font-family:'Red Hat Mono',monospace;border-top:1px solid var(--border)}
+.think-bl.col .think-bd{display:none}
+
+.skill-row{display:flex;align-items:center;gap:7px;padding:4px 12px;font-size:11px;font-family:'Red Hat Mono',monospace;color:var(--text2);background:var(--cyan-dim)}
+.skill-badge{background:var(--cyan);color:#000;font-size:9px;padding:1px 6px;border-radius:99px;font-weight:600}
+.err-row{display:flex;align-items:center;gap:7px;padding:4px 12px;font-size:11px;color:var(--red);background:rgba(255,82,82,.05)}
+.notif-row{display:flex;align-items:center;gap:7px;padding:4px 12px;font-size:11px;color:var(--green)}
+
+/* ═══ Input ═══ */
+.input-bar{border-top:1px solid var(--border);background:var(--bg1);padding:10px 16px;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end;max-width:100%;margin:0}
+textarea.pinput{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:9px 12px;font-size:13px;font-family:'Lexend',sans-serif;outline:none;resize:none;min-height:38px;max-height:160px;line-height:1.5;transition:border-color .15s}
+textarea.pinput:focus{border-color:var(--cyan)}
+textarea.pinput::placeholder{color:var(--text3)}
+button.sbtn{background:var(--cyan);border:none;border-radius:var(--r);color:#000;padding:9px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Lexend',sans-serif;flex-shrink:0;transition:.15s;letter-spacing:.02em}
+button.sbtn:hover{filter:brightness(1.1)}
+
+.typing span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--text3);margin:0 2px;animation:dotbounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes dotbounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .2s ease}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="rail">
+  <div class="rail-logo">B</div>
+  <button class="rail-btn active" title="Chat">💬</button>
+  <button class="rail-btn" title="Files">📁</button>
+  <button class="rail-btn" title="Search">🔍</button>
+  <div class="rail-spacer"></div>
+  <button class="rail-btn" title="Settings">⚙</button>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title">Auth Module Refactor</span>
+    <span class="topbar-sep"></span>
+    <span class="topbar-tag">glm-4.5-flash</span>
+    <div class="topbar-dot" id="gdot"></div>
+  </div>
+  <div class="content-split">
+    <div class="activity">
+      <div class="act-header">Activity</div>
+      <div class="act-list" id="act-list"></div>
+    </div>
+    <div class="chat">
+      <div class="chat-scroll"><div class="chat-inner" id="chat"></div></div>
+      <div class="input-bar"><div class="input-row">
+        <textarea class="pinput" placeholder="Message…" rows="1"></textarea>
+        <button class="sbtn">Send</button>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PAL=['#00d4e5','#00e676','#ce93d8','#ffc400','#ff5252','#40c4ff','#b2ff59','#ff9100'];
+let pi=0;const rc={};
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e;}
+function sb(){document.querySelector('.chat-scroll').scrollTop=document.querySelector('.chat-scroll').scrollHeight;}
+
+const chat=document.getElementById('chat');
+const actList=document.getElementById('act-list');
+const gdot=document.getElementById('gdot');
+const runs={};
+
+function actItem(id,name,sub,depth){
+  const c=clr(id);
+  const n=el('div','act-item'+(depth===0?' active':''),`<span class="act-dot run" style="background:${c}"></span><span class="act-label">${esc(name)}${sub?' / '+esc(sub):''}</span><span class="act-time" id="at-${id}"></span>`);
+  n.dataset.depth=depth;n.dataset.id=id;
+  actList.appendChild(n);return n;
+}
+function endAct(id,elapsed){
+  const n=actList.querySelector(`[data-id="${id}"]`);if(!n)return;
+  n.querySelector('.act-dot')?.classList.remove('run');
+  const t=document.getElementById('at-'+id);if(t&&elapsed)t.textContent=elapsed;
+}
+function userMsg(text){chat.appendChild(el('div','msg-user fi',esc(text)));sb();}
+function aiMsg(html){const m=el('div','msg-ai fi');m.innerHTML=html;chat.appendChild(m);sb();}
+function runBlock(id,name,sub,parentEl){
+  const c=clr(id);
+  const b=el('div','run-block fi');b.id='rb-'+id;b.style.cssText=`border-left-color:${c}`;
+  b.innerHTML=`<div class="run-header"><span class="run-dot run" style="background:${c}"></span><span class="run-name" style="color:${c}">${esc(name)}</span>${sub?`<span class="run-sub">${esc(sub)}</span>`:''}<span class="run-spacer"></span><span class="run-time" id="rt-${id}"></span><span class="run-chev">▾</span></div><div class="run-body" id="rbody-${id}"></div>`;
+  b.querySelector('.run-header').addEventListener('click',()=>b.classList.toggle('col'));
+  if(parentEl){const w=el('div','nested');w.appendChild(b);parentEl.appendChild(w);}
+  else chat.appendChild(b);
+  sb();return document.getElementById('rbody-'+id);
+}
+function endRun(id,elapsed){const b=document.getElementById('rb-'+id);if(!b)return;b.querySelector('.run-dot')?.classList.remove('run');const t=document.getElementById('rt-'+id);if(t&&elapsed)t.textContent=elapsed;}
+function tool(id,name,args,state){
+  const body=runs[id]?.body;if(!body)return;
+  const ic=state==='done'?'✓':state==='error'?'✗':'●';
+  const cls=state==='done'?'st-d':state==='error'?'st-e':'st-r';
+  body.appendChild(el('div','tool-row fi',`<span class="tool-name" style="color:${clr(id)}">${esc(name)}</span><span class="tool-args">${esc(args)}</span><span class="tool-st ${cls}">${ic}</span>`));sb();
+}
+function think(who,text){const b=el('div','think-bl col fi');b.innerHTML=`<div class="think-hd"><span>▾</span><span>thinking…</span><span style="flex:1"></span><span>${esc(who)}</span></div><div class="think-bd">${esc(text)}</div>`;b.querySelector('.think-hd').addEventListener('click',()=>b.classList.toggle('col'));chat.appendChild(b);sb();}
+function skillR(name,desc){chat.appendChild(el('div','skill-row fi',`<span class="skill-badge">skill</span>${esc(name)} <span style="color:var(--text3)">${esc(desc)}</span>`));sb();}
+function errR(msg){chat.appendChild(el('div','err-row fi',`⚠ ${esc(msg)}`));sb();}
+function notifR(msg){chat.appendChild(el('div','notif-row fi',`✓ ${esc(msg)}`));sb();}
+function typing(){const t=el('div','msg-ai fi typing-ind','<span class="typing"><span></span><span></span><span></span></span>');chat.appendChild(t);sb();}
+function rmTyping(){document.querySelectorAll('.typing-ind').forEach(e=>e.remove());}
+
+const EVENTS=[
+  {ms:500,fn(){userMsg('Refactor the auth module to use async/await, then run the tests.');gdot.className='topbar-dot run';}},
+  {ms:300,fn(){actItem('r1','agent','refactor-auth',0);runs['r1']={body:runBlock('r1','agent','refactor-auth',null)};}},
+  {ms:280,fn(){tool('r1','read','"src/auth/mod.rs"','done');}},
+  {ms:260,fn(){tool('r1','edit','"src/auth/mod.rs"','done');}},
+  {ms:250,fn(){actItem('r2','subagent','run-tests',1);runs['r2']={body:runBlock('r2','subagent','run-tests',runs['r1'].body)};}},
+  {ms:350,fn(){tool('r2','bash','"cargo test --package auth"','done');}},
+  {ms:200,fn(){endRun('r2','3.8s');endAct('r2','3.8s');}},
+  {ms:150,fn(){endRun('r1','11.2s');endAct('r1','11.2s');gdot.className='topbar-dot live';}},
+  {ms:350,fn(){rmTyping();aiMsg('Done. Converted all async calls in <code>auth/mod.rs</code> and <code>auth/token.rs</code>. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){userMsg('Add rate limiting and deploy to staging.');gdot.className='topbar-dot run';}},
+  {ms:280,fn(){actItem('r3','agent','add-rate-limit',0);runs['r3']={body:runBlock('r3','agent','add-rate-limit',null)};}},
+  {ms:280,fn(){tool('r3','write','"src/middleware/rate_limit.rs"','done');}},
+  {ms:200,fn(){actItem('r4','subagent','write-tests',1);runs['r4']={body:runBlock('r4','subagent','write-tests',runs['r3'].body)};}},
+  {ms:300,fn(){tool('r4','bash','"cargo test rate_limit"','done');}},
+  {ms:150,fn(){endRun('r4','5.1s');endAct('r4','5.1s');}},
+  {ms:150,fn(){actItem('r5','subagent','deploy-staging',2);runs['r5']={body:runBlock('r5','subagent','deploy-staging',runs['r4'].body)};}},
+  {ms:400,fn(){tool('r5','bash','"./scripts/deploy.sh staging"','done');}},
+  {ms:200,fn(){endRun('r5','18.4s');endAct('r5','18.4s');}},
+  {ms:150,fn(){endRun('r3','32.1s');endAct('r3','32.1s');gdot.className='topbar-dot live';}},
+  {ms:350,fn(){rmTyping();aiMsg('Rate limiting added. Created <code>src/middleware/rate_limit.rs</code>, registered as tower layer. Tests passed. Deployed to staging — smoke tests passed.');}},
+  {ms:700,fn(){userMsg('Audit all API endpoints for missing auth guards.');gdot.className='topbar-dot run';}},
+  {ms:280,fn(){actItem('r6','agent','audit-auth-guards',0);runs['r6']={body:runBlock('r6','agent','audit-auth-guards',null)};}},
+  {ms:300,fn(){tool('r6','find','"src/web/routes" *.rs','done');}},
+  {ms:300,fn(){tool('r6','bash','"rg -n auth_required src/web"','running');}},
+  {ms:800,fn(){rmTyping();think('agent/r6','Looking at 12 GET routes, 8 POST routes. Grepping for auth_required attribute.');}},
+  {ms:400,fn(){skillR('/skill:security-audit','OWASP checklist on routes');tool('r6','skill','/skill:security-audit','done');}},
+  {ms:350,fn(){tool('r6','grep','"inject|sql|xss" routes/','done');}},
+  {ms:300,fn(){errR('Rate limit hit on zai API — retrying in 2s');tool('r6','api','retry #1','running');}},
+  {ms:500,fn(){tool('r6','api','retry #1','done');}},
+  {ms:200,fn(){endRun('r6','22.7s');endAct('r6','22.7s');gdot.className='topbar-dot live';}},
+  {ms:300,fn(){notifR('Audit complete — 3 endpoints missing auth guards');rmTyping();aiMsg('Found 3 endpoints in <code>src/web/routes/admin.rs</code> missing <code>#[auth_required]</code>: <code>GET /admin/users</code>, <code>POST /admin/ban</code>, <code>DELETE /admin/session</code>.');typing();}},
+];
+
+let ei=0;
+function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.sbtn');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,160)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;rmTyping();userMsg(t);ta.value='';ta.style.height='auto';setTimeout(()=>typing(),150);});
+</script>
+</body>
+</html>

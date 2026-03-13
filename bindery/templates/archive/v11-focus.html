@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Focus</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0a12;--bg1:#110f19;--bg2:#16141f;--bg3:#1e1b2a;--border:#28243a;--border2:#342f4e;--text:#e0dced;--text2:#908ca5;--text3:#5c5878;--lav:#8b5cf6;--rose:#e879f9;--green:#34d399;--red:#fb7185;--amber:#fbbf24;--r:4px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;display:flex;flex-direction:column}
+
+/* Breadcrumb bar */
+.breadcrumb-bar{height:38px;min-height:38px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:0;flex-shrink:0;overflow-x:auto}
+.bc-logo{font-size:15px;font-weight:700;color:var(--lav);margin-right:12px;flex-shrink:0}
+.bc-sep{color:var(--text3);margin:0 6px;font-size:10px;flex-shrink:0}
+.bc-item{font-size:11px;font-family:'Fira Code',monospace;padding:3px 10px;border-radius:var(--r);cursor:pointer;transition:.15s;flex-shrink:0;display:flex;align-items:center;gap:5px}
+.bc-item:hover{background:var(--bg2)}
+.bc-item.active{background:rgba(139,92,246,.1);color:var(--lav)}
+.bc-item .bcd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.bc-spacer{flex:1}
+.bc-tag{font-size:9px;color:var(--text3);font-family:'Fira Code',monospace;background:var(--bg3);padding:1px 6px;border-radius:99px;border:1px solid var(--border2);flex-shrink:0}
+
+/* Agent view — takes full screen */
+.agent-view{flex:1;display:flex;flex-direction:column;min-height:0}
+
+/* Agent header card */
+.agent-header{padding:12px 20px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0}
+.ah-dot{width:10px;height:10px;border-radius:50%}
+.ah-dot.run{animation:pulse 1.3s infinite}
+.ah-name{font-family:'Fira Code',monospace;font-size:14px;font-weight:600}
+.ah-sub{font-size:12px;color:var(--text3)}
+.ah-sp{flex:1}
+.ah-dur{font-family:'Fira Code',monospace;font-size:11px;color:var(--text3)}
+.ah-stat{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:500}
+.ah-stat.running{background:rgba(251,191,36,.1);color:var(--amber);border:1px solid rgba(251,191,36,.2)}
+.ah-stat.done{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2)}
+
+/* Tool list */
+.tool-scroll{flex:1;overflow-y:auto;padding:8px 0}
+.tool-inner{padding:0 20px;display:flex;flex-direction:column;gap:2px}
+.tool-card{display:flex;align-items:center;gap:8px;padding:6px 12px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);font-family:'Fira Code',monospace;font-size:11px;transition:.15s}
+.tool-card:hover{border-color:var(--border2);background:var(--bg2)}
+.tc-name{font-weight:500;flex-shrink:0}
+.tc-args{color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tc-st{font-size:10px}
+.tc-d{color:var(--green)}.tc-r{color:var(--amber)}.tc-e{color:var(--red)}
+
+/* Sub-agent cards */
+.sub-card{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);cursor:pointer;transition:.2s;font-family:'Fira Code',monospace;font-size:11px}
+.sub-card:hover{border-color:var(--lav);background:rgba(139,92,246,.06);transform:translateX(4px)}
+.sc-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sc-dot.run{animation:pulse 1.3s infinite}
+.sc-name{font-weight:500}
+.sc-sub{color:var(--text3)}
+.sc-sp{flex:1}
+.sc-dur{color:var(--text3);font-size:10px}
+.sc-arrow{color:var(--text3);font-size:10px}
+
+/* Section headers */
+.sec-head{padding:10px 20px 4px;font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);font-weight:600}
+
+/* Messages at bottom */
+.msg-area{border-top:1px solid var(--border);background:var(--bg1);max-height:120px;overflow-y:auto;padding:8px 20px}
+.msg-text{font-size:12px;line-height:1.55}
+.msg-text code{font-family:'Fira Code',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--border);padding:1px 3px;border-radius:2px;color:var(--lav)}
+.err-text{font-size:10px;color:var(--red);margin:2px 0}
+.skill-text{font-size:10px;color:var(--amber);margin:2px 0}
+
+.input-bar{border-top:1px solid var(--border);background:var(--bg);padding:8px 16px;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+textarea.pinput{flex:1;background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:6px 10px;font-size:12px;font-family:'Outfit',sans-serif;outline:none;resize:none;min-height:32px;max-height:100px;line-height:1.5;transition:.15s}
+textarea.pinput:focus{border-color:var(--lav)}
+textarea.pinput::placeholder{color:var(--text3)}
+button.sbtn{background:var(--lav);border:none;border-radius:var(--r);color:#fff;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+button.sbtn:hover{filter:brightness(1.15)}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .18s ease}
+.si{animation:slideIn .25s ease}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="breadcrumb-bar" id="bc-bar">
+  <span class="bc-logo">Bindery</span>
+  <span class="bc-spacer"></span>
+  <span class="bc-tag">glm-4.5-flash</span>
+</div>
+
+<div class="agent-view" id="agent-view"></div>
+
+<div class="msg-area" id="msg-area"></div>
+
+<div class="input-bar"><div class="input-row">
+  <textarea class="pinput" placeholder="Message…" rows="1"></textarea>
+  <button class="sbtn">Send</button>
+</div></div>
+
+<script>
+const PAL=['#8b5cf6','#34d399','#e879f9','#fbbf24','#fb7185','#38bdf8'];
+let pi=0;const rc={};
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+const agents={};// {id:{name,sub,color,tools:[],children:[],parent,elapsed,status,msgs:[]}}
+let focusStack=[];// stack of agent IDs
+const bcBar=document.getElementById('bc-bar');
+const agentView=document.getElementById('agent-view');
+const msgArea=document.getElementById('msg-area');
+
+function registerAgent(id,name,sub,parentId){
+  const c=clr(id);
+  agents[id]={name,sub,color:c,tools:[],children:[],parent:parentId||null,elapsed:null,status:'running',msgs:[],errs:[],skills:[]};
+  if(parentId&&agents[parentId])agents[parentId].children.push(id);
+}
+
+function renderAgent(id){
+  const a=agents[id];if(!a)return;
+  // Update breadcrumbs
+  const stack=[];let cur=id;
+  while(cur){stack.unshift(cur);cur=agents[cur]?.parent;}
+  focusStack=stack;
+  
+  // Build breadcrumb
+  const bcItems=bcBar.querySelectorAll('.bc-item,.bc-sep:not(:first-child)');
+  bcItems.forEach(b=>b.remove());
+  const logo=bcBar.querySelector('.bc-logo');
+  stack.forEach((sid,i)=>{
+    const sa=agents[sid];
+    const sep=document.createElement('span');sep.className='bc-sep';sep.textContent='›';
+    logo.parentNode.insertBefore(sep,bcBar.querySelector('.bc-spacer'));
+    const item=document.createElement('div');
+    item.className='bc-item'+(sid===id?' active':'');
+    item.innerHTML=`<span class="bcd" style="background:${sa.color}"></span>${esc(sa.name)} / ${esc(sa.sub||'')}`;
+    item.addEventListener('click',()=>renderAgent(sid));
+    logo.parentNode.insertBefore(item,bcBar.querySelector('.bc-spacer'));
+  });
+
+  // Build agent view
+  agentView.innerHTML='';
+  const statCls=a.status==='running'?'running':'done';
+  const hdr=document.createElement('div');hdr.className='agent-header si';
+  hdr.innerHTML=`<span class="ah-dot${a.status==='running'?' run':''}" style="background:${a.color}"></span><span class="ah-name" style="color:${a.color}">${esc(a.name)}</span><span class="ah-sub">${esc(a.sub||'')}</span><span class="ah-sp"></span>${a.elapsed?`<span class="ah-dur">${a.elapsed}</span>`:''}<span class="ah-stat ${statCls}">${a.status}</span>`;
+  agentView.appendChild(hdr);
+
+  if(a.tools.length){
+    const sh=document.createElement('div');sh.className='sec-head';sh.textContent='Tools';agentView.appendChild(sh);
+    const ts=document.createElement('div');ts.className='tool-scroll';
+    const ti=document.createElement('div');ti.className='tool-inner';
+    a.tools.forEach(t=>{
+      const ic=t.state==='done'?'✓':t.state==='error'?'✗':'●';
+      const cls=t.state==='done'?'tc-d':t.state==='error'?'tc-e':'tc-r';
+      const card=document.createElement('div');card.className='tool-card fi';
+      card.innerHTML=`<span class="tc-name" style="color:${a.color}">${esc(t.name)}</span><span class="tc-args">${esc(t.args)}</span><span class="tc-st ${cls}">${ic}</span>`;
+      ti.appendChild(card);
+    });
+    ts.appendChild(ti);agentView.appendChild(ts);
+  }
+
+  if(a.children.length){
+    const sh=document.createElement('div');sh.className='sec-head';sh.textContent='Sub-agents';agentView.appendChild(sh);
+    const ci=document.createElement('div');ci.style.padding='0 20px';
+    a.children.forEach(cid=>{
+      const ca=agents[cid];if(!ca)return;
+      const card=document.createElement('div');card.className='sub-card si';
+      card.innerHTML=`<span class="sc-dot${ca.status==='running'?' run':''}" style="background:${ca.color}"></span><span class="sc-name" style="color:${ca.color}">${esc(ca.name)}</span><span class="sc-sub">${esc(ca.sub||'')}</span><span class="sc-sp"></span>${ca.elapsed?`<span class="sc-dur">${ca.elapsed}</span>`:''}<span class="sc-arrow">→</span>`;
+      card.addEventListener('click',()=>renderAgent(cid));
+      ci.appendChild(card);
+    });
+    agentView.appendChild(ci);
+  }
+}
+
+function focusCurrent(){if(focusStack.length)renderAgent(focusStack[focusStack.length-1]);}
+function addTool(id,name,args,state){agents[id].tools.push({name,args,state});focusCurrent();}
+function endA(id,elapsed){agents[id].elapsed=elapsed;agents[id].status='done';focusCurrent();}
+function addMsg(html){const d=document.createElement('div');d.className='msg-text fi';d.innerHTML=html;msgArea.appendChild(d);msgArea.scrollTop=msgArea.scrollHeight;}
+function addErr(msg){const d=document.createElement('div');d.className='err-text fi';d.textContent='⚠ '+msg;msgArea.appendChild(d);}
+function addSkill(s){const d=document.createElement('div');d.className='skill-text fi';d.textContent='⚡ '+s;msgArea.appendChild(d);}
+
+const EVENTS=[
+  {ms:500,fn(){addMsg('<b style="color:var(--lav)">You:</b> Refactor the auth module to use async/await, then run the tests.');}},
+  {ms:300,fn(){registerAgent('r1','agent','refactor-auth');renderAgent('r1');}},
+  {ms:280,fn(){addTool('r1','read','"src/auth/mod.rs"','done');}},
+  {ms:260,fn(){addTool('r1','edit','"src/auth/mod.rs"','done');}},
+  {ms:250,fn(){registerAgent('r2','subagent','run-tests','r1');renderAgent('r2');}},
+  {ms:350,fn(){addTool('r2','bash','"cargo test --package auth"','done');}},
+  {ms:200,fn(){endA('r2','3.8s');renderAgent('r1');}},
+  {ms:150,fn(){endA('r1','11.2s');}},
+  {ms:350,fn(){addMsg('Done. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){addMsg('<b style="color:var(--lav)">You:</b> Add rate limiting and deploy to staging.');}},
+  {ms:280,fn(){registerAgent('r3','agent','add-rate-limit');renderAgent('r3');}},
+  {ms:280,fn(){addTool('r3','write','"src/middleware/rate_limit.rs"','done');}},
+  {ms:200,fn(){registerAgent('r4','subagent','write-tests','r3');renderAgent('r4');}},
+  {ms:300,fn(){addTool('r4','bash','"cargo test rate_limit"','done');}},
+  {ms:150,fn(){endA('r4','5.1s');renderAgent('r3');}},
+  {ms:150,fn(){registerAgent('r5','subagent','deploy-staging','r3');renderAgent('r5');}},
+  {ms:400,fn(){addTool('r5','bash','"./scripts/deploy.sh staging"','done');}},
+  {ms:200,fn(){endA('r5','18.4s');renderAgent('r3');}},
+  {ms:150,fn(){endA('r3','32.1s');}},
+  {ms:350,fn(){addMsg('Rate limiting added. Deployed to staging.');}},
+  {ms:700,fn(){addMsg('<b style="color:var(--lav)">You:</b> Audit all API endpoints for missing auth guards.');}},
+  {ms:280,fn(){registerAgent('r6','agent','audit-auth-guards');renderAgent('r6');}},
+  {ms:300,fn(){addTool('r6','find','"src/web/routes" *.rs','done');}},
+  {ms:300,fn(){addTool('r6','bash','"rg -n auth_required src/web"','running');}},
+  {ms:400,fn(){addSkill('/skill:security-audit OWASP checklist');addTool('r6','skill','/skill:security-audit','done');}},
+  {ms:350,fn(){addTool('r6','grep','"inject|sql|xss" routes/','done');}},
+  {ms:300,fn(){addErr('Rate limit hit on zai API — retrying');addTool('r6','api','retry #1','running');}},
+  {ms:500,fn(){addTool('r6','api','retry #1','done');}},
+  {ms:200,fn(){endA('r6','22.7s');}},
+  {ms:300,fn(){addMsg('Found 3 endpoints missing <code>#[auth_required]</code>.');}},
+];
+let ei=0;function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.sbtn');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,100)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;addMsg('<b style="color:var(--lav)">You:</b> '+esc(t));ta.value='';ta.style.height='auto';});
+</script>
+</body>
+</html>

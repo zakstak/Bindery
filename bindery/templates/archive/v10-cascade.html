@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Cascade</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500&family=Outfit:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0a12;--bg1:#110f19;--bg2:#16141f;--bg3:#1e1b2a;--border:#28243a;--border2:#342f4e;--text:#e0dced;--text2:#908ca5;--text3:#5c5878;--lav:#8b5cf6;--rose:#e879f9;--green:#34d399;--red:#fb7185;--amber:#fbbf24;--r:3px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);font-size:12px;line-height:1.5;display:flex;flex-direction:column}
+
+.topbar{height:34px;min-height:34px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.tb-logo{font-size:15px;font-weight:700;color:var(--lav)}
+.tb-sep{width:1px;height:14px;background:var(--border2)}
+.tb-label{font-size:10px;color:var(--text2)}
+.tb-spacer{flex:1}
+.tb-tag{font-size:9px;color:var(--text3);font-family:'Fira Code',monospace;background:var(--bg3);padding:1px 6px;border-radius:99px;border:1px solid var(--border2)}
+
+/* Unified timeline stream */
+.timeline-scroll{flex:1;overflow-y:auto;padding:6px 0}
+.timeline-inner{padding:0 16px;display:flex;flex-direction:column;gap:0}
+
+.tl-row{display:flex;align-items:flex-start;gap:0;min-height:24px;position:relative}
+.tl-ts{width:70px;flex-shrink:0;font-family:'Fira Code',monospace;font-size:9px;color:var(--text3);padding-top:3px;text-align:right;padding-right:12px;user-select:none}
+.tl-gutter{width:24px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;position:relative}
+.tl-dot-wrap{width:10px;height:10px;display:flex;align-items:center;justify-content:center;margin-top:5px;position:relative;z-index:1}
+.tl-dot{width:6px;height:6px;border-radius:50%}
+.tl-line{position:absolute;top:15px;bottom:-2px;width:1px;background:var(--border)}
+.tl-content{flex:1;min-width:0;padding:2px 0 4px}
+
+/* Event types */
+.ev-user{font-size:12px;font-weight:500;color:var(--text);padding:4px 10px;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.15);border-radius:var(--r);display:inline-block;max-width:100%}
+.ev-agent{font-family:'Fira Code',monospace;font-size:10px;font-weight:500}
+.ev-tool{font-family:'Fira Code',monospace;font-size:10px;color:var(--text2);display:flex;align-items:center;gap:4px;padding:1px 0}
+.ev-tool .tn{flex-shrink:0}.ev-tool .ta{color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ev-tool .ts-ok{color:var(--green);font-size:9px}.ev-tool .ts-err{color:var(--red);font-size:9px}.ev-tool .ts-run{color:var(--amber);font-size:9px}
+.ev-think{font-size:10px;color:var(--text3);font-style:italic;font-family:'Fira Code',monospace}
+.ev-ai{font-size:12px;line-height:1.55}
+.ev-ai code{font-family:'Fira Code',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--border);padding:1px 3px;border-radius:2px;color:var(--lav)}
+.ev-err{font-size:10px;color:var(--red)}
+.ev-ok{font-size:10px;color:var(--green)}
+.ev-skill{font-size:10px;color:var(--amber);font-family:'Fira Code',monospace}
+.ev-sep{font-size:9px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:4px 0}
+
+/* Nesting indent */
+.nest-1 .tl-gutter{padding-left:14px}
+.nest-2 .tl-gutter{padding-left:28px}
+
+.input-bar{border-top:1px solid var(--border);background:var(--bg1);padding:8px 16px;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+textarea.pinput{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:6px 10px;font-size:12px;font-family:'Outfit',sans-serif;outline:none;resize:none;min-height:32px;max-height:100px;line-height:1.5;transition:.15s}
+textarea.pinput:focus{border-color:var(--lav)}
+textarea.pinput::placeholder{color:var(--text3)}
+button.sbtn{background:var(--lav);border:none;border-radius:var(--r);color:#fff;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+button.sbtn:hover{filter:brightness(1.15)}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .15s ease}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tb-logo">Bindery</span><div class="tb-sep"></div>
+  <span class="tb-label">Auth Module Refactor</span><span class="tb-spacer"></span>
+  <span class="tb-tag">glm-4.5-flash</span>
+</div>
+
+<div class="timeline-scroll"><div class="timeline-inner" id="tl"></div></div>
+
+<div class="input-bar"><div class="input-row">
+  <textarea class="pinput" placeholder="Message…" rows="1"></textarea>
+  <button class="sbtn">Send</button>
+</div></div>
+
+<script>
+const PAL=['#8b5cf6','#34d399','#e879f9','#fbbf24','#fb7185','#38bdf8'];
+let pi=0;const rc={};
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function sb(){document.querySelector('.timeline-scroll').scrollTop=document.querySelector('.timeline-scroll').scrollHeight;}
+function ts(){const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');}
+
+const tl=document.getElementById('tl');
+
+function row(dotColor,contentHtml,nest,noLine){
+  const r=document.createElement('div');
+  r.className='tl-row fi'+(nest?' nest-'+nest:'');
+  r.innerHTML=`<div class="tl-ts">${ts()}</div><div class="tl-gutter"><div class="tl-dot-wrap"><div class="tl-dot" style="background:${dotColor}"></div></div>${noLine?'':'<div class="tl-line"></div>'}</div><div class="tl-content">${contentHtml}</div>`;
+  tl.appendChild(r);sb();
+}
+
+function sepRow(text){row(var_='var(--text3)',`<div class="ev-sep">${esc(text)}</div>`,0,true);}
+function userRow(text){row('var(--lav)',`<div class="ev-user">${esc(text)}</div>`);}
+function agentRow(id,name,sub,nest){const c=clr(id);row(c,`<div class="ev-agent" style="color:${c}">▶ ${esc(name)} <span style="color:var(--text3)">${esc(sub||'')}</span></div>`,nest);}
+function endRow(id,name,elapsed,nest){row(rc[id]||'var(--text3)',`<div class="ev-agent" style="color:${rc[id]}">■ ${esc(name)} <span style="color:var(--text3)">${esc(elapsed)}</span></div>`,nest);}
+function toolRow(id,name,args,state,nest){
+  const ic=state==='done'?'<span class="ts-ok">✓</span>':state==='error'?'<span class="ts-err">✗</span>':'<span class="ts-run">●</span>';
+  row(rc[id]||'var(--text3)',`<div class="ev-tool"><span class="tn" style="color:${rc[id]}">${esc(name)}</span><span class="ta">${esc(args)}</span>${ic}</div>`,nest);
+}
+function thinkRow(who,text){row('var(--text3)',`<div class="ev-think">💭 ${esc(who)}: ${esc(text)}</div>`);}
+function aiRow(html){row('var(--lav)',`<div class="ev-ai">${html}</div>`,0,true);}
+function errRow(msg){row('var(--red)',`<div class="ev-err">⚠ ${esc(msg)}</div>`);}
+function okRow(msg){row('var(--green)',`<div class="ev-ok">✓ ${esc(msg)}</div>`,0,true);}
+function skillRow(name,desc){row('var(--amber)',`<div class="ev-skill">⚡ ${esc(name)} ${esc(desc)}</div>`);}
+
+// Fix: use string not variable for sepRow
+function sepRow(text){
+  const r=document.createElement('div');
+  r.className='tl-row fi';
+  r.innerHTML=`<div class="tl-ts">${ts()}</div><div class="tl-gutter"><div class="tl-dot-wrap"><div class="tl-dot" style="background:var(--text3)"></div></div></div><div class="tl-content"><div class="ev-sep">${esc(text)}</div></div>`;
+  tl.appendChild(r);sb();
+}
+
+const EVENTS=[
+  {ms:500,fn(){sepRow('TURN 1');userRow('Refactor the auth module to use async/await, then run the tests.');}},
+  {ms:300,fn(){agentRow('r1','agent','refactor-auth',0);}},
+  {ms:280,fn(){toolRow('r1','read','"src/auth/mod.rs"','done',1);}},
+  {ms:260,fn(){toolRow('r1','edit','"src/auth/mod.rs"','done',1);}},
+  {ms:250,fn(){agentRow('r2','subagent','run-tests',1);}},
+  {ms:350,fn(){toolRow('r2','bash','"cargo test --package auth"','done',2);}},
+  {ms:200,fn(){endRow('r2','subagent','3.8s',1);}},
+  {ms:150,fn(){endRow('r1','agent','11.2s',0);}},
+  {ms:350,fn(){aiRow('Done. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){sepRow('TURN 2');userRow('Add rate limiting and deploy to staging.');}},
+  {ms:280,fn(){agentRow('r3','agent','add-rate-limit',0);}},
+  {ms:280,fn(){toolRow('r3','write','"src/middleware/rate_limit.rs"','done',1);}},
+  {ms:200,fn(){agentRow('r4','subagent','write-tests',1);}},
+  {ms:300,fn(){toolRow('r4','bash','"cargo test rate_limit"','done',2);}},
+  {ms:150,fn(){endRow('r4','subagent','5.1s',1);}},
+  {ms:150,fn(){agentRow('r5','subagent','deploy-staging',1);}},
+  {ms:400,fn(){toolRow('r5','bash','"./scripts/deploy.sh staging"','done',2);}},
+  {ms:200,fn(){endRow('r5','subagent','18.4s',1);}},
+  {ms:150,fn(){endRow('r3','agent','32.1s',0);}},
+  {ms:350,fn(){aiRow('Rate limiting added. Deployed to staging.');}},
+  {ms:700,fn(){sepRow('TURN 3');userRow('Audit all API endpoints for missing auth guards.');}},
+  {ms:280,fn(){agentRow('r6','agent','audit-auth-guards',0);}},
+  {ms:300,fn(){toolRow('r6','find','"src/web/routes" *.rs','done',1);}},
+  {ms:300,fn(){toolRow('r6','bash','"rg -n auth_required src/web"','running',1);}},
+  {ms:800,fn(){thinkRow('agent/r6','Looking at 12 GET routes, 8 POST routes.');}},
+  {ms:400,fn(){skillRow('/skill:security-audit','OWASP checklist');toolRow('r6','skill','/skill:security-audit','done',1);}},
+  {ms:350,fn(){toolRow('r6','grep','"inject|sql|xss" routes/','done',1);}},
+  {ms:300,fn(){errRow('Rate limit hit on zai API — retrying in 2s');toolRow('r6','api','retry #1','running',1);}},
+  {ms:500,fn(){toolRow('r6','api','retry #1','done',1);}},
+  {ms:200,fn(){endRow('r6','agent','22.7s',0);}},
+  {ms:300,fn(){okRow('Audit complete — 3 endpoints missing auth guards');aiRow('Found 3 endpoints missing <code>#[auth_required]</code>.');}},
+];
+let ei=0;function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.sbtn');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,100)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;userRow(t);ta.value='';ta.style.height='auto';});
+</script>
+</body>
+</html>

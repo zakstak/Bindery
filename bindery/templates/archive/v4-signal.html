@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Signal</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#0c1117;--bg1:#101820;--bg2:#151e28;--bg3:#1c2733;
+  --border:#243040;--border2:#304050;
+  --text:#c8d4e0;--text2:#7a8da0;--text3:#4a5d70;
+  --teal:#2dd4bf;--teal-dim:rgba(45,212,191,.1);
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--blue:#3b82f6;
+  --r:4px;
+}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:'Source Sans 3',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;display:flex;flex-direction:column}
+
+/* ═══ Top bar — dense ops bar ═══ */
+.topbar{height:36px;min-height:36px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;font-size:12px}
+.tb-logo{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--teal);letter-spacing:.05em}
+.tb-sep{width:1px;height:16px;background:var(--border2)}
+.tb-label{color:var(--text3);font-family:'JetBrains Mono',monospace;font-size:11px}
+.tb-spacer{flex:1}
+.tb-stat{display:flex;align-items:center;gap:5px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3)}
+.tb-stat .val{color:var(--text2)}
+.tb-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);flex-shrink:0}
+.tb-dot.run{background:var(--amber);box-shadow:0 0 8px var(--amber);animation:pulse 1.2s infinite}
+.tb-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══ Main split ═══ */
+.main-split{flex:1;display:flex;min-height:0}
+
+/* ═══ Left — timeline gutter ═══ */
+.timeline{width:200px;min-width:200px;background:var(--bg1);border-right:1px solid var(--border);display:flex;flex-direction:column}
+.tl-head{padding:8px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);border-bottom:1px solid var(--border);font-family:'JetBrains Mono',monospace}
+.tl-list{flex:1;overflow-y:auto;padding:4px 0}
+.tl-item{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);transition:.1s;border-left:2px solid transparent}
+.tl-item:hover{background:var(--bg2)}
+.tl-item.act{background:var(--bg2);border-left-color:var(--teal)}
+.tl-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.tl-dot.run{animation:pulse 1.2s infinite}
+.tl-lbl{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tl-dur{font-size:9px;color:var(--text3);flex-shrink:0}
+.tl-item[data-d="1"]{padding-left:24px}
+.tl-item[data-d="2"]{padding-left:36px}
+
+/* ═══ Center — chat stream ═══ */
+.stream{flex:1;display:flex;flex-direction:column;min-width:0}
+.stream-scroll{flex:1;overflow-y:auto;padding:10px 0 6px}
+.stream-inner{max-width:100%;margin:0;padding:0 14px;display:flex;flex-direction:column;gap:6px;width:100%}
+
+/* compact turn separator */
+.turn-sep{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);padding:4px 0;display:flex;align-items:center;gap:8px}
+.turn-sep::after{content:'';flex:1;border-top:1px dashed var(--border)}
+
+.msg-user{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--r);padding:6px 10px;font-size:12px;line-height:1.5}
+.msg-ai{padding:2px 0;line-height:1.6;font-size:13px}
+.msg-ai p+p{margin-top:6px}
+.msg-ai code{font-family:'JetBrains Mono',monospace;font-size:11px;background:var(--bg3);border:1px solid var(--border);padding:1px 4px;border-radius:2px;color:var(--teal)}
+
+/* inline run — compact */
+.run-inline{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.run-head{display:flex;align-items:center;gap:6px;padding:5px 10px;cursor:pointer;user-select:none;font-size:12px;transition:.1s}
+.run-head:hover{background:var(--bg2)}
+.run-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.run-dot.run{animation:pulse 1.2s infinite}
+.run-name{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600}
+.run-sub{font-size:11px;color:var(--text3)}
+.run-sp{flex:1}
+.run-time{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text3)}
+.run-chev{font-size:8px;color:var(--text3);transition:.2s}
+.run-inline.col .run-chev{transform:rotate(-90deg)}
+.run-body{border-top:1px solid var(--border)}
+.run-inline.col .run-body{display:none}
+.nested{margin:3px 8px 3px 12px;border-left:1px solid var(--border2);padding-left:8px}
+
+.tool-row{display:flex;align-items:center;gap:6px;padding:3px 10px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);transition:.1s}
+.tool-row:hover{background:var(--bg2)}
+.tool-name{flex-shrink:0}
+.tool-args{color:var(--text3);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-st{flex-shrink:0;font-size:9px}
+.st-d{color:var(--green)}.st-r{color:var(--amber);animation:pulse 1.2s infinite}.st-e{color:var(--red)}
+
+.think-bl{margin:3px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.think-hd{display:flex;align-items:center;gap:5px;padding:4px 8px;cursor:pointer;font-size:10px;color:var(--text3);user-select:none;font-family:'JetBrains Mono',monospace}
+.think-hd:hover{background:var(--bg3)}
+.think-bd{padding:4px 8px;font-size:10px;color:var(--text3);line-height:1.5;white-space:pre-wrap;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border)}
+.think-bl.col .think-bd{display:none}
+
+.skill-row{display:flex;align-items:center;gap:6px;padding:3px 10px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text2);background:var(--teal-dim)}
+.skill-badge{background:var(--teal);color:#000;font-size:8px;padding:1px 5px;border-radius:99px;font-weight:700}
+.err-row{display:flex;align-items:center;gap:6px;padding:3px 10px;font-size:10px;color:var(--red);background:rgba(239,68,68,.05)}
+.notif-row{display:flex;align-items:center;gap:6px;padding:3px 10px;font-size:10px;color:var(--green)}
+
+/* ═══ Right — status panel ═══ */
+.status-panel{width:220px;min-width:220px;background:var(--bg1);border-left:1px solid var(--border);display:flex;flex-direction:column;font-family:'JetBrains Mono',monospace}
+.sp-head{padding:8px 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);border-bottom:1px solid var(--border)}
+.sp-section{padding:10px 12px;border-bottom:1px solid var(--border)}
+.sp-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.sp-val{font-size:12px;color:var(--text2)}
+.sp-val.hi{color:var(--teal)}
+.sp-meter{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px;overflow:hidden}
+.sp-meter-fill{height:100%;border-radius:2px;transition:width .5s}
+.sp-log{flex:1;overflow-y:auto;padding:6px 0}
+.sp-log-item{padding:2px 12px;font-size:9px;color:var(--text3)}
+.sp-log-item .ts{color:var(--text3);margin-right:6px}
+
+/* ═══ Input ═══ */
+.input-bar{border-top:1px solid var(--border);background:var(--bg1);padding:8px 14px;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end;max-width:100%;margin:0}
+textarea.pinput{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:7px 10px;font-size:12px;font-family:'Source Sans 3',sans-serif;outline:none;resize:none;min-height:34px;max-height:120px;line-height:1.5;transition:border-color .15s}
+textarea.pinput:focus{border-color:var(--teal)}
+textarea.pinput::placeholder{color:var(--text3)}
+button.sbtn{background:var(--teal);border:none;border-radius:var(--r);color:#000;padding:7px 16px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Source Sans 3',sans-serif;flex-shrink:0;transition:.15s}
+button.sbtn:hover{filter:brightness(1.1)}
+
+.typing span{display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--text3);margin:0 2px;animation:dotbounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes dotbounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-4px)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .18s ease}
+
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tb-logo">BINDERY</span>
+  <div class="tb-sep"></div>
+  <span class="tb-label">Auth Module Refactor</span>
+  <div class="tb-sep"></div>
+  <span class="tb-label">glm-4.5-flash</span>
+  <span class="tb-spacer"></span>
+  <div class="tb-stat">TOOLS <span class="val" id="tool-ct">0</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-stat">AGENTS <span class="val" id="agent-ct">0</span></div>
+  <div class="tb-sep"></div>
+  <div class="tb-dot" id="gdot"></div>
+</div>
+
+<div class="main-split">
+  <div class="timeline">
+    <div class="tl-head">Timeline</div>
+    <div class="tl-list" id="tl-list"></div>
+  </div>
+  <div class="stream">
+    <div class="stream-scroll"><div class="stream-inner" id="chat"></div></div>
+    <div class="input-bar"><div class="input-row">
+      <textarea class="pinput" placeholder="Message…" rows="1"></textarea>
+      <button class="sbtn">Send</button>
+    </div></div>
+  </div>
+  <div class="status-panel">
+    <div class="sp-head">Status</div>
+    <div class="sp-section"><div class="sp-label">Session</div><div class="sp-val">auth-refactor-01</div></div>
+    <div class="sp-section"><div class="sp-label">Model</div><div class="sp-val hi">glm-4.5-flash</div></div>
+    <div class="sp-section">
+      <div class="sp-label">Context</div><div class="sp-val" id="ctx-val">12%</div>
+      <div class="sp-meter"><div class="sp-meter-fill" id="ctx-fill" style="width:12%;background:var(--teal)"></div></div>
+    </div>
+    <div class="sp-section"><div class="sp-label">Tokens</div><div class="sp-val" id="tok-val">1,240 in / 890 out</div></div>
+    <div class="sp-head">Event Log</div>
+    <div class="sp-log" id="sp-log"></div>
+  </div>
+</div>
+
+<script>
+const PAL=['#2dd4bf','#22c55e','#a78bfa','#f59e0b','#ef4444','#3b82f6','#84cc16','#f97316'];
+let pi=0;const rc={};
+let toolCount=0,agentCount=0;
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e;}
+function sb(){document.querySelector('.stream-scroll').scrollTop=document.querySelector('.stream-scroll').scrollHeight;}
+
+const chat=document.getElementById('chat');
+const tlList=document.getElementById('tl-list');
+const gdot=document.getElementById('gdot');
+const spLog=document.getElementById('sp-log');
+const runs={};
+
+function logEvt(msg){
+  const now=new Date();const ts=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  const item=el('div','sp-log-item',`<span class="ts">${ts}</span>${esc(msg)}`);
+  spLog.appendChild(item);spLog.scrollTop=spLog.scrollHeight;
+}
+function updCtx(pct){
+  document.getElementById('ctx-val').textContent=pct+'%';
+  document.getElementById('ctx-fill').style.width=pct+'%';
+  if(pct>70)document.getElementById('ctx-fill').style.background='var(--amber)';
+}
+function updTok(i,o){document.getElementById('tok-val').textContent=i.toLocaleString()+' in / '+o.toLocaleString()+' out';}
+
+function tlItem(id,name,sub,depth){
+  const c=clr(id);agentCount++;document.getElementById('agent-ct').textContent=agentCount;
+  const n=el('div','tl-item'+(depth===0?' act':''),`<span class="tl-dot run" style="background:${c}"></span><span class="tl-lbl">${esc(name)}${sub?' / '+esc(sub):''}</span><span class="tl-dur" id="td-${id}"></span>`);
+  n.dataset.d=depth;n.dataset.id=id;
+  tlList.appendChild(n);
+}
+function endTl(id,elapsed){
+  const n=tlList.querySelector(`[data-id="${id}"]`);if(!n)return;
+  n.querySelector('.tl-dot')?.classList.remove('run');
+  const t=document.getElementById('td-'+id);if(t&&elapsed)t.textContent=elapsed;
+}
+
+function turnSep(text){chat.appendChild(el('div','turn-sep fi',`<span>${text}</span>`));}
+function userMsg(text){chat.appendChild(el('div','msg-user fi',esc(text)));sb();}
+function aiMsg(html){const m=el('div','msg-ai fi');m.innerHTML=html;chat.appendChild(m);sb();}
+function runBlock(id,name,sub,parentEl){
+  const c=clr(id);
+  const b=el('div','run-inline fi');b.id='rb-'+id;
+  b.innerHTML=`<div class="run-head"><span class="run-dot run" style="background:${c}"></span><span class="run-name" style="color:${c}">${esc(name)}</span>${sub?`<span class="run-sub">${esc(sub)}</span>`:''}<span class="run-sp"></span><span class="run-time" id="rt-${id}"></span><span class="run-chev">▾</span></div><div class="run-body" id="rbody-${id}"></div>`;
+  b.querySelector('.run-head').addEventListener('click',()=>b.classList.toggle('col'));
+  if(parentEl){const w=el('div','nested');w.appendChild(b);parentEl.appendChild(w);}
+  else chat.appendChild(b);
+  sb();return document.getElementById('rbody-'+id);
+}
+function endRun(id,elapsed){const b=document.getElementById('rb-'+id);if(!b)return;b.querySelector('.run-dot')?.classList.remove('run');const t=document.getElementById('rt-'+id);if(t&&elapsed)t.textContent=elapsed;logEvt(`${id} done ${elapsed}`);}
+function tool(id,name,args,state){
+  const body=runs[id]?.body;if(!body)return;
+  toolCount++;document.getElementById('tool-ct').textContent=toolCount;
+  const ic=state==='done'?'✓':state==='error'?'✗':'●';
+  const cls=state==='done'?'st-d':state==='error'?'st-e':'st-r';
+  body.appendChild(el('div','tool-row fi',`<span class="tool-name" style="color:${clr(id)}">${esc(name)}</span><span class="tool-args">${esc(args)}</span><span class="tool-st ${cls}">${ic}</span>`));sb();
+  logEvt(`tool:${name} ${state}`);
+}
+function think(who,text){const b=el('div','think-bl col fi');b.innerHTML=`<div class="think-hd"><span>▾</span> thinking… <span style="flex:1"></span><span>${esc(who)}</span></div><div class="think-bd">${esc(text)}</div>`;b.querySelector('.think-hd').addEventListener('click',()=>b.classList.toggle('col'));chat.appendChild(b);sb();}
+function skillR(name,desc){chat.appendChild(el('div','skill-row fi',`<span class="skill-badge">skill</span>${esc(name)} <span style="color:var(--text3)">${esc(desc)}</span>`));sb();}
+function errR(msg){chat.appendChild(el('div','err-row fi',`⚠ ${esc(msg)}`));sb();logEvt('ERR: '+msg);}
+function notifR(msg){chat.appendChild(el('div','notif-row fi',`✓ ${esc(msg)}`));sb();}
+function typing(){const t=el('div','msg-ai fi typing-ind','<span class="typing"><span></span><span></span><span></span></span>');chat.appendChild(t);sb();}
+function rmTyping(){document.querySelectorAll('.typing-ind').forEach(e=>e.remove());}
+
+const EVENTS=[
+  {ms:500,fn(){turnSep('turn 1');userMsg('Refactor the auth module to use async/await, then run the tests.');gdot.className='tb-dot run';updCtx(12);}},
+  {ms:300,fn(){tlItem('r1','agent','refactor-auth',0);runs['r1']={body:runBlock('r1','agent','refactor-auth',null)};}},
+  {ms:280,fn(){tool('r1','read','"src/auth/mod.rs"','done');updCtx(18);}},
+  {ms:260,fn(){tool('r1','edit','"src/auth/mod.rs"','done');updTok(2400,1200);}},
+  {ms:250,fn(){tlItem('r2','subagent','run-tests',1);runs['r2']={body:runBlock('r2','subagent','run-tests',runs['r1'].body)};}},
+  {ms:350,fn(){tool('r2','bash','"cargo test --package auth"','done');}},
+  {ms:200,fn(){endRun('r2','3.8s');endTl('r2','3.8s');}},
+  {ms:150,fn(){endRun('r1','11.2s');endTl('r1','11.2s');gdot.className='tb-dot live';updCtx(24);updTok(3100,1800);}},
+  {ms:350,fn(){rmTyping();aiMsg('Done. Converted all async calls in <code>auth/mod.rs</code> and <code>auth/token.rs</code>. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){turnSep('turn 2');userMsg('Add rate limiting and deploy to staging.');gdot.className='tb-dot run';}},
+  {ms:280,fn(){tlItem('r3','agent','add-rate-limit',0);runs['r3']={body:runBlock('r3','agent','add-rate-limit',null)};}},
+  {ms:280,fn(){tool('r3','write','"src/middleware/rate_limit.rs"','done');updCtx(32);}},
+  {ms:200,fn(){tlItem('r4','subagent','write-tests',1);runs['r4']={body:runBlock('r4','subagent','write-tests',runs['r3'].body)};}},
+  {ms:300,fn(){tool('r4','bash','"cargo test rate_limit"','done');}},
+  {ms:150,fn(){endRun('r4','5.1s');endTl('r4','5.1s');}},
+  {ms:150,fn(){tlItem('r5','subagent','deploy-staging',2);runs['r5']={body:runBlock('r5','subagent','deploy-staging',runs['r4'].body)};}},
+  {ms:400,fn(){tool('r5','bash','"./scripts/deploy.sh staging"','done');}},
+  {ms:200,fn(){endRun('r5','18.4s');endTl('r5','18.4s');}},
+  {ms:150,fn(){endRun('r3','32.1s');endTl('r3','32.1s');gdot.className='tb-dot live';updCtx(48);updTok(6200,3400);}},
+  {ms:350,fn(){rmTyping();aiMsg('Rate limiting added. Created <code>src/middleware/rate_limit.rs</code>, registered as tower layer. Tests passed. Deployed to staging — smoke tests passed.');}},
+  {ms:700,fn(){turnSep('turn 3');userMsg('Audit all API endpoints for missing auth guards.');gdot.className='tb-dot run';}},
+  {ms:280,fn(){tlItem('r6','agent','audit-auth-guards',0);runs['r6']={body:runBlock('r6','agent','audit-auth-guards',null)};}},
+  {ms:300,fn(){tool('r6','find','"src/web/routes" *.rs','done');}},
+  {ms:300,fn(){tool('r6','bash','"rg -n auth_required src/web"','running');updCtx(55);}},
+  {ms:800,fn(){rmTyping();think('agent/r6','Looking at 12 GET routes, 8 POST routes. Grepping for auth_required attribute.');}},
+  {ms:400,fn(){skillR('/skill:security-audit','OWASP checklist on routes');tool('r6','skill','/skill:security-audit','done');}},
+  {ms:350,fn(){tool('r6','grep','"inject|sql|xss" routes/','done');}},
+  {ms:300,fn(){errR('Rate limit hit on zai API — retrying in 2s');tool('r6','api','retry #1','running');}},
+  {ms:500,fn(){tool('r6','api','retry #1','done');updCtx(62);updTok(9800,5200);}},
+  {ms:200,fn(){endRun('r6','22.7s');endTl('r6','22.7s');gdot.className='tb-dot live';}},
+  {ms:300,fn(){notifR('Audit complete — 3 endpoints missing auth guards');rmTyping();aiMsg('Found 3 endpoints in <code>src/web/routes/admin.rs</code> missing <code>#[auth_required]</code>: <code>GET /admin/users</code>, <code>POST /admin/ban</code>, <code>DELETE /admin/session</code>.');typing();}},
+];
+
+let ei=0;
+function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.sbtn');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,120)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;rmTyping();userMsg(t);ta.value='';ta.style.height='auto';setTimeout(()=>typing(),150);});
+</script>
+</body>
+</html>
