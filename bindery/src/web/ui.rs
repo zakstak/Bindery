@@ -5,7 +5,9 @@ use axum::{response::Html, routing::get, Router};
 use crate::AppConfig;
 
 pub fn router(_config: AppConfig) -> Result<Router> {
-    Ok(Router::new().route("/", get(index)))
+    Ok(Router::new()
+        .route("/", get(index))
+        .route("/mock", get(index)))
 }
 
 #[derive(Template)]
