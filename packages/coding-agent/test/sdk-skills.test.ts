@@ -57,9 +57,11 @@ This is a test skill.
 			getThemes: () => ({ themes: [], diagnostics: [] }),
 			getAgentsFiles: () => ({ agentsFiles: [] }),
 			getSystemPrompt: () => undefined,
+			getProjectSystemPrompt: () => ({ path: join(tempDir, ".pi", "SYSTEM.md"), content: "" }),
 			getAppendSystemPrompt: () => [],
 			getPathMetadata: () => new Map(),
 			extendResources: () => {},
+			reloadPromptSources: () => {},
 			reload: async () => {},
 		};
 
@@ -91,9 +93,11 @@ This is a test skill.
 			getThemes: () => ({ themes: [], diagnostics: [] }),
 			getAgentsFiles: () => ({ agentsFiles: [] }),
 			getSystemPrompt: () => undefined,
+			getProjectSystemPrompt: () => ({ path: join(tempDir, ".pi", "SYSTEM.md"), content: "" }),
 			getAppendSystemPrompt: () => [],
 			getPathMetadata: () => new Map(),
 			extendResources: () => {},
+			reloadPromptSources: () => {},
 			reload: async () => {},
 		};
 
