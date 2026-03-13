@@ -83,6 +83,19 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		return { id, type: "response", command, success: false, error: message };
 	};
 
+	const taskCreationBusyError = (): RpcResponse =>
+		error(undefined, "start_task_session", "Wait for the current response to finish before creating a task session.");
+	const taskCreationCompactionError = (): RpcResponse =>
+		error(undefined, "start_task_session", "Wait for compaction to finish before creating a task session.");
+	const taskCompletionBusyError = (): RpcResponse =>
+		error(
+			undefined,
+			"complete_task_session",
+			"Wait for the current response to finish before recording the task result.",
+		);
+	const taskCompletionCompactionError = (): RpcResponse =>
+		error(undefined, "complete_task_session", "Wait for compaction to finish before recording the task result.");
+
 	// Pending extension UI requests waiting for response
 	const pendingExtensionRequests = new Map<
 		string,
@@ -419,6 +432,54 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				const options = command.parentSession ? { parentSession: command.parentSession } : undefined;
 				const cancelled = !(await session.newSession(options));
 				return success(id, "new_session", { cancelled });
+			}
+
+			case "start_task_session": {
+				if (session.isStreaming) {
+					return taskCreationBusyError();
+				}
+				if (session.isCompacting) {
+					return taskCreationCompactionError();
+				}
+
+				const result = await session.startTaskSession({
+					goal: command.goal,
+					constraints: command.constraints,
+					doneDefinition: command.doneDefinition,
+					notes: command.notes,
+				});
+				return success(id, "start_task_session", result);
+			}
+
+			case "complete_task_session": {
+				if (session.isStreaming) {
+					return taskCompletionBusyError();
+				}
+				if (session.isCompacting) {
+					return taskCompletionCompactionError();
+				}
+
+				if (command.resumeParent === false) {
+					const result = session.completeTaskSession({
+						summary: command.summary,
+						openRisks: command.openRisks,
+						nextStep: command.nextStep,
+						notes: command.notes,
+					});
+					return success(id, "complete_task_session", {
+						result,
+						resumedParent: false,
+						parentSessionFile: result.parentSessionFile,
+					});
+				}
+
+				const completion = await session.completeTaskSessionAndResumeParent({
+					summary: command.summary,
+					openRisks: command.openRisks,
+					nextStep: command.nextStep,
+					notes: command.notes,
+				});
+				return success(id, "complete_task_session", completion);
 			}
 
 			// =================================================================

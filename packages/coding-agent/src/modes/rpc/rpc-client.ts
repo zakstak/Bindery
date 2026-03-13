@@ -10,6 +10,7 @@ import type { ImageContent } from "@mariozechner/pi-ai";
 import type { SessionStats } from "../../core/agent-session.js";
 import type { BashResult } from "../../core/bash-executor.js";
 import type { CompactionResult } from "../../core/compaction/index.js";
+import type { TaskPacket, TaskResultSummary } from "../../core/task-contract.js";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.js";
 import type { RpcCommand, RpcResponse, RpcSessionState, RpcSlashCommand } from "./rpc-types.js";
 
@@ -195,6 +196,49 @@ export class RpcClient {
 	 */
 	async newSession(parentSession?: string): Promise<{ cancelled: boolean }> {
 		const response = await this.send({ type: "new_session", parentSession });
+		return this.getData(response);
+	}
+
+	async startTaskSession(options: {
+		goal: string;
+		constraints?: string[];
+		doneDefinition?: string;
+		notes?: string;
+	}): Promise<{
+		cancelled: boolean;
+		packet: TaskPacket;
+		previousSessionFile?: string;
+		nextSessionFile?: string;
+	}> {
+		const response = await this.send({
+			type: "start_task_session",
+			goal: options.goal,
+			constraints: options.constraints,
+			doneDefinition: options.doneDefinition,
+			notes: options.notes,
+		});
+		return this.getData(response);
+	}
+
+	async completeTaskSession(options: {
+		summary: string;
+		openRisks?: string[];
+		nextStep?: string;
+		notes?: string;
+		resumeParent?: boolean;
+	}): Promise<{
+		result: TaskResultSummary;
+		resumedParent: boolean;
+		parentSessionFile?: string;
+	}> {
+		const response = await this.send({
+			type: "complete_task_session",
+			summary: options.summary,
+			openRisks: options.openRisks,
+			nextStep: options.nextStep,
+			notes: options.notes,
+			resumeParent: options.resumeParent,
+		});
 		return this.getData(response);
 	}
 
