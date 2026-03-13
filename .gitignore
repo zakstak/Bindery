@@ -31,8 +31,12 @@ syntax.jsonl
 out.jsonl
 pi-*.html
 out.html
+
 packages/coding-agent/binaries/
 todo.md
+
+# Bindery local config (copy from bindery.example.toml, never commit)
+bindery/config/bindery.toml
 
 # Rust
 /target
