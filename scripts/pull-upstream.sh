@@ -105,5 +105,16 @@ if [ "$NEED_COMMIT" = true ] && ! git diff --cached --quiet; then
 fi
 
 echo ""
-echo "Sync complete. $(git rev-list --count origin/main..HEAD) local commit(s) ahead of origin/main."
-echo "Push when ready: git push"
+echo "Sync complete. Local main now includes upstream/main."
+
+if git remote get-url origin &>/dev/null; then
+    if git show-ref --verify --quiet refs/remotes/origin/main; then
+        echo "$(git rev-list --count origin/main..HEAD) local commit(s) ahead of origin/main."
+    else
+        echo "Origin remote is configured, but origin/main is not available locally yet."
+    fi
+
+    echo "Push to your private origin when ready: git push origin HEAD"
+else
+    echo "No origin remote configured. Push to your private fork remote when ready."
+fi
