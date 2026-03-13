@@ -116,7 +116,7 @@ This document compares methods, not brands. The goal is to keep the strongest pa
 
 - Method: combine base prompt, project files, loaded skills, runtime state, and final per-turn overrides
 - Exemplars: Bindery in `packages/coding-agent/src/core/agent-session.ts` and `packages/coding-agent/src/core/system-prompt.ts`; `anomalyco/opencode` in `packages/opencode/src/session/system.ts` and `packages/opencode/src/session/llm.ts`
-- Pros: matches pi's architecture well, keeps responsibilities separated
+- Pros: matches the current agent architecture well, keeps responsibilities separated
 - Cons: needs explicit precedence rules or it becomes hard to debug
 
 ### Mode or role overlays
@@ -135,7 +135,7 @@ This document compares methods, not brands. The goal is to keep the strongest pa
 
 ## Recommended Hybrid
 
-For a stripped pi that needs to grow into self-hosting, the best mix is:
+For a stripped agent that needs to grow into self-hosting, the best mix is:
 
 1. Bindery session tree and iterative compaction
 2. oh-my-pi handoff document

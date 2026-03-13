@@ -1,6 +1,6 @@
 # Architecture Research
 
-This directory stores durable research for self-hosting pi.
+This directory stores durable research for self-hosting the Bindery agent.
 
 Keep only findings that are:
 - proven by code or docs
@@ -12,7 +12,7 @@ Do not keep raw exploration logs here. Distill them first.
 ## Files
 
 - `comparative-methods.md` - method-level comparison of how similar projects solve handoff, context reduction, and prompt architecture
-- `self-hosting-roadmap.md` - the recommended bootstrap order for getting pi to build pi
+- `self-hosting-roadmap.md` - the recommended bootstrap order for getting the agent to build itself
 
 ## Update Rules
 
