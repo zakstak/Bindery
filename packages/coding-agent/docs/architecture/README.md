@@ -40,7 +40,7 @@ If a finding does not affect a decision, leave it out.
 
 ## Maintenance Loop
 
-Use `scripts/session-transcripts.ts` to mine repeated session guidance and promote durable patterns into:
+Review saved session transcripts to mine repeated session guidance and promote durable patterns into:
 - `AGENTS.md`
 - skills
 - prompt templates
