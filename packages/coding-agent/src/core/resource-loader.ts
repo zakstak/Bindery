@@ -18,6 +18,25 @@ import { SettingsManager } from "./settings-manager.js";
 import type { Skill } from "./skills.js";
 import { loadSkills } from "./skills.js";
 
+const SYSTEM_PROMPT_FILE_NAME = "SYSTEM.md";
+const APPEND_SYSTEM_PROMPT_FILE_NAME = "APPEND_SYSTEM.md";
+
+export function getProjectSystemPromptPath(cwd: string): string {
+	return join(cwd, CONFIG_DIR_NAME, SYSTEM_PROMPT_FILE_NAME);
+}
+
+function getGlobalSystemPromptPath(agentDir: string): string {
+	return join(agentDir, SYSTEM_PROMPT_FILE_NAME);
+}
+
+function getProjectAppendSystemPromptPath(cwd: string): string {
+	return join(cwd, CONFIG_DIR_NAME, APPEND_SYSTEM_PROMPT_FILE_NAME);
+}
+
+function getGlobalAppendSystemPromptPath(agentDir: string): string {
+	return join(agentDir, APPEND_SYSTEM_PROMPT_FILE_NAME);
+}
+
 export interface ResourceExtensionPaths {
 	skillPaths?: Array<{ path: string; metadata: PathMetadata }>;
 	promptPaths?: Array<{ path: string; metadata: PathMetadata }>;
@@ -31,9 +50,11 @@ export interface ResourceLoader {
 	getThemes(): { themes: Theme[]; diagnostics: ResourceDiagnostic[] };
 	getAgentsFiles(): { agentsFiles: Array<{ path: string; content: string }> };
 	getSystemPrompt(): string | undefined;
+	getProjectSystemPrompt(): { path: string; content: string };
 	getAppendSystemPrompt(): string[];
 	getPathMetadata(): Map<string, PathMetadata>;
 	extendResources(paths: ResourceExtensionPaths): void;
+	reloadPromptSources(): void;
 	reload(): Promise<void>;
 }
 
@@ -192,6 +213,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 	private themeDiagnostics: ResourceDiagnostic[];
 	private agentsFiles: Array<{ path: string; content: string }>;
 	private systemPrompt?: string;
+	private projectSystemPrompt: { path: string; content: string };
 	private appendSystemPrompt: string[];
 	private pathMetadata: Map<string, PathMetadata>;
 	private lastSkillPaths: string[];
@@ -236,6 +258,7 @@ export class DefaultResourceLoader implements ResourceLoader {
 		this.themeDiagnostics = [];
 		this.agentsFiles = [];
 		this.appendSystemPrompt = [];
+		this.projectSystemPrompt = { path: getProjectSystemPromptPath(this.cwd), content: "" };
 		this.pathMetadata = new Map();
 		this.lastSkillPaths = [];
 		this.lastPromptPaths = [];
@@ -266,12 +289,20 @@ export class DefaultResourceLoader implements ResourceLoader {
 		return this.systemPrompt;
 	}
 
+	getProjectSystemPrompt(): { path: string; content: string } {
+		return this.projectSystemPrompt;
+	}
+
 	getAppendSystemPrompt(): string[] {
 		return this.appendSystemPrompt;
 	}
 
 	getPathMetadata(): Map<string, PathMetadata> {
 		return this.pathMetadata;
+	}
+
+	reloadPromptSources(): void {
+		this.loadPromptSources();
 	}
 
 	extendResources(paths: ResourceExtensionPaths): void {
@@ -420,6 +451,16 @@ export class DefaultResourceLoader implements ResourceLoader {
 		const agentsFiles = { agentsFiles: loadProjectContextFiles({ cwd: this.cwd, agentDir: this.agentDir }) };
 		const resolvedAgentsFiles = this.agentsFilesOverride ? this.agentsFilesOverride(agentsFiles) : agentsFiles;
 		this.agentsFiles = resolvedAgentsFiles.agentsFiles;
+
+		this.loadPromptSources();
+	}
+
+	private loadPromptSources(): void {
+		const projectPath = getProjectSystemPromptPath(this.cwd);
+		this.projectSystemPrompt = {
+			path: projectPath,
+			content: existsSync(projectPath) ? readFileSync(projectPath, "utf-8") : "",
+		};
 
 		const baseSystemPrompt = resolvePromptInput(
 			this.systemPromptSource ?? this.discoverSystemPromptFile(),
@@ -740,12 +781,12 @@ export class DefaultResourceLoader implements ResourceLoader {
 	}
 
 	private discoverSystemPromptFile(): string | undefined {
-		const projectPath = join(this.cwd, CONFIG_DIR_NAME, "SYSTEM.md");
+		const projectPath = getProjectSystemPromptPath(this.cwd);
 		if (existsSync(projectPath)) {
 			return projectPath;
 		}
 
-		const globalPath = join(this.agentDir, "SYSTEM.md");
+		const globalPath = getGlobalSystemPromptPath(this.agentDir);
 		if (existsSync(globalPath)) {
 			return globalPath;
 		}
@@ -754,12 +795,12 @@ export class DefaultResourceLoader implements ResourceLoader {
 	}
 
 	private discoverAppendSystemPromptFile(): string | undefined {
-		const projectPath = join(this.cwd, CONFIG_DIR_NAME, "APPEND_SYSTEM.md");
+		const projectPath = getProjectAppendSystemPromptPath(this.cwd);
 		if (existsSync(projectPath)) {
 			return projectPath;
 		}
 
-		const globalPath = join(this.agentDir, "APPEND_SYSTEM.md");
+		const globalPath = getGlobalAppendSystemPromptPath(this.agentDir);
 		if (existsSync(globalPath)) {
 			return globalPath;
 		}
