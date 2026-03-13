@@ -31,6 +31,8 @@ import type {
 
 const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
 const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in interactive mode.";
+const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in interactive mode.";
+const TASK_DONE_INTERACTIVE_ONLY_ERROR = "The /task-done command is only available in interactive mode.";
 
 function isPromptReviewCommand(text: string): boolean {
 	return text.trim() === "/prompt-review";
@@ -38,6 +40,14 @@ function isPromptReviewCommand(text: string): boolean {
 
 function isHandoffCommand(text: string): boolean {
 	return text.trim() === "/handoff" || text.trimStart().startsWith("/handoff ");
+}
+
+function isTaskCommand(text: string): boolean {
+	return text.trim() === "/task" || text.trimStart().startsWith("/task ");
+}
+
+function isTaskDoneCommand(text: string): boolean {
+	return text.trim() === "/task-done" || text.trimStart().startsWith("/task-done ");
 }
 
 // Re-export types for consumers
@@ -344,6 +354,12 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				if (isHandoffCommand(command.message)) {
 					return error(id, "prompt", HANDOFF_INTERACTIVE_ONLY_ERROR);
 				}
+				if (isTaskCommand(command.message)) {
+					return error(id, "prompt", TASK_INTERACTIVE_ONLY_ERROR);
+				}
+				if (isTaskDoneCommand(command.message)) {
+					return error(id, "prompt", TASK_DONE_INTERACTIVE_ONLY_ERROR);
+				}
 
 				// Don't await - events will stream
 				// Extension commands are executed immediately, file prompt templates are expanded
@@ -365,6 +381,12 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				if (isHandoffCommand(command.message)) {
 					return error(id, "steer", HANDOFF_INTERACTIVE_ONLY_ERROR);
 				}
+				if (isTaskCommand(command.message)) {
+					return error(id, "steer", TASK_INTERACTIVE_ONLY_ERROR);
+				}
+				if (isTaskDoneCommand(command.message)) {
+					return error(id, "steer", TASK_DONE_INTERACTIVE_ONLY_ERROR);
+				}
 
 				await session.steer(command.message, command.images);
 				return success(id, "steer");
@@ -376,6 +398,12 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				}
 				if (isHandoffCommand(command.message)) {
 					return error(id, "follow_up", HANDOFF_INTERACTIVE_ONLY_ERROR);
+				}
+				if (isTaskCommand(command.message)) {
+					return error(id, "follow_up", TASK_INTERACTIVE_ONLY_ERROR);
+				}
+				if (isTaskDoneCommand(command.message)) {
+					return error(id, "follow_up", TASK_DONE_INTERACTIVE_ONLY_ERROR);
 				}
 
 				await session.followUp(command.message, command.images);
