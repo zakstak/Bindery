@@ -13,6 +13,7 @@ const PENDING_PROPOSAL: PromptSourceProposal = {
 	rationale: "Reduce ambiguity in agent startup behavior.",
 	model: "openai/gpt-5",
 	timestamp: "2026-03-12T00:00:00.000Z",
+	proposedContent: "Pending prompt source content",
 };
 
 describe("PromptReviewSelectorComponent", () => {
@@ -99,5 +100,33 @@ describe("InteractiveMode /prompt-review command", () => {
 
 		expect(fakeThis.showPromptReviewSelector).toHaveBeenCalledTimes(1);
 		expect(fakeThis.editor.setText).toHaveBeenCalledWith("");
+	});
+
+	test("uses pending proposal content as preview instead of stale runtime prompt", () => {
+		const fakeThis: any = {
+			sessionManager: {
+				getPromptSourceProposals: () => [PENDING_PROPOSAL],
+				getPendingPromptSourceProposal: () => PENDING_PROPOSAL,
+				getApprovedPromptSourceProposals: () => [],
+				getCwd: () => "/tmp/project",
+			},
+			session: {
+				systemPrompt: "Stale runtime prompt",
+			},
+			showSelector: vi.fn((create: (done: () => void) => { component: { render: (w: number) => string[] } }) => {
+				const created = create(() => {});
+				const rendered = created.component.render(140).join("\n");
+				expect(rendered).toContain("Pending prompt source content");
+				expect(rendered).not.toContain("Stale runtime prompt");
+			}),
+			approvePromptProposal: vi.fn(),
+			rejectPromptProposal: vi.fn(),
+			rollbackPromptProposal: vi.fn(),
+			ui: { requestRender: vi.fn() },
+		};
+
+		(InteractiveMode as any).prototype.showPromptReviewSelector.call(fakeThis);
+
+		expect(fakeThis.showSelector).toHaveBeenCalledTimes(1);
 	});
 });

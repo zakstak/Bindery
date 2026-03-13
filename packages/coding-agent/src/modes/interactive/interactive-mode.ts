@@ -3285,11 +3285,12 @@ export class InteractiveMode {
 		const approvedProposals = this.sessionManager.getApprovedPromptSourceProposals();
 
 		this.showSelector((done) => {
+			const proposalPreview = pendingProposal?.proposedContent ?? this.session.systemPrompt;
 			const selector = new PromptReviewSelectorComponent(
 				{
 					canonicalPath: getProjectSystemPromptPath(this.sessionManager.getCwd()),
 					canonicalVersion,
-					effectivePromptPreview: this.session.systemPrompt,
+					effectivePromptPreview: proposalPreview,
 					pendingProposal,
 					approvedProposals,
 				},
