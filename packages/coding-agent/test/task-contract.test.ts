@@ -22,6 +22,7 @@ import {
 	createTaskPacket,
 	getLatestTaskPacket,
 	getLatestTaskResult,
+	getTaskResultByTaskId,
 	TASK_CONTEXT_CUSTOM_TYPE,
 	TASK_PACKET_CUSTOM_TYPE,
 	TASK_RESULT_CONTEXT_CUSTOM_TYPE,
@@ -209,6 +210,7 @@ describe("task contract helpers", () => {
 			.split("\n")
 			.map((line) => JSON.parse(line));
 		expect(getLatestTaskResult(parentEntries)).toBeDefined();
+		expect(getTaskResultByTaskId(parentEntries, result.taskId)).toBeDefined();
 		const parentResultMessage = parentEntries.find(
 			(entry: { type?: string; customType?: string }) =>
 				entry.type === "custom_message" && entry.customType === TASK_RESULT_CONTEXT_CUSTOM_TYPE,
@@ -226,5 +228,59 @@ describe("task contract helpers", () => {
 				(entry: { type?: string; customType?: string }) => entry.customType === TASK_RESULT_CUSTOM_TYPE,
 			),
 		).toBe(true);
+	});
+
+	it("blocks duplicate task results for the same task session", async () => {
+		const context = await createContext("You are pi.");
+		await context.session.startTaskSession({
+			goal: "Ship the onboarding fix",
+		});
+
+		context.session.completeTaskSession({
+			summary: "Implemented the fix and verified the flow.",
+		});
+
+		expect(() =>
+			context.session.completeTaskSession({
+				summary: "Tried to record the result again.",
+			}),
+		).toThrow("Task result already recorded for this task.");
+	});
+
+	it("resumes the parent session with the task result in live context", async () => {
+		const context = await createContext("You are pi.");
+		await context.session.prompt("Prepare the onboarding fix.");
+		await context.session.agent.waitForIdle();
+
+		const parentSessionFile = context.session.sessionFile;
+		const parentSessionId = context.session.sessionId;
+		await context.session.startTaskSession({
+			goal: "Implement the onboarding fix",
+		});
+
+		const completion = await context.session.completeTaskSessionAndResumeParent({
+			summary: "Implemented the fix and returned to the parent session.",
+		});
+
+		expect(completion.resumedParent).toBe(true);
+		expect(context.session.sessionFile).toBe(parentSessionFile);
+		expect(context.session.sessionId).toBe(parentSessionId);
+
+		const resumedTaskResult = context.session.state.messages.find(
+			(message) => message.role === "custom" && message.customType === TASK_RESULT_CONTEXT_CUSTOM_TYPE,
+		);
+		expect(resumedTaskResult).toBeDefined();
+		if (!resumedTaskResult || resumedTaskResult.role !== "custom") {
+			throw new Error("Expected resumed task result custom message");
+		}
+		const resumedTaskResultSummary =
+			resumedTaskResult.details &&
+			typeof resumedTaskResult.details === "object" &&
+			"summary" in resumedTaskResult.details &&
+			typeof resumedTaskResult.details.summary === "string"
+				? resumedTaskResult.details.summary
+				: undefined;
+		expect(String(resumedTaskResult.content)).toContain("## Task Result");
+		expect(resumedTaskResultSummary).toBe("Implemented the fix and returned to the parent session.");
 	});
 });

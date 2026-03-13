@@ -1951,7 +1951,7 @@ export class InteractiveMode {
 			}
 			if (text === "/task-done" || text.startsWith("/task-done ")) {
 				this.editor.setText("");
-				this.handleTaskDoneCommand(text);
+				await this.handleTaskDoneCommand(text);
 				return;
 			}
 			if (text === "/scoped-models") {
@@ -4393,7 +4393,7 @@ export class InteractiveMode {
 		this.ui.requestRender();
 	}
 
-	private handleTaskDoneCommand(text: string): void {
+	private async handleTaskDoneCommand(text: string): Promise<void> {
 		if (this.session.isStreaming) {
 			this.showWarning("Wait for the current response to finish before recording the task result.");
 			return;
@@ -4410,7 +4410,29 @@ export class InteractiveMode {
 		}
 
 		try {
-			const result = this.session.completeTaskSession({ summary });
+			const { result, resumedParent, parentSessionFile } = await this.session.completeTaskSessionAndResumeParent({
+				summary,
+			});
+			if (resumedParent) {
+				this.chatContainer.clear();
+				this.pendingMessagesContainer.clear();
+				this.compactionQueuedMessages = [];
+				this.streamingComponent = undefined;
+				this.streamingMessage = undefined;
+				this.pendingTools.clear();
+
+				this.renderInitialMessages();
+				this.showStatus(`Recorded task result for ${result.taskId.slice(0, 8)} and resumed parent session`);
+				this.ui.requestRender();
+				return;
+			}
+
+			if (parentSessionFile) {
+				this.showStatus(`Recorded task result for ${result.taskId.slice(0, 8)} but parent resume was cancelled`);
+				this.ui.requestRender();
+				return;
+			}
+
 			this.showStatus(`Recorded task result for ${result.taskId.slice(0, 8)}`);
 			this.ui.requestRender();
 		} catch (error) {
