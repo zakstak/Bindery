@@ -94,6 +94,7 @@ const buildBuiltinKeybindings = (effectiveKeybindings: Required<KeybindingsConfi
 interface BeforeAgentStartCombinedResult {
 	messages?: NonNullable<BeforeAgentStartEventResult["message"]>[];
 	systemPrompt?: string;
+	systemPromptChanged?: boolean;
 }
 
 /**
@@ -797,6 +798,7 @@ export class ExtensionRunner {
 			return {
 				messages: messages.length > 0 ? messages : undefined,
 				systemPrompt: systemPromptModified ? currentSystemPrompt : undefined,
+				systemPromptChanged: systemPromptModified,
 			};
 		}
 

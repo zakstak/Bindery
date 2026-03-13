@@ -71,6 +71,11 @@ import {
 } from "./extensions/index.js";
 import type { BashExecutionMessage, CustomMessage } from "./messages.js";
 import type { ModelRegistry } from "./model-registry.js";
+import {
+	buildPromptSourceState,
+	createPendingPromptSourceProposal,
+	type PromptSourceProposal,
+} from "./prompt-source-state.js";
 import { expandPromptTemplate, type PromptTemplate } from "./prompt-templates.js";
 import type { ResourceExtensionPaths, ResourceLoader } from "./resource-loader.js";
 import type { BranchSummaryEntry, CompactionEntry, SessionManager } from "./session-manager.js";
@@ -274,6 +279,8 @@ export class AgentSession {
 
 	// Base system prompt (without extension appends) - used to apply fresh appends each turn
 	private _baseSystemPrompt = "";
+	private _promptSourceBaseVersion = 1;
+	private _promptSourceBaseKey = "";
 
 	constructor(config: AgentSessionConfig) {
 		this.agent = config.agent;
@@ -296,6 +303,7 @@ export class AgentSession {
 			activeToolNames: this._initialActiveToolNames,
 			includeAllExtensionTools: true,
 		});
+		this._syncPromptSourceBaseVersion("session startup");
 	}
 
 	/** Model registry for API key resolution and model discovery */
@@ -675,6 +683,116 @@ export class AgentSession {
 		// Rebuild base system prompt with new tool set
 		this._baseSystemPrompt = this._rebuildSystemPrompt(validToolNames);
 		this.agent.setSystemPrompt(this._baseSystemPrompt);
+		this._syncPromptSourceBaseVersion("tool-set change", true);
+	}
+
+	private _getPromptSourceModel(): string {
+		if (!this.model) {
+			return "unknown/unknown";
+		}
+		return `${this.model.provider}/${this.model.id}`;
+	}
+
+	private _computePromptSourceBaseKey(): string {
+		return JSON.stringify({
+			sessionId: this.sessionId,
+			model: this._getPromptSourceModel(),
+			baseSystemPrompt: this._baseSystemPrompt,
+		});
+	}
+
+	private _syncPromptSourceBaseVersion(reason: string, force = false): void {
+		const nextKey = this._computePromptSourceBaseKey();
+		if (this._promptSourceBaseKey === "") {
+			this._promptSourceBaseKey = nextKey;
+			return;
+		}
+
+		if (!force && nextKey === this._promptSourceBaseKey) {
+			return;
+		}
+
+		this._promptSourceBaseKey = nextKey;
+		this._promptSourceBaseVersion += 1;
+		this.sessionManager.invalidatePendingPromptSourceProposal({
+			baseVersion: this._promptSourceBaseVersion,
+			reason,
+			model: this._getPromptSourceModel(),
+		});
+	}
+
+	private _recordRuntimePromptProposal(proposedSystemPrompt: string): void {
+		const canonicalPromptSource = this._resourceLoader.getProjectSystemPrompt();
+		const promptSourceState = buildPromptSourceState({
+			cwd: this._cwd,
+			canonicalContent: canonicalPromptSource.content,
+			canonicalVersion: this._promptSourceBaseVersion,
+			effectivePromptPreview: proposedSystemPrompt,
+			sessionEntries: this.sessionManager.getEntries(),
+		});
+
+		if (
+			!promptSourceState.effectivePromptPreview ||
+			promptSourceState.effectivePromptPreview === this._baseSystemPrompt
+		) {
+			return;
+		}
+
+		if (promptSourceState.pendingProposal) {
+			if (promptSourceState.pendingProposal.baseVersion !== promptSourceState.canonical.version) {
+				this.sessionManager.invalidatePendingPromptSourceProposal({
+					baseVersion: promptSourceState.canonical.version,
+					reason: "base version changed before proposal approval",
+					model: this._getPromptSourceModel(),
+				});
+			} else {
+				return;
+			}
+		}
+
+		const proposal = createPendingPromptSourceProposal({
+			baseVersion: promptSourceState.canonical.version,
+			basePrompt: promptSourceState.canonical.content,
+			proposedPrompt: promptSourceState.effectivePromptPreview,
+			rationale: "Generated from before_agent_start runtime system prompt override.",
+			model: this._getPromptSourceModel(),
+			previousProposals: this.sessionManager.getPromptSourceProposals(),
+		});
+
+		if (proposal.diff.length === 0) {
+			return;
+		}
+
+		this.sessionManager.appendPromptSourceProposal(proposal);
+	}
+
+	private _reloadCanonicalPromptSource(reason: string): void {
+		this._resourceLoader.reloadPromptSources();
+		this._baseSystemPrompt = this._rebuildSystemPrompt(this.getActiveToolNames());
+		this.agent.setSystemPrompt(this._baseSystemPrompt);
+		this._syncPromptSourceBaseVersion(reason, true);
+	}
+
+	approvePromptSourceProposal(proposal: PromptSourceProposal): { path: string; proposal: PromptSourceProposal } {
+		const result = this.sessionManager.approvePromptSourceProposal(proposal, this._getPromptSourceModel());
+		this._reloadCanonicalPromptSource("prompt approval");
+		return result;
+	}
+
+	rejectPromptSourceProposal(proposal: PromptSourceProposal): PromptSourceProposal {
+		return this.sessionManager.rejectPromptSourceProposal(proposal, this._getPromptSourceModel());
+	}
+
+	rollbackPromptSourceProposal(targetApprovedProposal: PromptSourceProposal): {
+		path: string;
+		proposal: PromptSourceProposal;
+	} {
+		const result = this.sessionManager.rollbackPromptSourceProposal(
+			targetApprovedProposal,
+			this._getPromptSourceModel(),
+		);
+		this._reloadCanonicalPromptSource("prompt rollback");
+		return result;
 	}
 
 	/** Whether compaction or branch summarization is currently running */
@@ -931,13 +1049,12 @@ export class AgentSession {
 					});
 				}
 			}
-			// Apply extension-modified system prompt, or reset to base
-			if (result?.systemPrompt) {
-				this.agent.setSystemPrompt(result.systemPrompt);
-			} else {
-				// Ensure we're using the base prompt (in case previous turn had modifications)
-				this.agent.setSystemPrompt(this._baseSystemPrompt);
+			if (result?.systemPromptChanged && result.systemPrompt) {
+				this._recordRuntimePromptProposal(result.systemPrompt);
 			}
+
+			// Keep runtime on approved/base prompt until explicit approval exists.
+			this.agent.setSystemPrompt(this._baseSystemPrompt);
 		}
 
 		await this.agent.prompt(messages);
@@ -1270,6 +1387,7 @@ export class AgentSession {
 		}
 
 		this._reconnectToAgent();
+		this._syncPromptSourceBaseVersion("new session", true);
 
 		// Emit session_switch event with reason "new" to extensions
 		if (this._extensionRunner) {
@@ -1322,6 +1440,7 @@ export class AgentSession {
 
 		// Re-clamp thinking level for new model's capabilities
 		this.setThinkingLevel(thinkingLevel);
+		this._syncPromptSourceBaseVersion("model switch", true);
 
 		await this._emitModelSelect(model, previousModel, "set");
 	}
@@ -1384,6 +1503,7 @@ export class AgentSession {
 		// - Undefined scoped model thinking level inherits the current session preference
 		// setThinkingLevel clamps to model capabilities.
 		this.setThinkingLevel(thinkingLevel);
+		this._syncPromptSourceBaseVersion("model cycle", true);
 
 		await this._emitModelSelect(next.model, currentModel, "cycle");
 
@@ -1414,6 +1534,7 @@ export class AgentSession {
 
 		// Re-clamp thinking level for new model's capabilities
 		this.setThinkingLevel(thinkingLevel);
+		this._syncPromptSourceBaseVersion("model cycle", true);
 
 		await this._emitModelSelect(nextModel, currentModel, "cycle");
 
@@ -2235,6 +2356,7 @@ export class AgentSession {
 			flagValues: previousFlagValues,
 			includeAllExtensionTools: true,
 		});
+		this._syncPromptSourceBaseVersion("resource reload", true);
 
 		const hasBindings =
 			this._extensionUIContext ||
@@ -2572,6 +2694,7 @@ export class AgentSession {
 		}
 
 		this._reconnectToAgent();
+		this._syncPromptSourceBaseVersion("session switch", true);
 		return true;
 	}
 
