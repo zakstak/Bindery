@@ -10,9 +10,14 @@ import type { AssistantMessage, ImageContent } from "@mariozechner/pi-ai";
 import type { AgentSession } from "../core/agent-session.js";
 
 const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
+const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in interactive mode.";
 
 function isPromptReviewCommand(text: string): boolean {
 	return text.trim() === "/prompt-review";
+}
+
+function isHandoffCommand(text: string): boolean {
+	return text.trim() === "/handoff" || text.trimStart().startsWith("/handoff ");
 }
 
 /**
@@ -93,6 +98,11 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 			process.exitCode = 1;
 			return;
 		}
+		if (isHandoffCommand(initialMessage)) {
+			console.error(HANDOFF_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
 		await session.prompt(initialMessage, { images: initialImages });
 	}
 
@@ -100,6 +110,11 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 	for (const message of messages) {
 		if (isPromptReviewCommand(message)) {
 			console.error(PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
+		if (isHandoffCommand(message)) {
+			console.error(HANDOFF_INTERACTIVE_ONLY_ERROR);
 			process.exitCode = 1;
 			return;
 		}
