@@ -38,6 +38,9 @@ Best insertion points in Bindery:
 - `packages/coding-agent/src/core/session-manager.ts` via custom entries and custom messages
 - `packages/coding-agent/src/core/agent-session.ts` for runtime injection
 
+Current status:
+- implemented as a minimal `/task` + `/task-done` contract that persists a task packet, seeds a child session, and records a structured result summary
+
 ### 3. Externalize large tool output
 
 Why third:

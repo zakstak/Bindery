@@ -26,6 +26,7 @@ This document compares methods, not brands. The goal is to keep the strongest pa
 - Method: parent sends a compact task contract, child returns one structured result summary
 - Best fit: lightweight subagents without full swarm machinery
 - Exemplars: `can1357/oh-my-pi` in `packages/coding-agent/src/prompts/tools/task.md`; `RooCodeInc/Roo-Code` in `src/core/prompts/tools/native-tools/new_task.ts`
+- Local status: Bindery now has a first-pass `/task` + `/task-done` flow in `packages/coding-agent/src/core/task-contract.ts`, `packages/coding-agent/src/core/agent-session.ts`, and `packages/coding-agent/src/modes/interactive/interactive-mode.ts`
 - Pros: clear boundaries, easy to review, good for parallel work
 - Cons: parent prompt quality matters a lot, schema drift becomes painful if left loose
 
