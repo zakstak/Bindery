@@ -11,6 +11,8 @@ import type { AgentSession } from "../core/agent-session.js";
 
 const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
 const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in interactive mode.";
+const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in interactive mode.";
+const TASK_DONE_INTERACTIVE_ONLY_ERROR = "The /task-done command is only available in interactive mode.";
 
 function isPromptReviewCommand(text: string): boolean {
 	return text.trim() === "/prompt-review";
@@ -18,6 +20,14 @@ function isPromptReviewCommand(text: string): boolean {
 
 function isHandoffCommand(text: string): boolean {
 	return text.trim() === "/handoff" || text.trimStart().startsWith("/handoff ");
+}
+
+function isTaskCommand(text: string): boolean {
+	return text.trim() === "/task" || text.trimStart().startsWith("/task ");
+}
+
+function isTaskDoneCommand(text: string): boolean {
+	return text.trim() === "/task-done" || text.trimStart().startsWith("/task-done ");
 }
 
 /**
@@ -103,6 +113,16 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 			process.exitCode = 1;
 			return;
 		}
+		if (isTaskCommand(initialMessage)) {
+			console.error(TASK_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
+		if (isTaskDoneCommand(initialMessage)) {
+			console.error(TASK_DONE_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
 		await session.prompt(initialMessage, { images: initialImages });
 	}
 
@@ -115,6 +135,16 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 		}
 		if (isHandoffCommand(message)) {
 			console.error(HANDOFF_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
+		if (isTaskCommand(message)) {
+			console.error(TASK_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
+		if (isTaskDoneCommand(message)) {
+			console.error(TASK_DONE_INTERACTIVE_ONLY_ERROR);
 			process.exitCode = 1;
 			return;
 		}
