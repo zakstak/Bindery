@@ -5,7 +5,7 @@ use bindery::{serve_until_shutdown, AppConfig};
 
 #[derive(Debug, Parser)]
 #[command(name = "bindery")]
-#[command(about = "Coding agent web UI — loopback Axum server bridging browser to pi RPC agent")]
+#[command(about = "Coding agent web UI — loopback Axum server bridging the browser to the agent RPC process")]
 struct Cli {
     #[command(subcommand)]
     command: Command,

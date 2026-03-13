@@ -17,12 +17,12 @@ pub struct ServerConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct AgentConfig {
-    /// Path to the pi CLI entrypoint (pi-test.sh or installed binary).
+    /// Path to the coding-agent CLI entrypoint.
     pub cli_path: String,
     /// Working directory for the agent subprocess.
     pub cwd: String,
     /// Extra environment variables injected into the agent subprocess.
-    /// Useful for mapping infra-specific keys to the names pi expects,
+    /// Useful for mapping infra-specific keys to the names the agent expects,
     /// e.g. ZAI_API_KEY = "${SAGA_API_KEY}" (literal value, not shell-expanded).
     #[serde(default)]
     pub env: HashMap<String, String>,

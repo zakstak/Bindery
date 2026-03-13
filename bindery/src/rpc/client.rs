@@ -7,7 +7,7 @@ use tokio::{
 
 use super::RpcEventJson;
 
-/// Spawns the pi coding agent in RPC mode and provides async send/recv.
+/// Spawns the coding agent in RPC mode and provides async send/recv.
 pub struct RpcClient {
     _child: Child,
     stdin: ChildStdin,
@@ -33,7 +33,7 @@ impl RpcClient {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::inherit())
             .spawn()
-            .context("failed to spawn pi agent")?;
+            .context("failed to spawn coding agent")?;
 
         let stdin = child.stdin.take().context("agent stdin unavailable")?;
         let stdout: ChildStdout = child.stdout.take().context("agent stdout unavailable")?;
