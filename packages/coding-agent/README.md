@@ -558,6 +558,8 @@ pi --thinking high "Solve this complex problem"
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines and [docs/development.md](docs/development.md) for setup, forking, and debugging.
 
+Living architecture research for self-hosting pi lives in [docs/architecture/README.md](docs/architecture/README.md), [docs/architecture/comparative-methods.md](docs/architecture/comparative-methods.md), and [docs/architecture/self-hosting-roadmap.md](docs/architecture/self-hosting-roadmap.md).
+
 ---
 
 ## License
