@@ -13,7 +13,7 @@ npm install
 ## Run
 
 ```bash
-./pi-test.sh         # Run coding agent from source
+./pi-test.sh         # Run the coding agent from source via the compatibility launcher
 ```
 
 ## Check
