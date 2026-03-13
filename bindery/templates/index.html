@@ -1,136 +1,1358 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bindery</title>
-  <script src="/assets/htmx.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      background: #0f0f0f;
-      color: #e8e8e8;
-      height: 100dvh;
-      display: flex;
-      flex-direction: column;
-    }
-    header {
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid #2a2a2a;
-      font-size: 0.875rem;
-      color: #888;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-    }
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1.5rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    .msg { max-width: 42rem; line-height: 1.6; }
-    .msg.user { align-self: flex-end; background: #1a2a1a; border: 1px solid #2a3a2a; border-radius: 8px; padding: 0.6rem 0.9rem; }
-    .msg.assistant { align-self: flex-start; }
-    .msg.tool { align-self: flex-start; font-size: 0.8rem; color: #666; font-family: monospace; }
-    form {
-      display: flex;
-      gap: 0.5rem;
-      padding: 1rem;
-      border-top: 1px solid #2a2a2a;
-    }
-    input[type=text] {
-      flex: 1;
-      background: #1a1a1a;
-      border: 1px solid #333;
-      border-radius: 6px;
-      color: #e8e8e8;
-      padding: 0.6rem 0.9rem;
-      font-size: 0.9rem;
-      outline: none;
-    }
-    input[type=text]:focus { border-color: #555; }
-    button {
-      background: #2a3a2a;
-      border: 1px solid #3a4a3a;
-      border-radius: 6px;
-      color: #8bc88b;
-      padding: 0.6rem 1.1rem;
-      cursor: pointer;
-      font-size: 0.9rem;
-    }
-    button:hover { background: #3a4a3a; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23110f19'/%3E%3Cpath d='M18 18h20c8 0 12 4 12 10s-4 10-12 10H30v8h-12V18Zm12 9h8c2 0 3-1 3-2s-1-2-3-2h-8v4Z' fill='%23e0dced'/%3E%3Ccircle cx='46' cy='46' r='6' fill='%238b5cf6'/%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+<script src="https://unpkg.com/htmx-ext-ws@2.0.2/ws.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+<style type="text/tailwindcss">
+@theme {
+  --font-sans: 'Outfit', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+  --color-bg: #0c0a12;
+  --color-bg1: #110f19;
+  --color-bg2: #16141f;
+  --color-bg3: #1e1b2a;
+  --color-bdr: #28243a;
+  --color-bdr2: #342f4e;
+  --color-txt: #e0dced;
+  --color-txt2: #908ca5;
+  --color-txt3: #5c5878;
+  --color-purple: #8b5cf6;
+  --color-rose: #e879f9;
+  --color-green: #34d399;
+  --color-amber: #fbbf24;
+  --color-red: #fb7185;
+  --color-cyan: #38bdf8;
+  --color-lime: #a3e635;
+  --color-userbg: #151224;
+}
+</style>
+<style>
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:#33334a;border-radius:99px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  .animate-pulse-dot{animation:pulse 1.2s infinite}
+  .animate-fi{animation:fadeIn .2s ease}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 8% 5%,rgba(139,92,246,.12),transparent 28%),radial-gradient(circle at 90% 85%,rgba(56,189,248,.06),transparent 34%);z-index:-1}
+  .panel-kicker{font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.12em;color:#5c5878;font-weight:600}
+  #conn-pill{display:flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid rgba(52,47,78,.75);border-radius:99px;background:rgba(30,27,42,.75);font-family:'Fira Code',monospace;font-size:10px;color:#908ca5}
+  #conn-pill[data-state="open"]{border-color:rgba(52,211,153,.35);color:#34d399}
+  #conn-pill[data-state="connecting"]{border-color:rgba(251,191,36,.4);color:#fbbf24}
+  #conn-pill[data-state="closed"]{border-color:rgba(251,113,133,.38);color:#fb7185}
+  .status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .status-item{padding:7px 8px;border:1px solid rgba(52,47,78,.68);border-radius:6px;background:rgba(22,20,31,.52)}
+  .status-item.wide{grid-column:1/-1}
+  .status-label{font-size:8px;line-height:1;text-transform:uppercase;letter-spacing:.1em;color:#5c5878;font-family:'Fira Code',monospace;margin-bottom:5px}
+  .status-badge{font-family:'Fira Code',monospace;font-size:9px;line-height:1;padding:3px 7px;border-radius:99px;border:1px solid rgba(52,47,78,.8);text-transform:uppercase;letter-spacing:.08em}
+  .status-badge.idle{color:#908ca5;background:rgba(30,27,42,.75)}
+  .status-badge.running{color:#fbbf24;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.28)}
+  .status-meter{height:4px;background:#1e1b2a;border-radius:999px;overflow:hidden}
+  .status-meter-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#8b5cf6,#e879f9);transition:width .25s,background .25s}
+  .stream-shell{background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,0) 180px)}
+  .stream-row{position:relative;display:grid;grid-template-columns:56px 12px minmax(0,1fr);align-items:start;padding:6px 12px 7px;border-bottom:1px solid rgba(52,47,78,.32);border-left:2px solid transparent;transition:background .12s,border-color .12s,box-shadow .12s}
+  .stream-row:hover{background:rgba(30,27,42,.45)}
+  .stream-row[data-kind="assistant"]{background:linear-gradient(90deg,rgba(139,92,246,.08),transparent 54%);border-left-color:rgba(139,92,246,.58)}
+  .stream-row[data-kind="user"]{background:linear-gradient(90deg,rgba(56,189,248,.08),transparent 54%);border-left-color:rgba(56,189,248,.58)}
+  .stream-row[data-kind="agent"]{background:linear-gradient(90deg,rgba(163,230,53,.08),transparent 54%);border-left-color:rgba(163,230,53,.58)}
+  .stream-row[data-kind="tool"]{background:linear-gradient(90deg,rgba(251,191,36,.08),transparent 54%);border-left-color:rgba(251,191,36,.58)}
+  .stream-row[data-kind="response"]{background:linear-gradient(90deg,rgba(52,211,153,.08),transparent 54%);border-left-color:rgba(52,211,153,.58)}
+  .stream-row[data-kind="ui"]{background:linear-gradient(90deg,rgba(56,189,248,.09),transparent 54%);border-left-color:rgba(56,189,248,.58)}
+  .stream-row[data-kind="event"]{background:linear-gradient(90deg,rgba(144,140,165,.07),transparent 54%);border-left-color:rgba(144,140,165,.45)}
+  .stream-ts{font-family:'Fira Code',monospace;font-size:9px;color:#5c5878;text-align:right;padding-right:10px;padding-top:2px;user-select:none}
+  .stream-rail{position:relative;display:flex;justify-content:center;padding-top:5px}
+  .stream-rail::after{content:"";position:absolute;top:11px;bottom:-6px;width:1px;background:rgba(52,47,78,.6)}
+  .stream-dot{width:5px;height:5px;border-radius:999px;background:#8b5cf6;box-shadow:0 0 0 1px rgba(139,92,246,.2)}
+  .stream-main{min-width:0}
+  .stream-head{display:flex;align-items:center;gap:7px;min-width:0}
+  .stream-role{font-size:9px;line-height:1;padding:3px 7px;border-radius:999px;font-family:'Fira Code',monospace;text-transform:uppercase;letter-spacing:.08em;border:1px solid transparent}
+  .stream-role.assistant{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.35);color:#c4b5fd}
+  .stream-role.user{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.35);color:#7dd3fc}
+  .stream-role.agent{background:rgba(163,230,53,.12);border-color:rgba(163,230,53,.35);color:#bef264}
+  .stream-role.tool{background:rgba(251,191,36,.11);border-color:rgba(251,191,36,.28);color:#fbbf24}
+  .stream-role.response{background:rgba(52,211,153,.11);border-color:rgba(52,211,153,.33);color:#6ee7b7}
+  .stream-role.ui{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.28);color:#38bdf8}
+  .stream-role.event{background:rgba(251,191,36,.11);border-color:rgba(251,191,36,.28);color:#fbbf24}
+  .stream-etype{font-family:'Fira Code',monospace;font-size:9px;color:#7c7893;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stream-row[data-kind="agent"] .stream-dot{background:#a3e635;box-shadow:0 0 0 1px rgba(163,230,53,.25)}
+  .stream-row[data-kind="tool"] .stream-dot{background:#fbbf24;box-shadow:0 0 0 1px rgba(251,191,36,.22)}
+  .stream-row[data-kind="response"] .stream-dot{background:#34d399;box-shadow:0 0 0 1px rgba(52,211,153,.25)}
+  .stream-row[data-kind="ui"] .stream-dot{background:#38bdf8;box-shadow:0 0 0 1px rgba(56,189,248,.25)}
+  .stream-title{margin-top:2px;font-size:11px;line-height:1.3;color:#e0dced;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stream-preview{margin-top:3px;font-family:'Fira Code',monospace;font-size:10px;line-height:1.35;color:#908ca5;white-space:pre-wrap;word-break:break-word}
+  .stream-body{margin-top:4px;white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.45;color:#ddd8eb;border:1px solid rgba(52,47,78,.5);border-radius:7px;background:rgba(22,20,31,.55);padding:7px}
+  .stream-body:empty,.stream-preview:empty{display:none}
+  .stream-row[data-kind="assistant"] .stream-title,.stream-row[data-kind="user"] .stream-title{font-weight:500}
+  .agent-selected{background:rgba(139,92,246,.11)!important;border-bottom-color:rgba(139,92,246,.5)!important;box-shadow:inset 2px 0 0 rgba(139,92,246,.8)}
+  .inspector-shell{display:flex;flex-direction:column;gap:9px}
+  .inspector-empty{font-size:11px;color:#7c7893;font-style:italic;line-height:1.45;padding:10px;border:1px dashed rgba(52,47,78,.85);border-radius:8px;background:rgba(22,20,31,.3)}
+  .inspector-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:6px;border-bottom:1px solid rgba(52,47,78,.55)}
+  .inspector-head-main{display:flex;flex-direction:column;gap:5px;min-width:0}
+  .inspector-kind-row{display:flex;align-items:center;gap:6px;min-width:0}
+  .inspector-kind{font-size:9px;line-height:1;padding:3px 7px;border-radius:999px;font-family:'Fira Code',monospace;text-transform:uppercase;letter-spacing:.08em;border:1px solid rgba(52,47,78,.7);color:#908ca5;background:rgba(30,27,42,.7)}
+  .inspector-kind.assistant{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.35);color:#c4b5fd}
+  .inspector-kind.user{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.35);color:#7dd3fc}
+  .inspector-kind.agent{background:rgba(163,230,53,.12);border-color:rgba(163,230,53,.35);color:#bef264}
+  .inspector-kind.tool{background:rgba(251,191,36,.11);border-color:rgba(251,191,36,.28);color:#fbbf24}
+  .inspector-kind.response{background:rgba(52,211,153,.11);border-color:rgba(52,211,153,.33);color:#6ee7b7}
+  .inspector-kind.ui{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.28);color:#38bdf8}
+  .inspector-kind.event{background:rgba(144,140,165,.16);border-color:rgba(144,140,165,.35);color:#b3afc6}
+  .inspector-kind.type{max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inspector-title{font-family:'Fira Code',monospace;font-size:11px;color:#e0dced;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inspector-sub{font-family:'Fira Code',monospace;font-size:10px;color:#908ca5}
+  .inspector-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .inspector-cell{padding:6px 7px;border:1px solid rgba(52,47,78,.65);border-radius:6px;background:rgba(22,20,31,.55)}
+  .inspector-k{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#5c5878;font-family:'Fira Code',monospace}
+  .inspector-v{margin-top:2px;font-family:'Fira Code',monospace;font-size:10px;color:#d3cee4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .inspector-block{padding:7px;border:1px solid rgba(52,47,78,.65);border-radius:7px;background:rgba(22,20,31,.52)}
+  .inspector-block-title{font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:#5c5878;font-family:'Fira Code',monospace;margin-bottom:5px}
+  .inspector-preview{font-size:11px;line-height:1.42;color:#d3cee4;white-space:pre-wrap}
+  .inspector-json{font-size:10px;line-height:1.45;color:#908ca5;white-space:pre-wrap;overflow-x:auto}
+  #log-entries{display:flex;flex-direction:column;gap:4px}
+  #log-entries>div{display:grid;grid-template-columns:54px 64px minmax(0,1fr);align-items:start;gap:7px;padding:4px 6px;border:1px solid rgba(52,47,78,.5);border-radius:6px;background:rgba(22,20,31,.35);font-family:'Fira Code',monospace;font-size:10px;line-height:1.3}
+  #log-entries .log-time{color:#5c5878;white-space:nowrap}
+  #log-entries .log-kind{color:#908ca5;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+  #log-entries .log-msg{color:#b3afc6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #log-entries>div[data-kind="error"] .log-kind,#log-entries>div[data-kind="parse"] .log-kind{color:#fb7185}
+  #log-entries>div[data-kind="socket"] .log-kind{color:#fbbf24}
+  #log-entries>div[data-kind="response"] .log-kind{color:#34d399}
+  .flame-bar{position:absolute;height:20px;border-radius:4px;display:flex;align-items:center;padding:0 8px;gap:6px;cursor:pointer;font-size:10px;font-family:'Fira Code',monospace;transition:filter .15s,outline-color .15s,box-shadow .15s;outline:1px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+  .flame-bar:hover{filter:brightness(1.2);outline-color:rgba(255,255,255,.17)}
+  .flame-bar.selected{outline-color:rgba(139,92,246,.72);box-shadow:0 0 0 1px rgba(139,92,246,.38),0 0 12px rgba(139,92,246,.24)}
+  .preset-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(52,47,78,.85);background:rgba(22,20,31,.7);font-family:'Fira Code',monospace;font-size:10px;color:#b3afc6;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .12s}
+  .preset-chip:hover{background:rgba(30,27,42,.95);border-color:rgba(139,92,246,.45);color:#e0dced;transform:translateY(-1px)}
+  .preset-chip .dot{width:6px;height:6px;border-radius:999px;background:#8b5cf6;box-shadow:0 0 0 1px rgba(139,92,246,.25)}
+  .preset-chip .label{white-space:nowrap}
+  @media (max-width: 980px){
+    #session-name{max-width:140px}
+    aside{width:300px!important;min-width:300px!important}
+  }
+  @media (max-width: 760px){
+    header{padding-left:8px;padding-right:8px;gap:6px}
+    #session-name{max-width:72px}
+    #model-tag{display:none}
+    #conn-pill{padding:2px 6px}
+    body>main{flex-direction:column!important}
+    body>main>div:first-child{min-height:40vh}
+    body>main>aside{width:100%!important;min-width:0!important;max-height:45vh;border-left:none;border-top:1px solid rgba(40,36,58,.95)}
+    #stream{padding-bottom:14px}
+    .stream-row{grid-template-columns:42px 10px minmax(0,1fr);padding-left:8px;padding-right:8px}
+    .stream-ts{font-size:8px;padding-right:6px}
+    #log-entries>div{grid-template-columns:44px 56px minmax(0,1fr);gap:5px;padding:4px}
+  }
+</style>
 </head>
-<body>
-  <header>bindery</header>
-  <div id="messages"></div>
-  <form id="chat-form">
-    <input type="text" id="prompt" autocomplete="off" placeholder="Message the agent..." required>
-    <button type="submit">Send</button>
+
+<body class="h-full bg-bg text-txt font-sans text-sm overflow-hidden flex flex-col">
+
+<!-- ══ TOP BAR ═══════════════════════════════════════════════════════════ -->
+<header class="h-[36px] min-h-[36px] bg-bg1 border-b border-bdr flex items-center gap-2 px-3 shrink-0 select-none">
+  <span class="text-[11px] font-semibold tracking-[0.18em] uppercase text-txt3">Bindery</span>
+  <span class="h-4 w-px bg-bdr2/80"></span>
+  <span id="session-name" class="text-[11px] text-txt2 truncate max-w-[260px]">Awaiting session</span>
+  <span class="flex-1"></span>
+
+  <button id="btn-timeline"
+          class="px-2.5 py-0.5 rounded text-[10px] border border-bdr2 bg-bg3 text-txt2 hover:border-purple/50 hover:text-txt transition cursor-pointer font-mono">
+    ▾ timeline
+  </button>
+
+  <span id="model-tag" class="text-[10px] text-txt2 font-mono bg-bg3 border border-bdr px-2 py-0.5 rounded-full">
+    not set
+  </span>
+
+  <div id="conn-pill" data-state="closed">
+    <div id="gdot" class="w-[6px] h-[6px] rounded-full bg-txt3 shrink-0"></div>
+    <span id="conn-text">offline</span>
+  </div>
+</header>
+
+<!-- ══ MAIN CONTENT ═════════════════════════════════════════════════════ -->
+<main class="flex-1 flex min-h-0">
+
+  <!-- LEFT: flame chart + stream -->
+  <div class="flex-1 flex flex-col min-w-0">
+
+    <!-- Flame chart -->
+    <section id="flame-section" class="bg-bg1 border-b border-bdr shrink-0">
+      <!-- Flame bars container -->
+      <div id="flame-bars" class="relative min-h-[50px] px-3 pt-2 pb-1 overflow-x-auto overflow-y-hidden">
+        <!-- Mock bars injected here via OOB -->
+      </div>
+      <!-- Time axis -->
+      <div id="flame-axis" class="flex items-center gap-0 px-3 pb-1 text-[10px] font-mono text-txt3 border-t border-bdr/30">
+        <span class="flex-1">0s</span>
+        <span class="flex-1 text-center">10s</span>
+        <span class="flex-1 text-center">20s</span>
+        <span class="flex-1 text-center">30s</span>
+        <span class="flex-1 text-right">40s</span>
+      </div>
+    </section>
+
+    <!-- Stream -->
+    <div id="stream-scroll" class="stream-shell flex-1 overflow-y-auto">
+      <div class="sticky top-0 z-10 px-3 py-1.5 border-b border-bdr/55 bg-bg/80 backdrop-blur-[2px] panel-kicker">Event Stream</div>
+      <div id="stream" class="font-mono text-[11px] leading-relaxed pb-5">
+        <!-- Events appended here via WS OOB -->
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: status + inspector + log -->
+  <aside class="w-[332px] min-w-[332px] bg-bg1 border-l border-bdr flex flex-col overflow-y-auto text-xs">
+
+    <!-- Status -->
+    <div id="status" class="p-3 border-b border-bdr">
+      <div class="flex items-center justify-between mb-2">
+        <div class="panel-kicker">Status</div>
+        <span id="streaming-badge" class="status-badge idle">idle</span>
+      </div>
+      <div class="status-grid">
+        <div class="status-item wide">
+          <div class="status-label">Model</div>
+          <div id="status-model" class="text-purple font-mono text-[11px]">not set</div>
+        </div>
+        <div class="status-item wide">
+          <div class="status-label">Context</div>
+          <div class="flex items-center gap-2">
+            <div class="status-meter flex-1">
+              <div id="status-ctx-bar" class="status-meter-fill" style="width:0%"></div>
+            </div>
+            <span id="status-ctx-pct" class="text-txt2 font-mono text-[10px]">0%</span>
+          </div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Tokens</div>
+          <div id="status-tokens" class="text-txt2 font-mono text-[10px]">0 in / 0 out</div>
+        </div>
+        <div class="status-item">
+          <div class="status-label">Tools</div>
+          <div id="status-tools" class="text-txt2 font-mono text-[11px]">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="px-3 pt-2.5 pb-2 border-b border-bdr/70 bg-bg1/80">
+      <div class="panel-kicker">Inspector</div>
+      <div class="text-[10px] text-txt3 font-mono mt-1">Selected event details</div>
+    </div>
+
+    <!-- Inspector (populated on click) -->
+    <div id="inspector" class="flex-1 p-3 border-b border-bdr">
+      <div class="inspector-empty">Click an event in the stream or timeline to inspect live details.</div>
+    </div>
+
+    <!-- Log -->
+    <div id="log" class="p-3 max-h-[230px] overflow-y-auto">
+      <div class="panel-kicker mb-2">Event Log</div>
+      <div id="log-entries" class="text-[10px] font-mono text-txt3 leading-tight">
+      </div>
+    </div>
+
+  </aside>
+
+</main>
+
+<div id="mock-presets" class="hidden border-t border-bdr bg-bg1 px-4 py-2 shrink-0">
+  <div class="flex items-center justify-between gap-3 flex-wrap">
+    <div>
+      <div class="panel-kicker">Mock presets</div>
+      <div class="text-[10px] text-txt3 mt-1 font-mono">Run a compact demo scenario in one click.</div>
+    </div>
+    <div id="mock-preset-buttons" class="flex items-center gap-2 flex-wrap"></div>
+  </div>
+</div>
+
+<!-- ══ INPUT BAR ════════════════════════════════════════════════════════ -->
+<div class="border-t border-bdr bg-bg1 px-4 py-3 shrink-0">
+  <form id="prompt-form" class="flex gap-3 items-end max-w-none">
+    <textarea id="prompt-input" name="message"
+              class="flex-1 bg-bg3 border border-bdr2 rounded-lg text-txt px-3 py-2 text-sm font-sans outline-none resize-none min-h-[40px] max-h-[160px] leading-normal focus:border-purple transition"
+              placeholder="Write something…" rows="1"></textarea>
+    <button type="submit" id="btn-send"
+            class="bg-purple border-none rounded-lg text-white px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:brightness-110 transition">
+      Send
+    </button>
+    <button type="button" id="btn-abort" style="display:none"
+            class="bg-red/20 border border-red/40 rounded-lg text-red px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:bg-red/30 transition">
+      Abort
+    </button>
   </form>
-  <script>
-    const messages = document.getElementById('messages');
-    const form = document.getElementById('chat-form');
-    const input = document.getElementById('prompt');
+</div>
 
-    const ws = new WebSocket(`ws://${location.host}/ws`);
+<!-- ══ CLIENT JS ════════════════════════════════════════════════════════ -->
+<script>
+const MAX_LOG_ENTRIES = 240;
+const MAX_TIMELINE_ITEMS = 140;
+const BAR_ROW_HEIGHT = 26;
 
-    ws.onmessage = (ev) => {
-      const event = JSON.parse(ev.data);
-      const type = event.type;
+const ta = document.getElementById('prompt-input');
+const promptForm = document.getElementById('prompt-form');
+const sendBtn = document.getElementById('btn-send');
+const abortBtn = document.getElementById('btn-abort');
+const stream = document.getElementById('stream');
+const streamScroll = document.getElementById('stream-scroll');
+const flameBars = document.getElementById('flame-bars');
+const inspector = document.getElementById('inspector');
+const logEntries = document.getElementById('log-entries');
+const logWrap = document.getElementById('log');
+const modelTag = document.getElementById('model-tag');
+const connPill = document.getElementById('conn-pill');
+const connText = document.getElementById('conn-text');
+const statusModel = document.getElementById('status-model');
+const statusCtxBar = document.getElementById('status-ctx-bar');
+const statusCtxPct = document.getElementById('status-ctx-pct');
+const statusTokens = document.getElementById('status-tokens');
+const statusTools = document.getElementById('status-tools');
+const streamingBadge = document.getElementById('streaming-badge');
+const sessionName = document.getElementById('session-name');
+const gdot = document.getElementById('gdot');
+const mockPresets = document.getElementById('mock-presets');
+const mockPresetButtons = document.getElementById('mock-preset-buttons');
 
-      if (type === 'assistant_message_stream_event') {
-        const ae = event.assistantMessageEvent;
-        if (ae?.type === 'text_delta') {
-          let last = messages.querySelector('.msg.assistant:last-child');
-          if (!last) {
-            last = document.createElement('div');
-            last.className = 'msg assistant';
-            messages.appendChild(last);
-          }
-          last.textContent += ae.delta;
-        }
-      } else if (type === 'tool_call_start' || type === 'tool_call_complete') {
-        const div = document.createElement('div');
-        div.className = 'msg tool';
-        div.textContent = type === 'tool_call_start'
-          ? `▶ ${event.toolCall?.name ?? 'tool'}`
-          : `✓ ${event.toolCall?.name ?? 'tool'}`;
-        messages.appendChild(div);
-      } else if (type === 'error') {
-        const div = document.createElement('div');
-        div.className = 'msg tool';
-        div.textContent = `✗ error: ${event.message}`;
-        messages.appendChild(div);
-      }
+const IS_MOCK_ROUTE = location.pathname === '/mock' || location.pathname.startsWith('/mock/');
+const SOCKET_PATH = IS_MOCK_ROUTE ? '/ws/mock' : '/ws';
+const DEFAULT_SESSION_NAME = IS_MOCK_ROUTE ? 'Awaiting mock session' : 'Awaiting session';
+const MOCK_PRESETS = [
+  { label: 'Launch page', prompt: 'Ship a launch page this week with QA and release notes.' },
+  { label: 'Onboarding rescue', prompt: 'Stabilize the onboarding funnel before Friday and prepare a rollout brief.' },
+  { label: 'Release brief', prompt: 'Prepare a release candidate checklist, changelog, and smoke-test plan.' },
+];
 
-      messages.scrollTop = messages.scrollHeight;
-    };
+let ws = null;
+let reconnectTimer = null;
+let connectAttempt = 0;
+let hasConnectedOnce = false;
 
-    ws.onclose = () => {
-      const div = document.createElement('div');
-      div.className = 'msg tool';
-      div.textContent = '— connection closed';
-      messages.appendChild(div);
-    };
+const state = {
+  socketOpen: false,
+  isStreaming: false,
+  modelLabel: 'not set',
+  tokensIn: 0,
+  tokensOut: 0,
+  toolCount: 0,
+  selectedItemId: null,
+  eventCounter: 0,
+  streamMessageCounter: 0,
+  timelineStartMs: null,
+  timelineItems: [],
+  timelineById: new Map(),
+  openByKey: new Map(),
+  streamRowsByMessageId: new Map(),
+  activeAssistantRowId: null,
+};
 
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const msg = input.value.trim();
-      if (!msg || ws.readyState !== WebSocket.OPEN) return;
+function nowMs() {
+  return performance.now();
+}
 
-      const div = document.createElement('div');
-      div.className = 'msg user';
-      div.textContent = msg;
-      messages.appendChild(div);
-      messages.scrollTop = messages.scrollHeight;
+function elapsedMs() {
+  if (state.timelineStartMs === null) {
+    state.timelineStartMs = nowMs();
+    return 0;
+  }
+  return Math.max(0, Math.floor(nowMs() - state.timelineStartMs));
+}
 
-      ws.send(JSON.stringify({ type: 'prompt', message: msg }));
-      input.value = '';
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function shortJson(value) {
+  try {
+    const text = JSON.stringify(value);
+    return text.length > 160 ? `${text.slice(0, 157)}...` : text;
+  } catch {
+    return String(value);
+  }
+}
+
+function formatElapsedLabel(ms) {
+  if (typeof ms !== 'number' || !Number.isFinite(ms) || ms < 0) return '--';
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${Math.round(ms)}ms`;
+}
+
+function summarizeText(value, max = 240) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.length > max ? `${trimmed.slice(0, max - 1)}...` : trimmed;
+}
+
+function normalizeStreamKind(kind) {
+  return ['assistant', 'user', 'agent', 'tool', 'response', 'ui', 'event'].includes(kind)
+    ? kind
+    : 'event';
+}
+
+function binderyMeta(payload) {
+  return payload && typeof payload === 'object' && payload.binderyMeta && typeof payload.binderyMeta === 'object'
+    ? payload.binderyMeta
+    : null;
+}
+
+function metaTitle(payload, fallback) {
+  const meta = binderyMeta(payload);
+  return meta && typeof meta.title === 'string' && meta.title.trim() ? meta.title : fallback;
+}
+
+function metaPreview(payload) {
+  const meta = binderyMeta(payload);
+  return meta && typeof meta.preview === 'string' && meta.preview.trim() ? meta.preview : '';
+}
+
+function eventTypeLabel(type) {
+  if (typeof type !== 'string' || !type.trim()) return 'event';
+  return type.replaceAll('_', ' ');
+}
+
+function firstNonEmptyLine(text) {
+  if (!text) return '';
+  const line = text.split('\n').find((entry) => entry.trim());
+  return line || text;
+}
+
+function applyStreamRowText(row, kind, bodyText) {
+  if (!row) return;
+  const previewEl = row.querySelector('.stream-preview');
+  const bodyEl = row.querySelector('.stream-body');
+  if (!previewEl || !bodyEl) return;
+
+  const kindValue = normalizeStreamKind(kind);
+  const text = typeof bodyText === 'string' ? bodyText.trim() : '';
+  if (!text) {
+    previewEl.textContent = '';
+    bodyEl.textContent = '';
+    return;
+  }
+
+  const showBody = kindValue === 'assistant' || kindValue === 'user' || kindValue === 'response';
+  const preview = summarizeText(firstNonEmptyLine(text), 180);
+
+  previewEl.textContent = showBody && !text.includes('\n') ? '' : preview;
+  bodyEl.textContent = showBody ? text : '';
+
+  if (!showBody) {
+    previewEl.textContent = summarizeText(text, 190);
+  }
+}
+
+function streamKindForType(type, payload) {
+  const meta = binderyMeta(payload);
+  if (meta && typeof meta.kind === 'string') {
+    return normalizeStreamKind(meta.kind);
+  }
+  if (type === 'response') return 'response';
+  if (type === 'extension_ui_request') return 'ui';
+  if (type === 'tool_execution_start' || type === 'tool_execution_end') return 'tool';
+  if (type === 'agent_start' || type === 'agent_end' || type === 'turn_start' || type === 'turn_end' || type === 'model_select') {
+    return 'agent';
+  }
+  if (type === 'message_start' || type === 'message_update' || type === 'message_end') {
+    const role = payload && payload.message && typeof payload.message.role === 'string'
+      ? payload.message.role
+      : 'event';
+    return normalizeStreamKind(role);
+  }
+  return 'event';
+}
+
+function streamKindForItem(item) {
+  if (item && item.streamRow && item.streamRow.dataset && item.streamRow.dataset.kind) {
+    return normalizeStreamKind(item.streamRow.dataset.kind);
+  }
+  return streamKindForType(item && item.type, item && item.payload);
+}
+
+function inspectorPreviewTitle(kind) {
+  if (kind === 'assistant' || kind === 'user') return 'Message preview';
+  if (kind === 'tool') return 'Tool summary';
+  if (kind === 'ui') return 'UI summary';
+  if (kind === 'response') return 'Response summary';
+  if (kind === 'agent') return 'Agent summary';
+  return 'Event preview';
+}
+
+function inspectorPreview(item) {
+  if (!item || !item.payload || typeof item.payload !== 'object') return '';
+  const payload = item.payload;
+  const metaPreviewText = metaPreview(payload);
+  if (metaPreviewText) return summarizeText(metaPreviewText, 320);
+
+  if (payload.message && typeof payload.message === 'object') {
+    const text = messageText(payload.message);
+    if (text) return summarizeText(text, 320);
+  }
+
+  if (typeof payload.error === 'string' && payload.error.trim()) {
+    return `error: ${payload.error.trim()}`;
+  }
+
+  if (typeof payload.message === 'string' && payload.message.trim()) {
+    return summarizeText(payload.message, 320);
+  }
+
+  if (typeof payload.command === 'string') {
+    return `command: ${payload.command}${payload.success === false ? ' (failed)' : ''}`;
+  }
+
+  if (typeof payload.method === 'string') {
+    return `ui method: ${payload.method}`;
+  }
+
+  return '';
+}
+
+function inspectorMeta(item, endMs, durationMs) {
+  const payload = item && item.payload && typeof item.payload === 'object' ? item.payload : {};
+  const message = payload.message && typeof payload.message === 'object' ? payload.message : null;
+  const meta = [
+    { key: 'type', value: item.type },
+    { key: 'start', value: formatElapsedLabel(item.startMs) },
+    { key: 'end', value: formatElapsedLabel(endMs) },
+    { key: 'duration', value: formatElapsedLabel(durationMs) },
+  ];
+
+  if (message && typeof message.role === 'string') {
+    meta.push({ key: 'role', value: message.role });
+  }
+  if (typeof payload.command === 'string') {
+    meta.push({ key: 'command', value: payload.command });
+  }
+  if (typeof payload.method === 'string') {
+    meta.push({ key: 'ui method', value: payload.method });
+  }
+  if (typeof payload.success === 'boolean') {
+    meta.push({ key: 'success', value: payload.success ? 'yes' : 'no' });
+  }
+
+  return meta.slice(0, 8);
+}
+
+function detectContextPct(value) {
+  if (!value || typeof value !== 'object') return null;
+
+  const direct = [
+    value.contextPercent,
+    value.context_percentage,
+    value.contextUsagePercent,
+    value.context_usage_percent,
+    value.contextPct,
+    value.context_pct,
+  ];
+
+  for (const candidate of direct) {
+    if (typeof candidate === 'number' && Number.isFinite(candidate)) {
+      return Math.max(0, Math.min(100, candidate));
+    }
+  }
+
+  const fromRatio = [
+    [value.contextTokens, value.maxContextTokens],
+    [value.context_tokens, value.max_context_tokens],
+    [value.usage && value.usage.contextTokens, value.usage && value.usage.maxContextTokens],
+  ];
+
+  for (const pair of fromRatio) {
+    const used = pair[0];
+    const max = pair[1];
+    if (typeof used === 'number' && typeof max === 'number' && max > 0) {
+      return Math.max(0, Math.min(100, (used / max) * 100));
+    }
+  }
+
+  return null;
+}
+
+function pullTokenUsage(event) {
+  const candidates = [
+    event && event.usage,
+    event && event.tokenUsage,
+    event && event.data && event.data.usage,
+    event && event.data && event.data.tokenUsage,
+    event && event.message && event.message.usage,
+    event && event.message && event.message.tokenUsage,
+    event && event.assistantMessageEvent && event.assistantMessageEvent.usage,
+    event && event.assistantMessageEvent && event.assistantMessageEvent.tokenUsage,
+  ];
+
+  for (const usage of candidates) {
+    if (!usage || typeof usage !== 'object') continue;
+
+    const input = usage.inputTokens ?? usage.input ?? usage.promptTokens ?? usage.prompt ?? null;
+    const output = usage.outputTokens ?? usage.output ?? usage.completionTokens ?? usage.completion ?? null;
+
+    if ((typeof input === 'number' && Number.isFinite(input)) || (typeof output === 'number' && Number.isFinite(output))) {
+      return {
+        input: typeof input === 'number' && Number.isFinite(input) ? input : 0,
+        output: typeof output === 'number' && Number.isFinite(output) ? output : 0,
+      };
+    }
+  }
+
+  return null;
+}
+
+function getModelLabel(model) {
+  if (!model || typeof model !== 'object') return null;
+  const provider = typeof model.provider === 'string' ? model.provider : null;
+  const id = typeof model.id === 'string' ? model.id : (typeof model.modelId === 'string' ? model.modelId : null);
+  if (provider && id) return `${provider}/${id}`;
+  if (id) return id;
+  if (typeof model.name === 'string' && model.name.trim()) return model.name;
+  return null;
+}
+
+function messageText(message) {
+  if (!message || typeof message !== 'object') return '';
+  const content = message.content;
+
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+
+  const parts = [];
+  for (const block of content) {
+    if (!block || typeof block !== 'object') continue;
+    if (block.type === 'text' && typeof block.text === 'string') {
+      parts.push(block.text);
+    } else if (block.type === 'toolCall') {
+      const name = typeof block.name === 'string' ? block.name : 'tool';
+      parts.push(`[tool:${name}] ${shortJson(block.arguments ?? {})}`);
+    }
+  }
+
+  return parts.join('\n').trim();
+}
+
+function setConnectionDot(status) {
+  const base = 'w-[6px] h-[6px] rounded-full shrink-0';
+  if (status === 'open') {
+    gdot.className = `${base} bg-green`;
+    if (connText) connText.textContent = 'online';
+  } else if (status === 'connecting') {
+    gdot.className = `${base} bg-amber animate-pulse-dot`;
+    if (connText) connText.textContent = 'dialing';
+  } else {
+    gdot.className = `${base} bg-red`;
+    if (connText) connText.textContent = 'offline';
+  }
+  if (connPill) connPill.dataset.state = status;
+}
+
+function setStreaming(active) {
+  state.isStreaming = Boolean(active);
+  abortBtn.style.display = state.isStreaming ? 'inline-flex' : 'none';
+  sendBtn.textContent = 'Send';
+  if (streamingBadge) {
+    streamingBadge.textContent = state.isStreaming ? 'running' : 'idle';
+    streamingBadge.className = `status-badge ${state.isStreaming ? 'running' : 'idle'}`;
+  }
+}
+
+function updateStatusPanel() {
+  modelTag.textContent = state.modelLabel;
+  statusModel.textContent = state.modelLabel;
+  statusTokens.textContent = `${state.tokensIn} in / ${state.tokensOut} out`;
+  statusTools.textContent = String(state.toolCount);
+}
+
+function setContextPct(value) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  statusCtxBar.style.width = `${pct}%`;
+  if (pct >= 86) {
+    statusCtxBar.style.background = 'linear-gradient(90deg,#fb7185,#f43f5e)';
+  } else if (pct >= 66) {
+    statusCtxBar.style.background = 'linear-gradient(90deg,#fbbf24,#fb7185)';
+  } else {
+    statusCtxBar.style.background = 'linear-gradient(90deg,#8b5cf6,#e879f9)';
+  }
+  statusCtxPct.textContent = `${pct}%`;
+}
+
+function appendLog(kind, text) {
+  const line = document.createElement('div');
+  line.className = 'animate-fi';
+  line.dataset.kind = kind;
+  const ts = new Date().toLocaleTimeString();
+  line.innerHTML = `<span class="log-time">${escapeHtml(ts)}</span><span class="log-kind">${escapeHtml(kind.replaceAll('_', ' '))}</span><span class="log-msg">${escapeHtml(text)}</span>`;
+  logEntries.appendChild(line);
+
+  while (logEntries.children.length > MAX_LOG_ENTRIES) {
+    logEntries.removeChild(logEntries.firstChild);
+  }
+  logWrap.scrollTop = logWrap.scrollHeight;
+}
+
+function resetLiveView(reason = 'fresh') {
+  state.isStreaming = false;
+  state.modelLabel = 'not set';
+  state.tokensIn = 0;
+  state.tokensOut = 0;
+  state.toolCount = 0;
+  state.selectedItemId = null;
+  state.eventCounter = 0;
+  state.streamMessageCounter = 0;
+  state.timelineStartMs = null;
+  state.timelineItems = [];
+  state.timelineById = new Map();
+  state.openByKey = new Map();
+  state.streamRowsByMessageId = new Map();
+  state.activeAssistantRowId = null;
+  stream.innerHTML = '';
+  flameBars.innerHTML = '';
+  flameBars.style.minHeight = '50px';
+  logEntries.innerHTML = '';
+  sessionName.textContent = reason === 'reconnect'
+    ? (IS_MOCK_ROUTE ? 'Reconnected mock session' : 'Reconnected session')
+    : DEFAULT_SESSION_NAME;
+  document.title = 'Bindery';
+
+  setStreaming(false);
+  setContextPct(0);
+  updateStatusPanel();
+  updateInspector(null);
+}
+
+function timelineColor(type) {
+  if (type === 'agent_start' || type === 'agent_end') return 'background:rgba(56,189,248,.18);color:#38bdf8';
+  if (type === 'turn_start' || type === 'turn_end') return 'background:rgba(163,230,53,.18);color:#a3e635';
+  if (type === 'message_start' || type === 'message_end' || type === 'message_update') return 'background:rgba(232,121,249,.16);color:#e879f9';
+  if (type === 'tool_execution_start' || type === 'tool_execution_end') return 'background:rgba(251,191,36,.15);color:#fbbf24';
+  if (type === 'extension_ui_request') return 'background:rgba(139,92,246,.16);color:#8b5cf6';
+  if (type === 'response') return 'background:rgba(52,211,153,.16);color:#34d399';
+  return 'background:rgba(144,140,165,.14);color:#908ca5';
+}
+
+function timelineRow(type, payload) {
+  if (type === 'agent_start' || type === 'agent_end') return 0;
+  if (type === 'turn_start' || type === 'turn_end') return 1;
+  if (type === 'message_start' || type === 'message_update' || type === 'message_end') {
+    const role = payload && payload.message && payload.message.role;
+    if (role === 'assistant') return 2;
+    if (role === 'user') return 3;
+    return 4;
+  }
+  if (type === 'tool_execution_start' || type === 'tool_execution_end') return 4;
+  return 5;
+}
+
+function createTimelineItem(type, label, payload, key) {
+  const id = `evt-${++state.eventCounter}`;
+  const startMs = elapsedMs();
+  const row = timelineRow(type, payload);
+  const item = {
+    id,
+    key,
+    type,
+    label,
+    payload,
+    startMs,
+    endMs: null,
+    row,
+    color: timelineColor(type),
+    streamRow: null,
+  };
+
+  state.timelineItems.push(item);
+  state.timelineById.set(id, item);
+  if (key) state.openByKey.set(key, id);
+
+  while (state.timelineItems.length > MAX_TIMELINE_ITEMS) {
+    const removed = state.timelineItems.shift();
+    if (!removed) break;
+    state.timelineById.delete(removed.id);
+    if (removed.key && state.openByKey.get(removed.key) === removed.id) {
+      state.openByKey.delete(removed.key);
+    }
+  }
+
+  return item;
+}
+
+function closeTimelineKey(key) {
+  const itemId = state.openByKey.get(key);
+  if (!itemId) return null;
+  const item = state.timelineById.get(itemId);
+  if (!item) return null;
+  item.endMs = elapsedMs();
+  state.openByKey.delete(key);
+  return item;
+}
+
+function renderFlameChart() {
+  const now = elapsedMs();
+  const items = state.timelineItems;
+  let maxEnd = 1000;
+
+  for (const item of items) {
+    const end = item.endMs === null ? now : item.endMs;
+    if (end > maxEnd) maxEnd = end;
+  }
+
+  const rows = Math.max(1, items.reduce((acc, item) => Math.max(acc, item.row + 1), 1));
+  flameBars.style.minHeight = `${rows * BAR_ROW_HEIGHT + 12}px`;
+  flameBars.innerHTML = '';
+
+  for (const item of items) {
+    const end = item.endMs === null ? now : item.endMs;
+    const left = (item.startMs / maxEnd) * 100;
+    const width = Math.max(1.5, ((Math.max(end, item.startMs + 100) - item.startMs) / maxEnd) * 100);
+    const div = document.createElement('div');
+    div.className = 'flame-bar';
+    if (state.selectedItemId === item.id) div.classList.add('selected');
+    div.dataset.itemId = item.id;
+    div.style.cssText = `${item.color};left:${left}%;width:${width}%;top:${item.row * BAR_ROW_HEIGHT + 6}px`;
+    div.textContent = item.label;
+    flameBars.appendChild(div);
+  }
+}
+
+function makeStreamRow(role, title, body, itemId, startMs, kind = 'event', eventType = 'event') {
+  const row = document.createElement('div');
+  row.className = 'stream-row animate-fi';
+  row.dataset.itemId = itemId;
+  const rowKind = normalizeStreamKind(kind);
+  row.dataset.kind = rowKind;
+  row.dataset.eventType = eventType;
+
+  if (state.selectedItemId === itemId) {
+    row.classList.add('agent-selected');
+  }
+
+  const roleClass = rowKind;
+  row.innerHTML = `
+    <div class="stream-ts">${escapeHtml(formatElapsedLabel(startMs))}</div>
+    <div class="stream-rail"><span class="stream-dot"></span></div>
+    <div class="stream-main">
+      <div class="stream-head">
+        <span class="stream-role ${roleClass}">${escapeHtml(role)}</span>
+        <span class="stream-etype">${escapeHtml(eventTypeLabel(eventType))}</span>
+      </div>
+      <div class="stream-title">${escapeHtml(title)}</div>
+      <div class="stream-preview"></div>
+      <div class="stream-body"></div>
+    </div>
+  `;
+  applyStreamRowText(row, rowKind, body || '');
+
+  stream.appendChild(row);
+  streamScroll.scrollTop = streamScroll.scrollHeight;
+  return row;
+}
+
+function updateInspector(item) {
+  if (!item) {
+    inspector.innerHTML = '<div class="inspector-empty">Click an event in the stream or timeline to inspect live details.</div>';
+    return;
+  }
+
+  const rowKind = streamKindForItem(item);
+  const eventLabel = eventTypeLabel(item.type);
+  const end = item.endMs === null ? elapsedMs() : item.endMs;
+  const dur = Math.max(0, end - item.startMs);
+  const preview = inspectorPreview(item);
+  const previewTitle = inspectorPreviewTitle(rowKind);
+  const meta = inspectorMeta(item, end, dur);
+  const metaHtml = meta
+    .map((entry) => `<div class="inspector-cell"><div class="inspector-k">${escapeHtml(entry.key)}</div><div class="inspector-v">${escapeHtml(String(entry.value))}</div></div>`)
+    .join('');
+  const payload = escapeHtml(JSON.stringify(item.payload, null, 2));
+  const widgetLines = item && item.payload && Array.isArray(item.payload.widgetLines) ? item.payload.widgetLines : null;
+
+  inspector.innerHTML = `
+    <div class="inspector-shell text-[11px]">
+      <div class="inspector-head">
+        <div class="inspector-head-main">
+          <div class="inspector-kind-row">
+            <span class="inspector-kind ${rowKind}">${escapeHtml(rowKind)}</span>
+            <span class="inspector-kind type">${escapeHtml(eventLabel)}</span>
+          </div>
+          <div class="inspector-title">${escapeHtml(item.label)}</div>
+        </div>
+        <div class="inspector-sub">${escapeHtml(item.id)}</div>
+      </div>
+      <div class="inspector-meta">${metaHtml}</div>
+      ${preview ? `<div class="inspector-block"><div class="inspector-block-title">${escapeHtml(previewTitle)}</div><div class="inspector-preview">${escapeHtml(preview)}</div></div>` : ''}
+      ${widgetLines ? `<div class="inspector-block"><div class="inspector-block-title">Widget</div><pre class="inspector-preview text-lime">${escapeHtml(widgetLines.join('\n'))}</pre></div>` : ''}
+      <div class="inspector-block"><div class="inspector-block-title">Payload</div><pre class="inspector-json">${payload}</pre></div>
+    </div>
+  `;
+}
+
+function selectItem(itemId) {
+  if (!itemId) return;
+  state.selectedItemId = itemId;
+
+  document.querySelectorAll('.flame-bar').forEach((bar) => {
+    bar.classList.toggle('selected', bar.dataset.itemId === itemId);
+  });
+  document.querySelectorAll('#stream [data-item-id]').forEach((row) => {
+    row.classList.toggle('agent-selected', row.dataset.itemId === itemId);
+  });
+
+  updateInspector(state.timelineById.get(itemId) || null);
+}
+
+function attachStreamRow(item, row) {
+  if (!item || !row) return;
+  item.streamRow = row;
+}
+
+function appendEventRow(item, kind, title, body) {
+  if (!item) return;
+  const row = makeStreamRow(kind, title, body, item.id, item.startMs, kind, item.type);
+  attachStreamRow(item, row);
+}
+
+function eventBodyPreview(payload) {
+  const fromMeta = metaPreview(payload);
+  if (fromMeta) return fromMeta;
+  const preview = inspectorPreview({ payload });
+  if (preview) return preview;
+  return shortJson(payload);
+}
+
+function renderMockPresets() {
+  if (!IS_MOCK_ROUTE || !mockPresets || !mockPresetButtons) return;
+  mockPresets.classList.remove('hidden');
+  mockPresetButtons.innerHTML = '';
+
+  for (const preset of MOCK_PRESETS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'preset-chip';
+    button.innerHTML = `<span class="dot"></span><span class="label">${escapeHtml(preset.label)}</span>`;
+    button.addEventListener('click', () => {
+      ta.value = preset.prompt;
+      ta.style.height = 'auto';
+      ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+      promptForm.requestSubmit();
     });
-  </script>
+    mockPresetButtons.appendChild(button);
+  }
+}
+
+function renderMessageEvent(kind, payload) {
+  const message = payload && payload.message ? payload.message : {};
+  const role = typeof message.role === 'string' ? message.role : 'event';
+  const msgId = typeof message.id === 'string' ? message.id : `${role}-${++state.streamMessageCounter}`;
+
+  if (kind === 'message_start') {
+    const item = createTimelineItem(kind, `${role} start`, payload, `msg-${msgId}`);
+    const text = messageText(message);
+    const rowKind = normalizeStreamKind(role);
+    const fallbackTitle = role === 'assistant'
+      ? 'assistant response'
+      : (role === 'user' ? 'user request' : `${role} message`);
+    const rowTitle = metaTitle(payload, fallbackTitle);
+    item.label = rowTitle;
+    const row = makeStreamRow(role, rowTitle, metaPreview(payload) || text, item.id, item.startMs, rowKind, kind);
+    attachStreamRow(item, row);
+    if (role === 'assistant') {
+      state.activeAssistantRowId = item.id;
+    }
+    state.streamRowsByMessageId.set(msgId, row);
+    renderFlameChart();
+    return;
+  }
+
+  if (kind === 'message_update') {
+    const openId = state.openByKey.get(`msg-${msgId}`) || state.activeAssistantRowId;
+    const row = openId ? document.querySelector(`#stream [data-item-id="${openId}"]`) : null;
+    if (row) {
+      const rowKind = row.dataset.kind || 'event';
+      const text = messageText(message);
+      if (text) applyStreamRowText(row, rowKind, text);
+      row.classList.add('animate-fi');
+    }
+    const openItem = openId ? state.timelineById.get(openId) : null;
+    if (openItem) {
+      openItem.payload = payload;
+    }
+    return;
+  }
+
+  if (kind === 'message_end') {
+    const item = closeTimelineKey(`msg-${msgId}`) || createTimelineItem(kind, `${role} end`, payload, null);
+    if (item && !item.payload) item.payload = payload;
+    const rowId = item ? item.id : state.activeAssistantRowId;
+    const row = rowId ? document.querySelector(`#stream [data-item-id="${rowId}"]`) : null;
+    if (row) {
+      const rowKind = row.dataset.kind || 'event';
+      const text = messageText(message);
+      if (text) applyStreamRowText(row, rowKind, text);
+    }
+    if (role === 'assistant') {
+      state.activeAssistantRowId = null;
+    }
+    renderFlameChart();
+  }
+}
+
+function updateFromStatePayload(data) {
+  if (!data || typeof data !== 'object') return;
+
+  if (typeof data.sessionName === 'string' && data.sessionName.trim()) {
+    sessionName.textContent = data.sessionName;
+  }
+
+  const modelLabel = getModelLabel(data.model);
+  if (modelLabel) {
+    state.modelLabel = modelLabel;
+  }
+
+  if (typeof data.isStreaming === 'boolean') {
+    setStreaming(data.isStreaming);
+  }
+
+  const contextPct = detectContextPct(data);
+  if (contextPct !== null) setContextPct(contextPct);
+
+  updateStatusPanel();
+}
+
+function handleResponse(message) {
+  const cmd = message.command || 'unknown';
+  const ok = Boolean(message.success);
+  appendLog('response', `${cmd} ${ok ? 'ok' : 'error'}`);
+
+  const rowTitle = metaTitle(message, `response ${cmd}`);
+  const item = createTimelineItem('response', rowTitle, message, null);
+  const responseBody = ok
+    ? eventBodyPreview(message.data && typeof message.data === 'object' ? message.data : message)
+    : (typeof message.error === 'string' ? message.error : 'unknown error');
+  appendEventRow(item, 'response', rowTitle, responseBody);
+  renderFlameChart();
+
+  if (!ok) {
+    const error = typeof message.error === 'string' ? message.error : 'unknown error';
+    appendLog('error', `${cmd}: ${error}`);
+    return;
+  }
+
+  if (cmd === 'get_state') {
+    updateFromStatePayload(message.data);
+    return;
+  }
+
+  if (cmd === 'set_model') {
+    const modelLabel = getModelLabel(message.data);
+    if (modelLabel) {
+      state.modelLabel = modelLabel;
+      updateStatusPanel();
+    }
+    return;
+  }
+
+  if (cmd === 'abort') {
+    setStreaming(false);
+  }
+
+  if (cmd === 'prompt') {
+    setStreaming(true);
+  }
+
+  const contextPct = detectContextPct(message.data);
+  if (contextPct !== null) setContextPct(contextPct);
+
+  const usage = pullTokenUsage(message);
+  if (usage) {
+    state.tokensIn += usage.input;
+    state.tokensOut += usage.output;
+    updateStatusPanel();
+  }
+
+  if (!state.selectedItemId) {
+    selectItem(item.id);
+  }
+}
+
+function handleExtensionUiRequest(message) {
+  const method = typeof message.method === 'string' ? message.method : 'unknown';
+  appendLog('extension', method);
+
+  const rowTitle = metaTitle(message, `ui ${method}`);
+  const item = createTimelineItem('extension_ui_request', rowTitle, message, null);
+  appendEventRow(item, 'ui', rowTitle, eventBodyPreview(message));
+  renderFlameChart();
+
+  if (method === 'setTitle' && typeof message.title === 'string') {
+    sessionName.textContent = message.title;
+    document.title = `Bindery - ${message.title}`;
+  }
+
+  if (method === 'set_editor_text' && typeof message.text === 'string') {
+    ta.value = message.text;
+    ta.style.height = 'auto';
+    ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+  }
+
+  if (method === 'setWidget') {
+    item.payload = {
+      ...(item.payload && typeof item.payload === 'object' ? item.payload : {}),
+      widgetLines: Array.isArray(message.widgetLines) ? message.widgetLines : null,
+    };
+    if (state.selectedItemId === item.id) {
+      updateInspector(item);
+    }
+  }
+
+  if (method === 'notify' && typeof message.message === 'string') {
+    appendLog('notify', message.message);
+  }
+
+  if (!message.id) {
+    if (!state.selectedItemId) selectItem(item.id);
+    return;
+  }
+
+  if (method === 'confirm') {
+    const confirmed = window.confirm(message.message || message.title || 'Confirm?');
+    sendCommand({ type: 'extension_ui_response', id: message.id, confirmed });
+  } else if (method === 'select') {
+    const opts = Array.isArray(message.options) ? message.options : [];
+    const defaultValue = opts[0] || '';
+    const typed = window.prompt(`${message.title || 'Select option'}\n\n${opts.map((v, i) => `${i + 1}. ${v}`).join('\n')}`, defaultValue);
+    if (typed === null) {
+      sendCommand({ type: 'extension_ui_response', id: message.id, cancelled: true });
+    } else {
+      const byIndex = Number.parseInt(typed, 10);
+      const value = Number.isFinite(byIndex) && byIndex > 0 && byIndex <= opts.length ? opts[byIndex - 1] : typed;
+      sendCommand({ type: 'extension_ui_response', id: message.id, value });
+    }
+  } else if (method === 'input' || method === 'editor') {
+    const initial = method === 'editor' ? (message.prefill || '') : (message.placeholder || '');
+    const value = window.prompt(message.title || 'Input required', initial);
+    if (value === null) {
+      sendCommand({ type: 'extension_ui_response', id: message.id, cancelled: true });
+    } else {
+      sendCommand({ type: 'extension_ui_response', id: message.id, value });
+    }
+  }
+
+  if (!state.selectedItemId) {
+    selectItem(item.id);
+  }
+}
+
+function handleAgentEvent(message) {
+  const type = typeof message.type === 'string' ? message.type : 'event';
+  if (type !== 'message_update') {
+    appendLog(type, shortJson(message));
+  }
+
+  if (type === 'message_start' || type === 'message_update' || type === 'message_end') {
+    renderMessageEvent(type, message);
+  } else if (type === 'agent_start') {
+    setStreaming(true);
+    const rowTitle = metaTitle(message, 'agent start');
+    const item = createTimelineItem(type, rowTitle, message, 'agent-loop');
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else if (type === 'agent_end') {
+    setStreaming(false);
+    closeTimelineKey('agent-loop');
+    const rowTitle = metaTitle(message, 'agent end');
+    const item = createTimelineItem(type, rowTitle, message, null);
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else if (type === 'turn_start') {
+    const turnIndex = message.turnIndex ?? 'x';
+    const rowTitle = metaTitle(message, `turn ${turnIndex} start`);
+    const item = createTimelineItem(type, rowTitle, message, `turn-${turnIndex}`);
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else if (type === 'turn_end') {
+    const turnIndex = message.turnIndex ?? 'x';
+    closeTimelineKey(`turn-${turnIndex}`);
+    const rowTitle = metaTitle(message, `turn ${turnIndex} end`);
+    const item = createTimelineItem(type, rowTitle, message, null);
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else if (type === 'tool_execution_start' || type === 'tool_execution_end') {
+    const command = typeof message.command === 'string'
+      ? message.command
+      : (typeof message.toolName === 'string' ? message.toolName : 'tool');
+    const phase = type.endsWith('start') ? 'start' : (message.success === false ? 'failed' : 'done');
+    const rowTitle = metaTitle(message, `tool ${command} ${phase}`);
+    const item = createTimelineItem(type, rowTitle, message, null);
+    appendEventRow(item, 'tool', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else if (type === 'model_select') {
+    const rowTitle = metaTitle(message, 'model selected');
+    const item = createTimelineItem(type, rowTitle, message, null);
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  } else {
+    const label = type.replaceAll('_', ' ');
+    const rowTitle = metaTitle(message, label);
+    const item = createTimelineItem(type, rowTitle, message, null);
+    appendEventRow(item, 'event', rowTitle, eventBodyPreview(message));
+    renderFlameChart();
+  }
+
+  if (type === 'tool_execution_start') {
+    state.toolCount += 1;
+  }
+
+  if (type === 'model_select' && message.model) {
+    const modelLabel = getModelLabel(message.model);
+    if (modelLabel) {
+      state.modelLabel = modelLabel;
+    }
+  }
+
+  const contextPct = detectContextPct(message);
+  if (contextPct !== null) setContextPct(contextPct);
+
+  const usage = pullTokenUsage(message);
+  if (usage) {
+    state.tokensIn += usage.input;
+    state.tokensOut += usage.output;
+  }
+
+  updateStatusPanel();
+}
+
+function handleSocketMessage(raw) {
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    appendLog('parse', raw);
+    return;
+  }
+
+  if (payload.type === 'response') {
+    handleResponse(payload);
+  } else if (payload.type === 'extension_ui_request') {
+    handleExtensionUiRequest(payload);
+  } else {
+    handleAgentEvent(payload);
+  }
+}
+
+function sendCommand(command) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    appendLog('socket', 'command dropped while disconnected');
+    return false;
+  }
+  ws.send(JSON.stringify(command));
+  return true;
+}
+
+function connectSocket() {
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  setConnectionDot('connecting');
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${protocol}://${location.host}${SOCKET_PATH}`);
+
+  ws.addEventListener('open', () => {
+    if (hasConnectedOnce) {
+      resetLiveView('reconnect');
+    }
+    hasConnectedOnce = true;
+    connectAttempt = 0;
+    state.socketOpen = true;
+    setConnectionDot('open');
+    appendLog('socket', `connected ${SOCKET_PATH}`);
+    sendCommand({ id: 'ui-get-state', type: 'get_state' });
+  });
+
+  ws.addEventListener('message', (event) => {
+    handleSocketMessage(event.data);
+  });
+
+  ws.addEventListener('close', () => {
+    state.socketOpen = false;
+    setConnectionDot('closed');
+    setStreaming(false);
+    appendLog('socket', 'disconnected');
+
+    connectAttempt += 1;
+    const waitMs = Math.min(4000, 500 * connectAttempt);
+    clearTimeout(reconnectTimer);
+    reconnectTimer = setTimeout(connectSocket, waitMs);
+  });
+
+  ws.addEventListener('error', () => {
+    appendLog('socket', 'error');
+  });
+}
+
+ta.addEventListener('input', () => {
+  ta.style.height = 'auto';
+  ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+});
+
+ta.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    promptForm.requestSubmit();
+  }
+});
+
+promptForm.addEventListener('submit', (event) => {
+  event.preventDefault();
+  const message = ta.value.trim();
+  if (!message) return;
+
+  const command = {
+    id: `prompt-${Date.now()}`,
+    type: 'prompt',
+    message,
+  };
+
+  if (sendCommand(command)) {
+    ta.value = '';
+    ta.style.height = 'auto';
+    appendLog('send', message);
+  }
+});
+
+abortBtn.addEventListener('click', () => {
+  sendCommand({ id: `abort-${Date.now()}`, type: 'abort' });
+});
+
+const timelineBtn = document.getElementById('btn-timeline');
+const flameSection = document.getElementById('flame-section');
+timelineBtn.addEventListener('click', () => {
+  const hidden = flameSection.classList.toggle('hidden');
+  timelineBtn.textContent = hidden ? '▸ timeline' : '▾ timeline';
+});
+
+document.addEventListener('click', (event) => {
+  const target = event.target.closest('[data-item-id]');
+  if (!target) return;
+  const itemId = target.dataset.itemId;
+  if (itemId) selectItem(itemId);
+});
+
+setConnectionDot('closed');
+setStreaming(false);
+setContextPct(0);
+sessionName.textContent = DEFAULT_SESSION_NAME;
+updateStatusPanel();
+updateInspector(null);
+renderMockPresets();
+connectSocket();
+</script>
+
 </body>
 </html>
