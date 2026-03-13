@@ -2,13 +2,13 @@
 bind_address = "127.0.0.1:3002"
 
 [agent]
-# Path to the pi CLI entrypoint.
-# Use pi-test.sh for running from source, or the installed `pi` binary on the agent VM.
+# Path to the coding-agent CLI entrypoint.
+# Use `pi-test.sh` for running from source, or an installed compatible agent binary on the agent VM.
 cli_path = "/path/to/Bindery/pi-test.sh"
 cwd = "/workspace"
 
 [agent.env]
-# Map infra API key to the name the pi agent expects.
+# Map infra API key to the name the agent expects.
 # ${VAR} is expanded from the server process environment at startup.
 # ZAI_API_KEY = "${SAGA_API_KEY}"
 
