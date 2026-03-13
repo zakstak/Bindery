@@ -79,8 +79,7 @@ Why now:
 - once handoff and tasking exist, session logs become much more useful training material
 - repeated instructions can become durable behavior instead of repeated chat overhead
 
-Use:
-- `scripts/session-transcripts.ts`
+Use session transcript review to identify repeated guidance worth promoting into durable behavior.
 
 Promote repeated patterns into:
 - `AGENTS.md`
