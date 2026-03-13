@@ -11,6 +11,22 @@ use serde_json::{json, Value};
 use tokio::time::sleep;
 use tracing::{info, warn};
 
+struct MockTaskState {
+    task_id: String,
+    goal: String,
+    completed: bool,
+}
+
+fn current_model_label(model: &Value) -> String {
+    let provider = model.get("provider").and_then(Value::as_str).unwrap_or("mock");
+    let id = model
+        .get("id")
+        .or_else(|| model.get("modelId"))
+        .and_then(Value::as_str)
+        .unwrap_or("bindery-demo-orchestrator-v2");
+    format!("{provider}/{id}")
+}
+
 /// Mock routes for testing the real shell without a live agent process.
 pub fn router() -> Router {
     Router::new()
@@ -27,7 +43,10 @@ async fn handle_mock_socket(mut socket: WebSocket) {
 
     let mut model = json!({ "provider": "mock", "id": "bindery-demo-orchestrator-v2" });
     let mut prompt_index: u32 = 0;
+    let mut task_index: u32 = 0;
     let mut boot_sent = false;
+    let mut session_name = String::from("Bindery demo session");
+    let mut active_task: Option<MockTaskState> = None;
 
     while let Some(message) = socket.recv().await {
         let text = match message {
@@ -76,7 +95,7 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                         "command": "get_state",
                         "success": true,
                         "data": {
-                            "sessionName": "Bindery demo session",
+                            "sessionName": session_name,
                             "model": model.clone(),
                             "isStreaming": false,
                             "contextPercent": 18,
@@ -185,6 +204,184 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                     build_prompt_sequence(prompt_index, &user_prompt, &model),
                 )
                 .await
+                {
+                    return;
+                }
+            }
+            "start_task_session" => {
+                let goal = command
+                    .get("goal")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string();
+
+                if goal.is_empty() {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "start_task_session",
+                            "success": false,
+                            "error": "goal is required",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                task_index += 1;
+                let task_id = format!("mock-task-{task_index}");
+                session_name = format!("Task · {goal}");
+                active_task = Some(MockTaskState {
+                    task_id: task_id.clone(),
+                    goal: goal.clone(),
+                    completed: false,
+                });
+
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "start_task_session",
+                        "success": true,
+                        "data": {
+                            "cancelled": false,
+                            "packet": {
+                                "schemaVersion": 1,
+                                "taskId": task_id,
+                                "createdAt": format!("mock-task-created-{task_index}"),
+                                "parentSessionId": "mock-parent-session",
+                                "parentSessionFile": "/tmp/mock-parent.jsonl",
+                                "cwd": "/tmp/mock-project",
+                                "model": current_model_label(&model),
+                                "goal": goal,
+                                "constraints": command.get("constraints").cloned().unwrap_or_else(|| json!([])),
+                                "relevantFiles": [],
+                                "doneDefinition": command.get("doneDefinition").or_else(|| command.get("done_definition")).and_then(Value::as_str).unwrap_or("Return one structured result summary with changed files, open risks, and the next recommended step."),
+                                "notes": command.get("notes").cloned().unwrap_or(Value::Null),
+                            },
+                            "previousSessionFile": "/tmp/mock-parent.jsonl",
+                            "nextSessionFile": format!("/tmp/mock-task-{task_index}.jsonl"),
+                        }
+                    }),
+                )
+                .await
+                .is_err()
+                {
+                    return;
+                }
+            }
+            "complete_task_session" => {
+                let summary = command
+                    .get("summary")
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string();
+
+                if summary.is_empty() {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "complete_task_session",
+                            "success": false,
+                            "error": "summary is required",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                let Some(mut task_state) = active_task.take() else {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "complete_task_session",
+                            "success": false,
+                            "error": "no active task session",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                };
+
+                if task_state.completed {
+                    active_task = Some(task_state);
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "complete_task_session",
+                            "success": false,
+                            "error": "Task result already recorded for this task.",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                let resume_parent = command
+                    .get("resumeParent")
+                    .or_else(|| command.get("resume_parent"))
+                    .and_then(Value::as_bool)
+                    .unwrap_or(true);
+                let task_id = task_state.task_id.clone();
+
+                if resume_parent {
+                    session_name = String::from("Bindery demo session");
+                } else {
+                    task_state.completed = true;
+                    session_name = format!("Task · {}", task_state.goal);
+                    active_task = Some(task_state);
+                }
+
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "complete_task_session",
+                        "success": true,
+                        "data": {
+                            "result": {
+                                "schemaVersion": 1,
+                                "taskId": task_id,
+                                "createdAt": format!("mock-task-result-{task_index}"),
+                                "childSessionId": format!("mock-child-session-{task_index}"),
+                                "childSessionFile": format!("/tmp/mock-task-{task_index}.jsonl"),
+                                "parentSessionFile": "/tmp/mock-parent.jsonl",
+                                "model": current_model_label(&model),
+                                "summary": summary,
+                                "changedFiles": [],
+                                "openRisks": command.get("openRisks").or_else(|| command.get("open_risks")).cloned().unwrap_or_else(|| json!([])),
+                                "nextStep": command.get("nextStep").or_else(|| command.get("next_step")).and_then(Value::as_str).unwrap_or("Return to the parent session and continue from this result."),
+                                "notes": command.get("notes").cloned().unwrap_or(Value::Null),
+                            },
+                            "resumedParent": resume_parent,
+                            "parentSessionFile": "/tmp/mock-parent.jsonl",
+                        }
+                    }),
+                )
+                .await
+                .is_err()
                 {
                     return;
                 }
