@@ -69,6 +69,13 @@ import {
 	wrapRegisteredTools,
 	wrapToolsWithExtensions,
 } from "./extensions/index.js";
+import {
+	buildHandoffMarkdown,
+	collectHandoffRelevantFiles,
+	createHandoffDocument,
+	HANDOFF_CONTEXT_CUSTOM_TYPE,
+	HANDOFF_DOCUMENT_CUSTOM_TYPE,
+} from "./handoff.js";
 import type { BashExecutionMessage, CustomMessage } from "./messages.js";
 import type { ModelRegistry } from "./model-registry.js";
 import {
@@ -78,8 +85,8 @@ import {
 } from "./prompt-source-state.js";
 import { expandPromptTemplate, type PromptTemplate } from "./prompt-templates.js";
 import type { ResourceExtensionPaths, ResourceLoader } from "./resource-loader.js";
-import type { BranchSummaryEntry, CompactionEntry, SessionManager } from "./session-manager.js";
-import { getLatestCompactionEntry } from "./session-manager.js";
+import type { BranchSummaryEntry, CompactionEntry } from "./session-manager.js";
+import { getLatestCompactionEntry, SessionManager } from "./session-manager.js";
 import type { SettingsManager } from "./settings-manager.js";
 import { BUILTIN_SLASH_COMMANDS, type SlashCommandInfo, type SlashCommandLocation } from "./slash-commands.js";
 import { buildSystemPrompt } from "./system-prompt.js";
@@ -2703,6 +2710,84 @@ export class AgentSession {
 	 */
 	setSessionName(name: string): void {
 		this.sessionManager.appendSessionInfo(name);
+	}
+
+	private _getLatestUserGoal(): string | undefined {
+		const entries = this.sessionManager.getBranch();
+		for (let i = entries.length - 1; i >= 0; i--) {
+			const entry = entries[i];
+			if (entry.type !== "message" || entry.message.role !== "user") continue;
+			const text = this._extractUserMessageText(entry.message.content);
+			if (text.trim()) return text.trim();
+		}
+		return undefined;
+	}
+
+	private _getLatestAssistantText(): string | undefined {
+		for (let i = this.messages.length - 1; i >= 0; i--) {
+			const message = this.messages[i];
+			if (message.role !== "assistant") continue;
+			let text = "";
+			for (const content of message.content) {
+				if (content.type === "text") {
+					text += content.text;
+				}
+			}
+			const trimmed = text.trim();
+			if (trimmed) return trimmed;
+		}
+		return undefined;
+	}
+
+	async handoffToNewSession(options?: { notes?: string }): Promise<{
+		cancelled: boolean;
+		document: ReturnType<typeof createHandoffDocument>;
+		previousSessionFile?: string;
+		nextSessionFile?: string;
+	}> {
+		const previousSessionFile = this.sessionFile;
+		const document = createHandoffDocument({
+			sessionId: this.sessionId,
+			sessionFile: previousSessionFile,
+			sessionName: this.sessionName,
+			cwd: this.sessionManager.getCwd(),
+			model: this.model ? `${this.model.provider}/${this.model.id}` : undefined,
+			thinkingLevel: this.thinkingLevel,
+			contextUsage: this.getContextUsage(),
+			latestUserGoal: this._getLatestUserGoal(),
+			latestAssistantText: this._getLatestAssistantText(),
+			relevantFiles: collectHandoffRelevantFiles(this.sessionManager.getBranch()),
+			pendingMessageCount: this.pendingMessageCount,
+			pendingPromptProposalVersion: this.sessionManager.getPendingPromptSourceProposal()?.proposedVersion,
+			notes: options?.notes,
+		});
+
+		const handoffMarkdown = buildHandoffMarkdown(document);
+		const handoffSetup = async (manager: SessionManager) => {
+			manager.appendCustomMessageEntry(HANDOFF_CONTEXT_CUSTOM_TYPE, handoffMarkdown, true, document);
+		};
+
+		const success = await this.newSession({
+			parentSession: previousSessionFile,
+			setup: handoffSetup,
+		});
+		if (!success) {
+			return { cancelled: true, document, previousSessionFile };
+		}
+
+		if (previousSessionFile) {
+			const previousSessionManager = SessionManager.open(previousSessionFile, this.sessionManager.getSessionDir());
+			previousSessionManager.appendCustomEntry(HANDOFF_DOCUMENT_CUSTOM_TYPE, document);
+		} else {
+			this.sessionManager.appendCustomEntry(HANDOFF_DOCUMENT_CUSTOM_TYPE, document);
+		}
+
+		return {
+			cancelled: false,
+			document,
+			previousSessionFile,
+			nextSessionFile: this.sessionFile,
+		};
 	}
 
 	/**

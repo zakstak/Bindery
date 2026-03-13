@@ -21,6 +21,9 @@ Best insertion points in Bindery:
 - `packages/coding-agent/src/core/agent-session.ts`
 - `packages/coding-agent/docs/tree.md`
 
+Current status:
+- implemented as a first-class core slash command that persists a structured handoff artifact and seeds a fresh session from it
+
 ### 2. Add one minimal `task` contract
 
 Why second:
