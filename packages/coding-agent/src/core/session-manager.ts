@@ -14,7 +14,7 @@ import {
 	writeFileSync,
 } from "fs";
 import { readdir, readFile, stat } from "fs/promises";
-import { join, resolve } from "path";
+import { dirname, join, resolve } from "path";
 import { getAgentDir as getDefaultAgentDir, getSessionsDir } from "../config.js";
 import {
 	type BashExecutionMessage,
@@ -23,6 +23,21 @@ import {
 	createCompactionSummaryMessage,
 	createCustomMessage,
 } from "./messages.js";
+import {
+	assertNoPendingPromptSourceProposal,
+	buildPromptSourceDiff,
+	createPromptSourceProposalEntryData,
+	createStalePromptSourceProposal,
+	getApprovedPromptSourceProposals,
+	getNextPromptSourceProposalVersion,
+	getPendingPromptSourceProposal,
+	getPromptSourceCanonicalVersion,
+	getPromptSourceProposalContent,
+	listPromptSourceProposals,
+	PROMPT_SOURCE_PROPOSAL_CUSTOM_TYPE,
+	type PromptSourceProposal,
+} from "./prompt-source-state.js";
+import { getProjectSystemPromptPath } from "./resource-loader.js";
 
 export const CURRENT_SESSION_VERSION = 3;
 
@@ -895,6 +910,126 @@ export class SessionManager {
 		};
 		this._appendEntry(entry);
 		return entry.id;
+	}
+
+	appendPromptSourceProposal(proposal: PromptSourceProposal): string {
+		if (proposal.status === "pending") {
+			assertNoPendingPromptSourceProposal(this.getEntries());
+		}
+
+		return this.appendCustomEntry(PROMPT_SOURCE_PROPOSAL_CUSTOM_TYPE, createPromptSourceProposalEntryData(proposal));
+	}
+
+	getPromptSourceProposals(): PromptSourceProposal[] {
+		return listPromptSourceProposals(this.getEntries());
+	}
+
+	getApprovedPromptSourceProposals(): PromptSourceProposal[] {
+		return getApprovedPromptSourceProposals(this.getPromptSourceProposals());
+	}
+
+	getPendingPromptSourceProposal(): PromptSourceProposal | undefined {
+		return getPendingPromptSourceProposal(this.getEntries());
+	}
+
+	invalidatePendingPromptSourceProposal(options: {
+		baseVersion: number;
+		reason: string;
+		model: string;
+	}): string | undefined {
+		const pending = this.getPendingPromptSourceProposal();
+		if (!pending || pending.baseVersion === options.baseVersion) {
+			return undefined;
+		}
+
+		return this.appendPromptSourceProposal(
+			createStalePromptSourceProposal({
+				pendingProposal: pending,
+				reason: options.reason,
+				model: options.model,
+			}),
+		);
+	}
+
+	private writeProjectSystemPrompt(content: string): string {
+		const path = getProjectSystemPromptPath(this.cwd);
+		mkdirSync(dirname(path), { recursive: true });
+		writeFileSync(path, content, "utf8");
+		return path;
+	}
+
+	private getProposalContentOrThrow(proposal: PromptSourceProposal): string {
+		const content = getPromptSourceProposalContent(proposal);
+		if (content !== undefined) {
+			return content;
+		}
+		throw new Error(
+			`Prompt proposal v${proposal.proposedVersion} does not include persistence-safe proposed source content`,
+		);
+	}
+
+	approvePromptSourceProposal(
+		proposal: PromptSourceProposal,
+		model: string,
+	): { path: string; proposal: PromptSourceProposal } {
+		const approvedContent = this.getProposalContentOrThrow(proposal);
+		const path = this.writeProjectSystemPrompt(approvedContent);
+		const approvedProposal: PromptSourceProposal = {
+			...proposal,
+			status: "approved",
+			model,
+			timestamp: new Date().toISOString(),
+			proposedContent: approvedContent,
+		};
+		this.appendPromptSourceProposal(approvedProposal);
+		return { path, proposal: approvedProposal };
+	}
+
+	rejectPromptSourceProposal(proposal: PromptSourceProposal, model: string): PromptSourceProposal {
+		const rejectedProposal: PromptSourceProposal = {
+			...proposal,
+			status: "rejected",
+			model,
+			timestamp: new Date().toISOString(),
+		};
+		this.appendPromptSourceProposal(rejectedProposal);
+		return rejectedProposal;
+	}
+
+	rollbackPromptSourceProposal(
+		targetApprovedProposal: PromptSourceProposal,
+		model: string,
+	): { path: string; proposal: PromptSourceProposal } {
+		const rollbackContent = this.getProposalContentOrThrow(targetApprovedProposal);
+		const currentPath = getProjectSystemPromptPath(this.cwd);
+		const currentContent = existsSync(currentPath) ? readFileSync(currentPath, "utf8") : "";
+		const proposals = this.getPromptSourceProposals();
+		const canonicalVersion = getPromptSourceCanonicalVersion(proposals);
+		const proposedVersion = getNextPromptSourceProposalVersion(canonicalVersion, proposals);
+
+		const rollbackAuditProposal: PromptSourceProposal = {
+			baseVersion: canonicalVersion,
+			proposedVersion,
+			status: "rolled_back",
+			diff: buildPromptSourceDiff(currentContent, rollbackContent),
+			rationale: `Rollback target approved prompt version v${targetApprovedProposal.proposedVersion}`,
+			model,
+			timestamp: new Date().toISOString(),
+			proposedContent: rollbackContent,
+			rollbackTargetVersion: targetApprovedProposal.proposedVersion,
+		};
+		this.appendPromptSourceProposal(rollbackAuditProposal);
+
+		const path = this.writeProjectSystemPrompt(rollbackContent);
+		const approvedRollbackProposal: PromptSourceProposal = {
+			...rollbackAuditProposal,
+			status: "approved",
+			rationale: `Applied rollback to approved prompt version v${targetApprovedProposal.proposedVersion}`,
+			timestamp: new Date().toISOString(),
+		};
+		this.appendPromptSourceProposal(approvedRollbackProposal);
+
+		return { path, proposal: approvedRollbackProposal };
 	}
 
 	/** Append a session info entry (e.g., display name). Returns entry id. */
