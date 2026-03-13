@@ -9,6 +9,12 @@
 import type { AssistantMessage, ImageContent } from "@mariozechner/pi-ai";
 import type { AgentSession } from "../core/agent-session.js";
 
+const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
+
+function isPromptReviewCommand(text: string): boolean {
+	return text.trim() === "/prompt-review";
+}
+
 /**
  * Options for print mode.
  */
@@ -82,11 +88,21 @@ export async function runPrintMode(session: AgentSession, options: PrintModeOpti
 
 	// Send initial message with attachments
 	if (initialMessage) {
+		if (isPromptReviewCommand(initialMessage)) {
+			console.error(PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
 		await session.prompt(initialMessage, { images: initialImages });
 	}
 
 	// Send remaining messages
 	for (const message of messages) {
+		if (isPromptReviewCommand(message)) {
+			console.error(PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+			process.exitCode = 1;
+			return;
+		}
 		await session.prompt(message);
 	}
 
