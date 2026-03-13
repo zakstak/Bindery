@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Folio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --parchment:#faf6f0;--parch2:#f3ede3;--parch3:#e8dfd1;--parch4:#ddd3c3;
+  --ink:#2a2420;--ink2:#5c534a;--ink3:#8a8078;--ink4:#b0a698;
+  --spine:#8b6914;--spine-dim:rgba(139,105,20,.15);
+  --accent:#b5451b;--green:#3a7d44;--red:#a63d2f;--amber:#b58a1b;
+  --page-shadow:0 2px 24px rgba(42,36,32,.12),0 0 0 1px var(--parch3);
+  --r:3px;
+}
+
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--parch3);color:var(--ink);font-size:14px;line-height:1.6;display:flex;flex-direction:column}
+
+/* ═══ Header — bookbinding spine ═══ */
+header{height:52px;min-height:52px;background:var(--spine);display:flex;align-items:center;padding:0 28px;gap:16px;flex-shrink:0;box-shadow:0 2px 8px rgba(139,105,20,.25)}
+.logo{font-family:'EB Garamond',serif;font-size:22px;color:#faf6f0;letter-spacing:.04em;font-weight:500}
+.head-sep{width:1px;height:22px;background:rgba(250,246,240,.25)}
+.head-meta{font-size:12px;color:rgba(250,246,240,.6);font-family:'Space Mono',monospace}
+header .spacer{flex:1}
+.head-dot{width:9px;height:9px;border-radius:50%;background:rgba(250,246,240,.3);flex-shrink:0}
+.head-dot.run{background:var(--amber);box-shadow:0 0 10px var(--amber);animation:pulse 1.4s ease infinite}
+.head-dot.live{background:var(--green);box-shadow:0 0 8px var(--green)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══ Page area — centered folio page ═══ */
+.folio-wrap{flex:1;overflow-y:auto;display:flex;justify-content:center;padding:16px 16px 8px}
+.folio-page{width:100%;max-width:960px;background:var(--parchment);border-radius:2px;box-shadow:var(--page-shadow);padding:20px 32px 16px;display:flex;flex-direction:column;gap:10px;min-height:0;position:relative}
+/* stitching edge */
+.folio-page::before{content:'';position:absolute;left:40px;top:0;bottom:0;width:1px;background:repeating-linear-gradient(to bottom,var(--parch4) 0,var(--parch4) 6px,transparent 6px,transparent 12px)}
+
+/* ═══ Turn header ═══ */
+.turn-hdr{display:flex;align-items:baseline;gap:10px;padding:3px 0;font-family:'EB Garamond',serif;font-style:italic;color:var(--ink3);font-size:13px}
+.turn-hdr::after{content:'';flex:1;height:1px;background:var(--parch3)}
+
+/* ═══ User msg ═══ */
+.msg-user{position:relative;padding:10px 14px;background:var(--spine-dim);border:1px solid rgba(139,105,20,.2);border-radius:var(--r);font-size:13px;line-height:1.55;color:var(--ink)}
+.msg-user::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--spine);border-radius:var(--r) 0 0 var(--r)}
+
+/* ═══ AI msg ═══ */
+.msg-ai{padding:4px 0;line-height:1.7;color:var(--ink)}
+.msg-ai p+p{margin-top:8px}
+.msg-ai code{font-family:'Space Mono',monospace;font-size:12px;background:var(--parch2);border:1px solid var(--parch3);padding:1px 5px;border-radius:2px;color:var(--accent)}
+
+/* ═══ Run blocks ═══ */
+.run-block{background:var(--parch2);border:1px solid var(--parch3);border-radius:var(--r);overflow:hidden}
+.run-block:hover{border-color:var(--parch4)}
+.run-header{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;user-select:none;transition:.15s}
+.run-header:hover{background:var(--parch3)}
+.run-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.run-dot.run{animation:pulse 1.4s ease infinite}
+.run-name{font-family:'Space Mono',monospace;font-size:12px;font-weight:700}
+.run-sub{font-family:'EB Garamond',serif;font-size:13px;color:var(--ink3);font-style:italic}
+.run-spacer{flex:1}
+.run-time{font-family:'Space Mono',monospace;font-size:10px;color:var(--ink4)}
+.run-chev{font-size:10px;color:var(--ink3);transition:.2s}
+.run-block.col .run-chev{transform:rotate(-90deg)}
+.run-body{border-top:1px solid var(--parch3)}
+.run-block.col .run-body{display:none}
+.nested{margin:4px 10px 4px 16px;border-left:2px solid var(--parch4);padding-left:10px}
+
+.tool-row{display:flex;align-items:center;gap:6px;padding:3px 10px;font-family:'Space Mono',monospace;font-size:11px;color:var(--ink2);transition:.1s}
+.tool-row:hover{background:var(--parch3)}
+.tool-name{flex-shrink:0}
+.tool-args{color:var(--ink3);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tool-st{flex-shrink:0;font-size:10px}
+.st-d{color:var(--green)}.st-r{color:var(--amber);animation:pulse 1.4s infinite}.st-e{color:var(--red)}
+
+.think-bl{margin:4px 14px;background:var(--parchment);border:1px solid var(--parch3);border-radius:var(--r);overflow:hidden}
+.think-hd{display:flex;align-items:center;gap:6px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--ink3);font-family:'EB Garamond',serif;font-style:italic;user-select:none}
+.think-hd:hover{background:var(--parch2)}
+.think-bd{padding:6px 10px;font-size:11px;color:var(--ink3);line-height:1.6;white-space:pre-wrap;font-family:'Space Mono',monospace;border-top:1px solid var(--parch3)}
+.think-bl.col .think-bd{display:none}
+
+.skill-row{display:flex;align-items:center;gap:7px;padding:5px 14px;font-size:11px;font-family:'Space Mono',monospace;color:var(--ink2);background:var(--spine-dim)}
+.skill-badge{background:var(--spine);color:var(--parchment);font-size:9px;padding:1px 7px;border-radius:99px;font-weight:700}
+.err-row{display:flex;align-items:center;gap:7px;padding:5px 14px;font-size:11px;color:var(--red);background:rgba(166,61,47,.06)}
+.notif-row{display:flex;align-items:center;gap:7px;padding:5px 14px;font-size:11px;color:var(--green)}
+
+/* ═══ Input ═══ */
+.input-area{border-top:1px solid var(--parch3);background:var(--parch2);padding:10px 16px;flex-shrink:0}
+.input-inner{max-width:960px;margin:0 auto;display:flex;gap:10px;align-items:flex-end}
+textarea.prompt{flex:1;background:var(--parchment);border:1px solid var(--parch4);border-radius:var(--r);color:var(--ink);padding:10px 14px;font-size:13px;font-family:'Inter',sans-serif;outline:none;resize:none;min-height:40px;max-height:160px;line-height:1.5;transition:border-color .2s}
+textarea.prompt:focus{border-color:var(--spine)}
+textarea.prompt::placeholder{color:var(--ink4)}
+button.send{background:var(--spine);border:none;border-radius:var(--r);color:var(--parchment);padding:10px 20px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;transition:.15s;letter-spacing:.02em}
+button.send:hover{filter:brightness(1.1)}
+
+.typing span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--ink4);margin:0 2px;animation:dotbounce 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes dotbounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.fi{animation:fadeUp .22s ease}
+
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--parch4);border-radius:99px}
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Bindery</span>
+  <div class="head-sep"></div>
+  <span class="head-meta">glm-4.5-flash</span>
+  <span class="spacer"></span>
+  <span class="head-meta">Auth Module Refactor</span>
+  <div class="head-dot" id="gdot"></div>
+</header>
+
+<div class="folio-wrap"><div class="folio-page" id="content"></div></div>
+
+<div class="input-area">
+  <div class="input-inner">
+    <textarea class="prompt" placeholder="Write something…" rows="1"></textarea>
+    <button class="send">Send</button>
+  </div>
+</div>
+
+<script>
+const PAL=['#8b6914','#3a7d44','#8b5e83','#b58a1b','#a63d2f','#2a7a8b','#6a8b2a','#b5611b'];
+let pi=0;const rc={};
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e;}
+function sb(){document.querySelector('.folio-wrap').scrollTop=document.querySelector('.folio-wrap').scrollHeight;}
+
+const C=document.getElementById('content');
+const gdot=document.getElementById('gdot');
+const runs={};
+
+function turnHdr(text){C.appendChild(el('div','turn-hdr fi',`<span>${text}</span>`));}
+function userMsg(text){C.appendChild(el('div','msg-user fi',esc(text)));sb();}
+function aiMsg(html){const m=el('div','msg-ai fi');m.innerHTML=html;C.appendChild(m);sb();}
+function runBlock(id,name,sub,parentEl){
+  const c=clr(id);
+  const b=el('div','run-block fi');b.id='rb-'+id;
+  b.innerHTML=`<div class="run-header"><span class="run-dot run" style="background:${c}"></span><span class="run-name" style="color:${c}">${esc(name)}</span>${sub?`<span class="run-sub">${esc(sub)}</span>`:''}<span class="run-spacer"></span><span class="run-time" id="rt-${id}"></span><span class="run-chev">▾</span></div><div class="run-body" id="rbody-${id}"></div>`;
+  b.querySelector('.run-header').addEventListener('click',()=>b.classList.toggle('col'));
+  if(parentEl){const w=el('div','nested');w.appendChild(b);parentEl.appendChild(w);}
+  else C.appendChild(b);
+  sb();return document.getElementById('rbody-'+id);
+}
+function endRun(id,elapsed){const b=document.getElementById('rb-'+id);if(!b)return;b.querySelector('.run-dot')?.classList.remove('run');const t=document.getElementById('rt-'+id);if(t&&elapsed)t.textContent=elapsed;}
+function tool(id,name,args,state){
+  const body=runs[id]?.body;if(!body)return;
+  const ic=state==='done'?'✓':state==='error'?'✗':'●';
+  const cls=state==='done'?'st-d':state==='error'?'st-e':'st-r';
+  body.appendChild(el('div','tool-row fi',`<span class="tool-name" style="color:${clr(id)}">${esc(name)}</span><span class="tool-args">${esc(args)}</span><span class="tool-st ${cls}">${ic}</span>`));sb();
+}
+function think(who,text){const b=el('div','think-bl col fi');b.innerHTML=`<div class="think-hd"><span>▾</span><span>thinking…</span><span style="flex:1"></span><span style="font-family:'Space Mono',monospace;font-style:normal">${esc(who)}</span></div><div class="think-bd">${esc(text)}</div>`;b.querySelector('.think-hd').addEventListener('click',()=>b.classList.toggle('col'));C.appendChild(b);sb();}
+function skillR(name,desc){C.appendChild(el('div','skill-row fi',`<span class="skill-badge">skill</span>${esc(name)} <span style="color:var(--ink3)">${esc(desc)}</span>`));sb();}
+function errR(msg){C.appendChild(el('div','err-row fi',`⚠ ${esc(msg)}`));sb();}
+function notifR(msg){C.appendChild(el('div','notif-row fi',`✓ ${esc(msg)}`));sb();}
+function typing(){const t=el('div','msg-ai fi typing-ind','<span class="typing"><span></span><span></span><span></span></span>');C.appendChild(t);sb();}
+function rmTyping(){document.querySelectorAll('.typing-ind').forEach(e=>e.remove());}
+
+const EVENTS=[
+  {ms:500,fn(){turnHdr('Turn 1');userMsg('Refactor the auth module to use async/await, then run the tests.');gdot.className='head-dot run';}},
+  {ms:300,fn(){runs['r1']={body:runBlock('r1','agent','refactor-auth',null)};}},
+  {ms:280,fn(){tool('r1','read','"src/auth/mod.rs"','done');}},
+  {ms:260,fn(){tool('r1','edit','"src/auth/mod.rs"','done');}},
+  {ms:250,fn(){runs['r2']={body:runBlock('r2','subagent','run-tests',runs['r1'].body)};}},
+  {ms:350,fn(){tool('r2','bash','"cargo test --package auth"','done');}},
+  {ms:200,fn(){endRun('r2','3.8s');}},
+  {ms:150,fn(){endRun('r1','11.2s');gdot.className='head-dot live';}},
+  {ms:350,fn(){rmTyping();aiMsg('Done. Converted all async calls in <code>auth/mod.rs</code> and <code>auth/token.rs</code>. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){turnHdr('Turn 2');userMsg('Add rate limiting and deploy to staging.');gdot.className='head-dot run';}},
+  {ms:280,fn(){runs['r3']={body:runBlock('r3','agent','add-rate-limit',null)};}},
+  {ms:280,fn(){tool('r3','write','"src/middleware/rate_limit.rs"','done');}},
+  {ms:200,fn(){runs['r4']={body:runBlock('r4','subagent','write-tests',runs['r3'].body)};}},
+  {ms:300,fn(){tool('r4','bash','"cargo test rate_limit"','done');}},
+  {ms:150,fn(){endRun('r4','5.1s');}},
+  {ms:150,fn(){runs['r5']={body:runBlock('r5','subagent','deploy-staging',runs['r4'].body)};}},
+  {ms:400,fn(){tool('r5','bash','"./scripts/deploy.sh staging"','done');}},
+  {ms:200,fn(){endRun('r5','18.4s');}},
+  {ms:150,fn(){endRun('r3','32.1s');gdot.className='head-dot live';}},
+  {ms:350,fn(){rmTyping();aiMsg('Rate limiting added. Created <code>src/middleware/rate_limit.rs</code>, registered as tower layer. Tests passed. Deployed to staging — smoke tests passed.');}},
+  {ms:700,fn(){turnHdr('Turn 3');userMsg('Audit all API endpoints for missing auth guards.');gdot.className='head-dot run';}},
+  {ms:280,fn(){runs['r6']={body:runBlock('r6','agent','audit-auth-guards',null)};}},
+  {ms:300,fn(){tool('r6','find','"src/web/routes" *.rs','done');}},
+  {ms:300,fn(){tool('r6','bash','"rg -n auth_required src/web"','running');}},
+  {ms:800,fn(){rmTyping();think('agent/r6','Looking at 12 GET routes, 8 POST routes. Grepping for auth_required attribute.');}},
+  {ms:400,fn(){skillR('/skill:security-audit','OWASP checklist on routes');tool('r6','skill','/skill:security-audit','done');}},
+  {ms:350,fn(){tool('r6','grep','"inject|sql|xss" routes/','done');}},
+  {ms:300,fn(){errR('Rate limit hit on zai API — retrying in 2s');tool('r6','api','retry #1','running');}},
+  {ms:500,fn(){tool('r6','api','retry #1','done');}},
+  {ms:200,fn(){endRun('r6','22.7s');gdot.className='head-dot live';}},
+  {ms:300,fn(){notifR('Audit complete — 3 endpoints missing auth guards');rmTyping();aiMsg('Found 3 endpoints in <code>src/web/routes/admin.rs</code> missing <code>#[auth_required]</code>: <code>GET /admin/users</code>, <code>POST /admin/ban</code>, <code>DELETE /admin/session</code>.');typing();}},
+];
+
+let ei=0;
+function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.send');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,160)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;rmTyping();userMsg(t);ta.value='';ta.style.height='auto';setTimeout(()=>typing(),150);});
+</script>
+</body>
+</html>

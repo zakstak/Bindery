@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bindery — Split</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&family=Fira+Code:wght@300;400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0c0a12;--bg1:#110f19;--bg2:#16141f;--bg3:#1e1b2a;--border:#28243a;--border2:#342f4e;--text:#e0dced;--text2:#908ca5;--text3:#5c5878;--lav:#8b5cf6;--rose:#e879f9;--green:#34d399;--red:#fb7185;--amber:#fbbf24;--r:4px}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);font-size:13px;line-height:1.5;display:flex;flex-direction:column}
+
+.topbar{height:36px;min-height:36px;background:var(--bg1);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.tb-logo{font-size:16px;font-weight:700;color:var(--lav)}
+.tb-sep{width:1px;height:16px;background:var(--border2)}
+.tb-label{font-size:11px;color:var(--text2)}
+.tb-spacer{flex:1}
+.tb-tag{font-size:10px;color:var(--text3);font-family:'Fira Code',monospace;background:var(--bg3);border:1px solid var(--border2);padding:1px 7px;border-radius:99px}
+
+/* Split layout */
+.split{flex:1;display:flex;min-height:0}
+
+/* Left: Chat */
+.left-pane{flex:1;min-width:0;display:flex;flex-direction:column;border-right:1px solid var(--border)}
+.pane-header{height:30px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);gap:8px;flex-shrink:0}
+.pane-header .dot{width:6px;height:6px;border-radius:50%;background:var(--lav)}
+.chat-scroll{flex:1;overflow-y:auto;padding:8px 0}
+.chat-inner{padding:0 14px;display:flex;flex-direction:column;gap:6px}
+
+.msg-user{align-self:flex-end;max-width:85%;background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.18);border-radius:var(--r) var(--r) 2px var(--r);padding:6px 10px;font-size:12px}
+.msg-ai{padding:1px 0;font-size:12px;line-height:1.55}
+.msg-ai code{font-family:'Fira Code',monospace;font-size:10px;background:var(--bg3);border:1px solid var(--border);padding:1px 3px;border-radius:2px;color:var(--lav)}
+
+/* Clickable run reference in chat */
+.run-ref{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg1);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;margin:2px 0;transition:.15s;font-family:'Fira Code',monospace;font-size:10px}
+.run-ref:hover{border-color:var(--lav);background:var(--bg2)}
+.run-ref.selected{border-color:var(--lav);background:rgba(139,92,246,.08)}
+.run-ref .rd{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.run-ref .rn{font-weight:500}
+.run-ref .rs{color:var(--text3)}
+.run-ref .rt{color:var(--text3);margin-left:auto;padding-left:10px}
+
+.turn-label{display:flex;align-items:center;gap:8px;padding:2px 0}
+.turn-pill{background:var(--bg3);border:1px solid var(--border2);border-radius:99px;padding:1px 10px;font-size:9px;color:var(--text2);font-weight:500}
+.turn-line{flex:1;height:1px;background:var(--border)}
+
+.input-bar{border-top:1px solid var(--border);background:var(--bg1);padding:8px 14px;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+textarea.pinput{flex:1;background:var(--bg);border:1px solid var(--border2);border-radius:var(--r);color:var(--text);padding:6px 10px;font-size:12px;font-family:'Outfit',sans-serif;outline:none;resize:none;min-height:32px;max-height:100px;line-height:1.5;transition:.15s}
+textarea.pinput:focus{border-color:var(--lav)}
+textarea.pinput::placeholder{color:var(--text3)}
+button.sbtn{background:var(--lav);border:none;border-radius:var(--r);color:#fff;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;transition:.15s}
+button.sbtn:hover{filter:brightness(1.15)}
+
+/* Right: Inspector */
+.right-pane{width:45%;min-width:300px;display:flex;flex-direction:column;background:var(--bg)}
+.inspector-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text3);font-size:12px;font-style:italic}
+.inspector{flex:1;overflow-y:auto;display:none;flex-direction:column}
+.inspector.active{display:flex}
+.insp-header{padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.insp-dot{width:8px;height:8px;border-radius:50%}
+.insp-name{font-family:'Fira Code',monospace;font-size:12px;font-weight:500}
+.insp-sub{font-size:11px;color:var(--text3)}
+.insp-sp{flex:1}
+.insp-dur{font-family:'Fira Code',monospace;font-size:10px;color:var(--text3)}
+.insp-body{flex:1;overflow-y:auto;padding:4px 0}
+.insp-tool{display:flex;align-items:center;gap:5px;padding:4px 14px;font-family:'Fira Code',monospace;font-size:10px;color:var(--text2)}
+.insp-tool:hover{background:var(--bg2)}
+.insp-tn{flex-shrink:0}.insp-ta{color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.insp-ts{font-size:9px}.its-d{color:var(--green)}.its-e{color:var(--red)}.its-r{color:var(--amber)}
+.insp-section{padding:6px 14px;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:600;border-top:1px solid var(--border)}
+.insp-children{padding:4px 14px}
+.insp-child{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:10px;font-family:'Fira Code',monospace;color:var(--text2);cursor:pointer}
+.insp-child:hover{color:var(--lav)}
+.insp-child .icd{width:5px;height:5px;border-radius:50%}
+
+.err-line{padding:3px 14px;font-size:10px;color:var(--red)}
+.skill-line{padding:3px 14px;font-size:10px;color:var(--amber);font-family:'Fira Code',monospace}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.fi{animation:fadeIn .18s ease}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="tb-logo">Bindery</span><div class="tb-sep"></div>
+  <span class="tb-label">Auth Module Refactor</span><span class="tb-spacer"></span>
+  <span class="tb-tag">glm-4.5-flash</span>
+</div>
+
+<div class="split">
+  <div class="left-pane">
+    <div class="pane-header"><span class="dot"></span>Conversation</div>
+    <div class="chat-scroll"><div class="chat-inner" id="chat"></div></div>
+    <div class="input-bar"><div class="input-row">
+      <textarea class="pinput" placeholder="Message…" rows="1"></textarea>
+      <button class="sbtn">Send</button>
+    </div></div>
+  </div>
+  <div class="right-pane">
+    <div class="pane-header"><span class="dot" style="background:var(--text3)"></span>Inspector</div>
+    <div class="inspector-empty" id="insp-empty">Click an agent run to inspect</div>
+    <div class="inspector" id="inspector"></div>
+  </div>
+</div>
+
+<script>
+const PAL=['#8b5cf6','#34d399','#e879f9','#fbbf24','#fb7185','#38bdf8'];
+let pi=0;const rc={};
+function clr(id){if(!rc[id])rc[id]=PAL[pi++%PAL.length];return rc[id];}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function el(t,c,h){const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e;}
+function sb(){document.querySelector('.chat-scroll').scrollTop=document.querySelector('.chat-scroll').scrollHeight;}
+
+const chat=document.getElementById('chat');
+const inspector=document.getElementById('inspector');
+const inspEmpty=document.getElementById('insp-empty');
+const agentData={};// stores {name,sub,color,tools:[],children:[],elapsed}
+
+function showInspector(id){
+  const d=agentData[id];if(!d)return;
+  inspEmpty.style.display='none';inspector.className='inspector active';
+  inspector.innerHTML='';
+  const hdr=el('div','insp-header',`<span class="insp-dot" style="background:${d.color}"></span><span class="insp-name" style="color:${d.color}">${esc(d.name)}</span><span class="insp-sub">${esc(d.sub||'')}</span><span class="insp-sp"></span><span class="insp-dur">${d.elapsed||'running…'}</span>`);
+  inspector.appendChild(hdr);
+  if(d.tools.length){
+    inspector.appendChild(el('div','insp-section','Tools'));
+    d.tools.forEach(t=>{
+      const ic=t.state==='done'?'✓':t.state==='error'?'✗':'●';
+      const cls=t.state==='done'?'its-d':t.state==='error'?'its-e':'its-r';
+      inspector.appendChild(el('div','insp-tool',`<span class="insp-tn" style="color:${d.color}">${esc(t.name)}</span><span class="insp-ta">${esc(t.args)}</span><span class="insp-ts ${cls}">${ic}</span>`));
+    });
+  }
+  if(d.children.length){
+    inspector.appendChild(el('div','insp-section','Sub-agents'));
+    const cw=el('div','insp-children');
+    d.children.forEach(cid=>{
+      const cd=agentData[cid];if(!cd)return;
+      const ci=el('div','insp-child',`<span class="icd" style="background:${cd.color}"></span>${esc(cd.name)} / ${esc(cd.sub||'')} <span style="color:var(--text3);margin-left:auto">${cd.elapsed||''}</span>`);
+      ci.addEventListener('click',()=>showInspector(cid));
+      cw.appendChild(ci);
+    });
+    inspector.appendChild(cw);
+  }
+  if(d.errors.length){d.errors.forEach(e=>inspector.appendChild(el('div','err-line','⚠ '+esc(e))));}
+  if(d.skills.length){d.skills.forEach(s=>inspector.appendChild(el('div','skill-line','⚡ '+esc(s))));}
+  document.querySelectorAll('.run-ref').forEach(r=>r.classList.toggle('selected',r.dataset.id===id));
+}
+
+function turnLabel(t){chat.appendChild(el('div','turn-label fi',`<span class="turn-pill">${t}</span><span class="turn-line"></span>`));}
+function userMsg(t){chat.appendChild(el('div','msg-user fi',esc(t)));sb();}
+function aiMsg(h){const m=el('div','msg-ai fi');m.innerHTML=h;chat.appendChild(m);sb();}
+
+function runRef(id,name,sub,parentId){
+  const c=clr(id);
+  agentData[id]={name,sub,color:c,tools:[],children:[],errors:[],skills:[],elapsed:null};
+  if(parentId&&agentData[parentId])agentData[parentId].children.push(id);
+  const r=el('div','run-ref fi',`<span class="rd" style="background:${c}"></span><span class="rn" style="color:${c}">${esc(name)}</span><span class="rs">${esc(sub||'')}</span><span class="rt" id="rrt-${id}"></span>`);
+  r.dataset.id=id;
+  r.addEventListener('click',()=>showInspector(id));
+  chat.appendChild(r);sb();
+}
+function endRef(id,elapsed){
+  agentData[id].elapsed=elapsed;
+  const t=document.getElementById('rrt-'+id);if(t)t.textContent=elapsed;
+  const sel=document.querySelector('.run-ref.selected');
+  if(sel&&sel.dataset.id===id)showInspector(id);
+}
+function addTool(id,name,args,state){
+  agentData[id].tools.push({name,args,state});
+  const sel=document.querySelector('.run-ref.selected');
+  if(sel&&sel.dataset.id===id)showInspector(id);
+}
+function addErr(id,msg){agentData[id].errors.push(msg);}
+function addSkill(id,s){agentData[id].skills.push(s);}
+function typing(){chat.appendChild(el('div','msg-ai fi typing-ind','<span style="color:var(--text3)">…</span>'));sb();}
+function rmTyping(){document.querySelectorAll('.typing-ind').forEach(e=>e.remove());}
+
+const EVENTS=[
+  {ms:500,fn(){turnLabel('Turn 1');userMsg('Refactor the auth module to use async/await, then run the tests.');}},
+  {ms:300,fn(){runRef('r1','agent','refactor-auth');}},
+  {ms:280,fn(){addTool('r1','read','"src/auth/mod.rs"','done');}},
+  {ms:260,fn(){addTool('r1','edit','"src/auth/mod.rs"','done');}},
+  {ms:250,fn(){runRef('r2','subagent','run-tests','r1');}},
+  {ms:350,fn(){addTool('r2','bash','"cargo test --package auth"','done');}},
+  {ms:200,fn(){endRef('r2','3.8s');}},
+  {ms:150,fn(){endRef('r1','11.2s');}},
+  {ms:350,fn(){rmTyping();aiMsg('Done. Tests pass: 14 passed, 0 failed.');}},
+  {ms:700,fn(){turnLabel('Turn 2');userMsg('Add rate limiting and deploy to staging.');}},
+  {ms:280,fn(){runRef('r3','agent','add-rate-limit');}},
+  {ms:280,fn(){addTool('r3','write','"src/middleware/rate_limit.rs"','done');}},
+  {ms:200,fn(){runRef('r4','subagent','write-tests','r3');}},
+  {ms:300,fn(){addTool('r4','bash','"cargo test rate_limit"','done');}},
+  {ms:150,fn(){endRef('r4','5.1s');}},
+  {ms:150,fn(){runRef('r5','subagent','deploy-staging','r3');}},
+  {ms:400,fn(){addTool('r5','bash','"./scripts/deploy.sh staging"','done');}},
+  {ms:200,fn(){endRef('r5','18.4s');}},
+  {ms:150,fn(){endRef('r3','32.1s');}},
+  {ms:350,fn(){rmTyping();aiMsg('Rate limiting added. Deployed to staging.');}},
+  {ms:700,fn(){turnLabel('Turn 3');userMsg('Audit all API endpoints for missing auth guards.');}},
+  {ms:280,fn(){runRef('r6','agent','audit-auth-guards');}},
+  {ms:300,fn(){addTool('r6','find','"src/web/routes" *.rs','done');}},
+  {ms:300,fn(){addTool('r6','bash','"rg -n auth_required src/web"','running');}},
+  {ms:400,fn(){addSkill('r6','/skill:security-audit OWASP checklist');addTool('r6','skill','/skill:security-audit','done');}},
+  {ms:350,fn(){addTool('r6','grep','"inject|sql|xss" routes/','done');}},
+  {ms:300,fn(){addErr('r6','Rate limit hit on zai API — retrying');addTool('r6','api','retry #1','running');}},
+  {ms:500,fn(){addTool('r6','api','retry #1','done');}},
+  {ms:200,fn(){endRef('r6','22.7s');}},
+  {ms:300,fn(){rmTyping();aiMsg('Found 3 endpoints missing <code>#[auth_required]</code>.');}},
+];
+let ei=0;function playNext(){if(ei>=EVENTS.length)return;const e=EVENTS[ei++];setTimeout(()=>{try{e.fn();}catch(err){console.error(err);}playNext();},e.ms);}
+setTimeout(playNext,400);
+const ta=document.querySelector('textarea');const btn=document.querySelector('button.sbtn');
+ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,100)+'px';});
+ta.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();btn.click();}});
+btn.addEventListener('click',()=>{const t=ta.value.trim();if(!t)return;rmTyping();userMsg(t);ta.value='';ta.style.height='auto';});
+</script>
+</body>
+</html>
