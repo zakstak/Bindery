@@ -122,7 +122,7 @@
   #log-entries>div[data-kind="error"] .log-kind,#log-entries>div[data-kind="parse"] .log-kind{color:#fb7185}
   #log-entries>div[data-kind="socket"] .log-kind{color:#fbbf24}
   #log-entries>div[data-kind="response"] .log-kind{color:#34d399}
-  .flame-bar{position:absolute;height:20px;border-radius:4px;display:flex;align-items:center;padding:0 8px;gap:6px;cursor:pointer;font-size:10px;font-family:'Fira Code',monospace;transition:filter .15s,outline-color .15s,box-shadow .15s;outline:1px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+  .flame-bar{position:absolute;height:14px;border-radius:3px;display:flex;align-items:center;padding:0 5px;gap:4px;cursor:pointer;font-size:9px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;transition:filter .15s,outline-color .15s,box-shadow .15s;outline:1px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
   .flame-bar:hover{filter:brightness(1.2);outline-color:rgba(255,255,255,.17)}
   .flame-bar.selected{outline-color:rgba(139,92,246,.72);box-shadow:0 0 0 1px rgba(139,92,246,.38),0 0 12px rgba(139,92,246,.24)}
   .preset-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(52,47,78,.85);background:rgba(22,20,31,.7);font-family:'Fira Code',monospace;font-size:10px;color:#b3afc6;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .12s}
@@ -182,7 +182,7 @@
     <!-- Flame chart -->
     <section id="flame-section" class="bg-bg1 border-b border-bdr shrink-0">
       <!-- Flame bars container -->
-      <div id="flame-bars" class="relative min-h-[50px] px-3 pt-2 pb-1 overflow-x-auto overflow-y-hidden">
+      <div id="flame-bars" class="relative min-h-[34px] px-3 pt-1 pb-1 overflow-x-auto overflow-y-hidden">
         <!-- Mock bars injected here via OOB -->
       </div>
       <!-- Time axis -->
@@ -291,7 +291,7 @@
 <script>
 const MAX_LOG_ENTRIES = 240;
 const MAX_TIMELINE_ITEMS = 140;
-const BAR_ROW_HEIGHT = 26;
+const BAR_ROW_HEIGHT = 18;
 
 const ta = document.getElementById('prompt-input');
 const promptForm = document.getElementById('prompt-form');
@@ -713,7 +713,7 @@ function resetLiveView(reason = 'fresh') {
   state.activeAssistantRowId = null;
   stream.innerHTML = '';
   flameBars.innerHTML = '';
-  flameBars.style.minHeight = '50px';
+  flameBars.style.minHeight = '34px';
   logEntries.innerHTML = '';
   sessionName.textContent = reason === 'reconnect'
     ? (IS_MOCK_ROUTE ? 'Reconnected mock session' : 'Reconnected session')
@@ -803,18 +803,21 @@ function renderFlameChart() {
   }
 
   const rows = Math.max(1, items.reduce((acc, item) => Math.max(acc, item.row + 1), 1));
-  flameBars.style.minHeight = `${rows * BAR_ROW_HEIGHT + 12}px`;
+  flameBars.style.minHeight = `${rows * BAR_ROW_HEIGHT + 8}px`;
   flameBars.innerHTML = '';
 
-  for (const item of items) {
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
     const end = item.endMs === null ? now : item.endMs;
     const left = (item.startMs / maxEnd) * 100;
     const width = Math.max(1.5, ((Math.max(end, item.startMs + 100) - item.startMs) / maxEnd) * 100);
     const div = document.createElement('div');
     div.className = 'flame-bar';
-    if (state.selectedItemId === item.id) div.classList.add('selected');
+    const isSelected = state.selectedItemId === item.id;
+    if (isSelected) div.classList.add('selected');
     div.dataset.itemId = item.id;
-    div.style.cssText = `${item.color};left:${left}%;width:${width}%;top:${item.row * BAR_ROW_HEIGHT + 6}px`;
+    const zIndex = isSelected ? 3000 : 10 + index;
+    div.style.cssText = `${item.color};left:${left}%;width:${width}%;top:${item.row * BAR_ROW_HEIGHT + 4}px;z-index:${zIndex}`;
     div.textContent = item.label;
     flameBars.appendChild(div);
   }
