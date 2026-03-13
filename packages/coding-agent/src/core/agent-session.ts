@@ -742,11 +742,18 @@ export class AgentSession {
 
 	private _recordRuntimePromptProposal(proposedSystemPrompt: string): void {
 		const canonicalPromptSource = this._resourceLoader.getProjectSystemPrompt();
+		const proposedPromptSource = this._derivePromptSourceProposalContent(
+			canonicalPromptSource.content,
+			proposedSystemPrompt,
+		);
+		if (!proposedPromptSource) {
+			return;
+		}
 		const promptSourceState = buildPromptSourceState({
 			cwd: this._cwd,
 			canonicalContent: canonicalPromptSource.content,
 			canonicalVersion: this._promptSourceBaseVersion,
-			effectivePromptPreview: proposedSystemPrompt,
+			effectivePromptPreview: proposedPromptSource,
 			sessionEntries: this.sessionManager.getEntries(),
 		});
 
@@ -772,7 +779,7 @@ export class AgentSession {
 		const proposal = createPendingPromptSourceProposal({
 			baseVersion: promptSourceState.canonical.version,
 			basePrompt: promptSourceState.canonical.content,
-			proposedPrompt: promptSourceState.effectivePromptPreview,
+			proposedPromptSource,
 			rationale: "Generated from before_agent_start runtime system prompt override.",
 			model: this._getPromptSourceModel(),
 			previousProposals: this.sessionManager.getPromptSourceProposals(),
@@ -783,6 +790,22 @@ export class AgentSession {
 		}
 
 		this.sessionManager.appendPromptSourceProposal(proposal);
+	}
+
+	private _derivePromptSourceProposalContent(
+		canonicalPromptSource: string,
+		proposedSystemPrompt: string,
+	): string | undefined {
+		if (proposedSystemPrompt === this._baseSystemPrompt) {
+			return undefined;
+		}
+
+		if (!proposedSystemPrompt.startsWith(this._baseSystemPrompt)) {
+			return undefined;
+		}
+
+		const runtimeSuffix = proposedSystemPrompt.slice(this._baseSystemPrompt.length);
+		return `${canonicalPromptSource}${runtimeSuffix}`;
 	}
 
 	private _reloadCanonicalPromptSource(reason: string): void {

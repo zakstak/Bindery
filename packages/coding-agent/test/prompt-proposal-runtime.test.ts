@@ -159,6 +159,23 @@ describe("prompt proposal runtime lifecycle", () => {
 		expect(readFileSync(context.systemPromptPath, "utf8")).toBe("Approved project prompt");
 	});
 
+	it("approves runtime-generated proposal using source-safe prompt content", async () => {
+		const context = await createRuntimeSession("Approved project prompt");
+
+		await context.session.prompt("generate pending proposal");
+
+		const pendingProposal = context.sessionManager.getPendingPromptSourceProposal();
+		expect(pendingProposal).toBeDefined();
+		expect(pendingProposal?.proposedContent).toBe("Approved project prompt\n\nRuntime proposal from extension");
+
+		context.session.approvePromptSourceProposal(pendingProposal!);
+
+		const persisted = readFileSync(context.systemPromptPath, "utf8");
+		expect(persisted).toBe("Approved project prompt\n\nRuntime proposal from extension");
+		expect(persisted).not.toContain("Current date and time:");
+		expect(persisted).not.toContain("Current working directory:");
+	});
+
 	it("invalidates stale pending proposals when prompt source changes on reload", async () => {
 		const context = await createRuntimeSession("Approved prompt v1");
 		await seedPendingProposal(context);
