@@ -36,7 +36,7 @@ export interface PromptSourceState {
 export interface CreatePendingPromptSourceProposalOptions {
 	baseVersion: number;
 	basePrompt: string;
-	proposedPrompt: string;
+	proposedPromptSource: string;
 	rationale: string;
 	model: string;
 	previousProposals?: ReadonlyArray<PromptSourceProposal>;
@@ -117,11 +117,11 @@ export function createPendingPromptSourceProposal(
 		baseVersion: options.baseVersion,
 		proposedVersion: getNextPromptSourceProposalVersion(options.baseVersion, options.previousProposals ?? []),
 		status: "pending",
-		diff: buildPromptSourceDiff(options.basePrompt, options.proposedPrompt),
+		diff: buildPromptSourceDiff(options.basePrompt, options.proposedPromptSource),
 		rationale: options.rationale,
 		model: options.model,
 		timestamp: options.timestamp ?? new Date().toISOString(),
-		proposedContent: options.proposedPrompt,
+		proposedContent: options.proposedPromptSource,
 	};
 }
 
