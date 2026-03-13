@@ -1065,6 +1065,10 @@ function handleResponse(message) {
     setStreaming(true);
   }
 
+  if (cmd === 'start_task_session' || cmd === 'complete_task_session') {
+    sendCommand({ id: `state-${Date.now()}`, type: 'get_state' });
+  }
+
   const contextPct = detectContextPct(message.data);
   if (contextPct !== null) setContextPct(contextPct);
 
@@ -1254,6 +1258,42 @@ function sendCommand(command) {
   return true;
 }
 
+function buildCommandFromInput(message) {
+  const trimmed = message.trim();
+
+  if (trimmed === '/task' || trimmed.startsWith('/task ')) {
+    const goal = trimmed === '/task' ? '' : trimmed.slice(6).trim();
+    if (!goal) {
+      appendLog('error', 'Usage: /task <goal>');
+      return null;
+    }
+    return {
+      id: `task-${Date.now()}`,
+      type: 'start_task_session',
+      goal,
+    };
+  }
+
+  if (trimmed === '/task-done' || trimmed.startsWith('/task-done ')) {
+    const summary = trimmed === '/task-done' ? '' : trimmed.slice(11).trim();
+    if (!summary) {
+      appendLog('error', 'Usage: /task-done <result summary>');
+      return null;
+    }
+    return {
+      id: `task-done-${Date.now()}`,
+      type: 'complete_task_session',
+      summary,
+    };
+  }
+
+  return {
+    id: `prompt-${Date.now()}`,
+    type: 'prompt',
+    message,
+  };
+}
+
 function connectSocket() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
@@ -1313,11 +1353,8 @@ promptForm.addEventListener('submit', (event) => {
   const message = ta.value.trim();
   if (!message) return;
 
-  const command = {
-    id: `prompt-${Date.now()}`,
-    type: 'prompt',
-    message,
-  };
+  const command = buildCommandFromInput(message);
+  if (!command) return;
 
   if (sendCommand(command)) {
     ta.value = '';
