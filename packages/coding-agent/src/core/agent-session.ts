@@ -90,6 +90,17 @@ import { getLatestCompactionEntry, SessionManager } from "./session-manager.js";
 import type { SettingsManager } from "./settings-manager.js";
 import { BUILTIN_SLASH_COMMANDS, type SlashCommandInfo, type SlashCommandLocation } from "./slash-commands.js";
 import { buildSystemPrompt } from "./system-prompt.js";
+import {
+	buildTaskPacketMarkdown,
+	buildTaskResultMarkdown,
+	createTaskPacket,
+	createTaskResultSummary,
+	getLatestTaskPacket,
+	TASK_CONTEXT_CUSTOM_TYPE,
+	TASK_PACKET_CUSTOM_TYPE,
+	TASK_RESULT_CONTEXT_CUSTOM_TYPE,
+	TASK_RESULT_CUSTOM_TYPE,
+} from "./task-contract.js";
 import type { BashOperations } from "./tools/bash.js";
 import { createAllTools } from "./tools/index.js";
 
@@ -2745,7 +2756,7 @@ export class AgentSession {
 		previousSessionFile?: string;
 		nextSessionFile?: string;
 	}> {
-		const previousSessionFile = this.sessionFile;
+		const previousSessionFile = this.sessionManager.ensurePersisted() ?? this.sessionFile;
 		const document = createHandoffDocument({
 			sessionId: this.sessionId,
 			sessionFile: previousSessionFile,
@@ -2778,8 +2789,10 @@ export class AgentSession {
 		if (previousSessionFile) {
 			const previousSessionManager = SessionManager.open(previousSessionFile, this.sessionManager.getSessionDir());
 			previousSessionManager.appendCustomEntry(HANDOFF_DOCUMENT_CUSTOM_TYPE, document);
+			previousSessionManager.ensurePersisted();
 		} else {
 			this.sessionManager.appendCustomEntry(HANDOFF_DOCUMENT_CUSTOM_TYPE, document);
+			this.sessionManager.ensurePersisted();
 		}
 
 		return {
@@ -2788,6 +2801,101 @@ export class AgentSession {
 			previousSessionFile,
 			nextSessionFile: this.sessionFile,
 		};
+	}
+
+	async startTaskSession(options: {
+		goal: string;
+		constraints?: string[];
+		doneDefinition?: string;
+		notes?: string;
+	}): Promise<{
+		cancelled: boolean;
+		packet: ReturnType<typeof createTaskPacket>;
+		previousSessionFile?: string;
+		nextSessionFile?: string;
+	}> {
+		const previousSessionFile = this.sessionManager.ensurePersisted() ?? this.sessionFile;
+		const packet = createTaskPacket({
+			parentSessionId: this.sessionId,
+			parentSessionFile: previousSessionFile,
+			cwd: this.sessionManager.getCwd(),
+			model: this.model ? `${this.model.provider}/${this.model.id}` : undefined,
+			goal: options.goal,
+			constraints: options.constraints,
+			relevantFiles: collectHandoffRelevantFiles(this.sessionManager.getBranch()),
+			doneDefinition: options.doneDefinition,
+			notes: options.notes,
+		});
+
+		const packetMarkdown = buildTaskPacketMarkdown(packet);
+		const taskSetup = async (manager: SessionManager) => {
+			manager.appendCustomMessageEntry(TASK_CONTEXT_CUSTOM_TYPE, packetMarkdown, true, packet);
+		};
+
+		const success = await this.newSession({
+			parentSession: previousSessionFile,
+			setup: taskSetup,
+		});
+		if (!success) {
+			return { cancelled: true, packet, previousSessionFile };
+		}
+
+		if (previousSessionFile) {
+			const previousSessionManager = SessionManager.open(previousSessionFile, this.sessionManager.getSessionDir());
+			previousSessionManager.appendCustomEntry(TASK_PACKET_CUSTOM_TYPE, packet);
+			previousSessionManager.ensurePersisted();
+		} else {
+			this.sessionManager.appendCustomEntry(TASK_PACKET_CUSTOM_TYPE, packet);
+			this.sessionManager.ensurePersisted();
+		}
+
+		return {
+			cancelled: false,
+			packet,
+			previousSessionFile,
+			nextSessionFile: this.sessionFile,
+		};
+	}
+
+	completeTaskSession(options: {
+		summary: string;
+		openRisks?: string[];
+		nextStep?: string;
+		notes?: string;
+	}): ReturnType<typeof createTaskResultSummary> {
+		const packet = getLatestTaskPacket(this.sessionManager.getEntries());
+		if (!packet) {
+			throw new Error("No active task packet found in this session.");
+		}
+
+		const header = this.sessionManager.getHeader();
+		const parentSessionFile = header?.parentSession;
+		const result = createTaskResultSummary({
+			taskId: packet.taskId,
+			childSessionId: this.sessionId,
+			childSessionFile: this.sessionFile,
+			parentSessionFile,
+			model: this.model ? `${this.model.provider}/${this.model.id}` : undefined,
+			summary: options.summary,
+			changedFiles: collectHandoffRelevantFiles(this.sessionManager.getBranch()),
+			openRisks: options.openRisks,
+			nextStep: options.nextStep,
+			notes: options.notes,
+		});
+
+		const resultMarkdown = buildTaskResultMarkdown(result);
+		this.sessionManager.appendCustomEntry(TASK_RESULT_CUSTOM_TYPE, result);
+		this.sessionManager.appendCustomMessageEntry(TASK_RESULT_CONTEXT_CUSTOM_TYPE, resultMarkdown, true, result);
+		this.sessionManager.ensurePersisted();
+
+		if (parentSessionFile) {
+			const parentSessionManager = SessionManager.open(parentSessionFile, this.sessionManager.getSessionDir());
+			parentSessionManager.appendCustomEntry(TASK_RESULT_CUSTOM_TYPE, result);
+			parentSessionManager.appendCustomMessageEntry(TASK_RESULT_CONTEXT_CUSTOM_TYPE, resultMarkdown, true, result);
+			parentSessionManager.ensurePersisted();
+		}
+
+		return result;
 	}
 
 	/**

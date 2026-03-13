@@ -803,6 +803,17 @@ export class SessionManager {
 		return this.sessionFile;
 	}
 
+	ensurePersisted(): string | undefined {
+		if (!this.persist || !this.sessionFile) {
+			return this.sessionFile;
+		}
+		if (!this.flushed) {
+			this._rewriteFile();
+			this.flushed = true;
+		}
+		return this.sessionFile;
+	}
+
 	_persist(entry: SessionEntry): void {
 		if (!this.persist || !this.sessionFile) return;
 
