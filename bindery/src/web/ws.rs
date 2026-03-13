@@ -55,6 +55,17 @@ fn model_label(model: &Value) -> Option<String> {
     }
 }
 
+fn compact_preview(value: &str, max_len: usize) -> String {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+    if trimmed.chars().count() <= max_len {
+        return trimmed.to_string();
+    }
+    trimmed.chars().take(max_len.saturating_sub(1)).collect::<String>() + "…"
+}
+
 fn bindery_meta_for(event: &Value) -> Option<Value> {
     let event_type = event.get("type").and_then(Value::as_str)?;
     match event_type {
@@ -73,6 +84,31 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
                             .and_then(Value::as_str)
                             .map(|id| format!("model set to {id}"))
                             .unwrap_or_else(|| format!("{command} ok"))
+                    } else if command == "start_task_session" {
+                        data.get("packet")
+                            .and_then(|value| value.get("goal"))
+                            .and_then(Value::as_str)
+                            .map(|value| compact_preview(value, 40))
+                            .filter(|value| !value.is_empty())
+                            .map(|value| format!("task started · {value}"))
+                            .unwrap_or_else(|| format!("{command} ok"))
+                    } else if command == "complete_task_session" {
+                        let prefix = if data
+                            .get("resumedParent")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                        {
+                            "parent resumed"
+                        } else {
+                            "task completed"
+                        };
+                        data.get("result")
+                            .and_then(|value| value.get("summary"))
+                            .and_then(Value::as_str)
+                            .map(|value| compact_preview(value, 40))
+                            .filter(|value| !value.is_empty())
+                            .map(|value| format!("{prefix} · {value}"))
+                            .unwrap_or_else(|| prefix.to_string())
                     } else {
                         format!("{command} ok")
                     }
@@ -220,16 +256,13 @@ async fn handle_socket(mut socket: WebSocket, config: AppConfig) {
         }
     };
 
-    // Auto-select the default model immediately after spawn.
-    // NOTE: Send as raw JSON — the pi RPC protocol uses camelCase (modelId),
-    // but RpcCommand's rename_all = "snake_case" would produce model_id.
     if let Some(ref dm) = config.agent.default_model {
-        let raw = serde_json::json!({
-            "type": "set_model",
-            "provider": dm.provider,
-            "modelId": dm.model_id,
-        });
-        if let Err(e) = client.send_raw(raw).await {
+        let command = RpcCommand::SetModel {
+            id: None,
+            provider: dm.provider.clone(),
+            model_id: dm.model_id.clone(),
+        };
+        if let Err(e) = client.send(&command).await {
             warn!("failed to send set_model: {e}");
         }
     }

@@ -16,10 +16,36 @@ pub enum RpcCommand {
     },
     NewSession {
         id: Option<String>,
+        #[serde(rename = "parentSession", alias = "parent_session")]
         parent_session: Option<String>,
+    },
+    StartTaskSession {
+        id: Option<String>,
+        goal: String,
+        constraints: Option<Vec<String>>,
+        #[serde(rename = "doneDefinition", alias = "done_definition")]
+        done_definition: Option<String>,
+        notes: Option<String>,
+    },
+    CompleteTaskSession {
+        id: Option<String>,
+        summary: String,
+        #[serde(rename = "openRisks", alias = "open_risks")]
+        open_risks: Option<Vec<String>>,
+        #[serde(rename = "nextStep", alias = "next_step")]
+        next_step: Option<String>,
+        notes: Option<String>,
+        #[serde(rename = "resumeParent", alias = "resume_parent")]
+        resume_parent: Option<bool>,
     },
     GetState {
         id: Option<String>,
+    },
+    SetModel {
+        id: Option<String>,
+        provider: String,
+        #[serde(rename = "modelId", alias = "model_id")]
+        model_id: String,
     },
 }
 
