@@ -37,6 +37,12 @@ todo.md
 
 # Bindery local config (copy from bindery.example.toml, never commit)
 bindery/config/bindery.toml
+bindery/config/hyprlandCrashReport*.txt
+
+# Local orchestration and workspace artifacts
+.sisyphus/
+pi-mono.code-workspace
 
 # Rust
 /target
+/bindery/target/
