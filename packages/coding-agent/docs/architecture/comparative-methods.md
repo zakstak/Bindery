@@ -17,6 +17,7 @@ This document compares methods, not brands. The goal is to keep the strongest pa
 - Method: generate a structured handoff document and start or resume from a clean session with that document in context
 - Best fit: explicit resets, fresh sessions, user-visible continuity
 - Exemplar: `can1357/oh-my-pi` in `docs/handoff-generation-pipeline.md` and `packages/coding-agent/src/prompts/system/handoff-document.md`
+- Local status: Bindery now has a first-pass `/handoff` artifact flow in `packages/coding-agent/src/core/handoff.ts`, `packages/coding-agent/src/core/agent-session.ts`, and `packages/coding-agent/src/modes/interactive/interactive-mode.ts`
 - Pros: portable, readable, low ambiguity, easy to debug
 - Cons: quality depends on the handoff prompt and what gets captured
 
