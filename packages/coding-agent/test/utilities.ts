@@ -183,9 +183,11 @@ export function createTestResourceLoader(): ResourceLoader {
 		getThemes: () => ({ themes: [], diagnostics: [] }),
 		getAgentsFiles: () => ({ agentsFiles: [] }),
 		getSystemPrompt: () => undefined,
+		getProjectSystemPrompt: () => ({ path: join(process.cwd(), ".pi", "SYSTEM.md"), content: "" }),
 		getAppendSystemPrompt: () => [],
 		getPathMetadata: () => new Map(),
 		extendResources: () => {},
+		reloadPromptSources: () => {},
 		reload: async () => {},
 	};
 }

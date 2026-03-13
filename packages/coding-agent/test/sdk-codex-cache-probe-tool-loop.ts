@@ -155,9 +155,11 @@ function createMinimalResourceLoader(systemPrompt: string): ResourceLoader {
 		getThemes: () => ({ themes: [], diagnostics: [] }),
 		getAgentsFiles: () => ({ agentsFiles: [] }),
 		getSystemPrompt: () => systemPrompt,
+		getProjectSystemPrompt: () => ({ path: join(process.cwd(), ".pi", "SYSTEM.md"), content: "" }),
 		getAppendSystemPrompt: () => [],
 		getPathMetadata: () => new Map(),
 		extendResources: () => {},
+		reloadPromptSources: () => {},
 		reload: async () => {},
 	};
 }
