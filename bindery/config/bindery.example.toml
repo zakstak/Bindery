@@ -7,6 +7,16 @@ bind_address = "127.0.0.1:3002"
 cli_path = "/path/to/Bindery/pi-test.sh"
 cwd = "/workspace"
 
+[agent.env]
+# Map infra API key to the name the pi agent expects.
+# ${VAR} is expanded from the server process environment at startup.
+# ZAI_API_KEY = "${SAGA_API_KEY}"
+
+# Set the model to use automatically on session start.
+# [agent.default_model]
+# provider = "zai"
+# model_id = "glm-4.5-flash"
+
 # Optional: diffy integration for file diff rendering (see TODO in implementation_plan.md).
 # Uncomment when diffy is running alongside bindery on the agent VM.
 #

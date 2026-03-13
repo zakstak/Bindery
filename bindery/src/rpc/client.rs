@@ -15,17 +15,20 @@ pub struct RpcClient {
 }
 
 impl RpcClient {
-    /// Spawn agent at `cli_path`, running in `cwd`. Starts background task
-    /// reading stdout line-by-line and forwarding parsed JSON to `events`.
-    pub async fn spawn(cli_path: &str, cwd: &str) -> Result<Self> {
-        let mut child = Command::new("node")
-            .arg("--import")
-            .arg("tsx/esm")
-            .arg(cli_path)
+    /// Spawn agent at `cli_path`, running in `cwd`, with optional extra `envs`
+    /// overlaid on top of the inherited process environment. Starts a background
+    /// task reading stdout line-by-line and forwarding parsed JSON to `events`.
+    pub async fn spawn(
+        cli_path: &str,
+        cwd: &str,
+        envs: &std::collections::HashMap<String, String>,
+    ) -> Result<Self> {
+        let mut child = Command::new(cli_path)
             .arg("--mode")
             .arg("rpc")
             .arg("--no-session")
             .current_dir(cwd)
+            .envs(envs)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::inherit())
@@ -72,6 +75,19 @@ impl RpcClient {
             .write_all(line.as_bytes())
             .await
             .context("failed to write to agent stdin")?;
+        Ok(())
+    }
+
+    /// Send a raw JSON value as a line to agent stdin.
+    /// Use this when field names must deviate from the enum's serde configuration
+    /// (e.g. setting camelCase keys that rename_all = "snake_case" would mangle).
+    pub async fn send_raw(&mut self, value: serde_json::Value) -> Result<()> {
+        let mut line = value.to_string();
+        line.push('\n');
+        self.stdin
+            .write_all(line.as_bytes())
+            .await
+            .context("failed to write raw command to agent stdin")?;
         Ok(())
     }
 }
