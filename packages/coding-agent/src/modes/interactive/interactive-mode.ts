@@ -1944,6 +1944,16 @@ export class InteractiveMode {
 				await this.handleHandoffCommand(text);
 				return;
 			}
+			if (text === "/task" || text.startsWith("/task ")) {
+				this.editor.setText("");
+				await this.handleTaskCommand(text);
+				return;
+			}
+			if (text === "/task-done" || text.startsWith("/task-done ")) {
+				this.editor.setText("");
+				this.handleTaskDoneCommand(text);
+				return;
+			}
 			if (text === "/scoped-models") {
 				this.editor.setText("");
 				await this.showModelsSelector();
@@ -4347,6 +4357,65 @@ export class InteractiveMode {
 		this.renderInitialMessages();
 		this.showStatus("Started fresh session from handoff artifact");
 		this.ui.requestRender();
+	}
+
+	private async handleTaskCommand(text: string): Promise<void> {
+		if (this.session.isStreaming) {
+			this.showWarning("Wait for the current response to finish before creating a task session.");
+			return;
+		}
+		if (this.session.isCompacting) {
+			this.showWarning("Wait for compaction to finish before creating a task session.");
+			return;
+		}
+
+		const goal = text.startsWith("/task ") ? text.slice(6).trim() : "";
+		if (!goal) {
+			this.showWarning("Usage: /task <goal>");
+			return;
+		}
+
+		const result = await this.session.startTaskSession({ goal });
+		if (result.cancelled) {
+			this.showStatus("Task session creation cancelled");
+			return;
+		}
+
+		this.chatContainer.clear();
+		this.pendingMessagesContainer.clear();
+		this.compactionQueuedMessages = [];
+		this.streamingComponent = undefined;
+		this.streamingMessage = undefined;
+		this.pendingTools.clear();
+
+		this.renderInitialMessages();
+		this.showStatus(`Started task session ${result.packet.taskId.slice(0, 8)} from parent context`);
+		this.ui.requestRender();
+	}
+
+	private handleTaskDoneCommand(text: string): void {
+		if (this.session.isStreaming) {
+			this.showWarning("Wait for the current response to finish before recording the task result.");
+			return;
+		}
+		if (this.session.isCompacting) {
+			this.showWarning("Wait for compaction to finish before recording the task result.");
+			return;
+		}
+
+		const summary = text.startsWith("/task-done ") ? text.slice(11).trim() : "";
+		if (!summary) {
+			this.showWarning("Usage: /task-done <result summary>");
+			return;
+		}
+
+		try {
+			const result = this.session.completeTaskSession({ summary });
+			this.showStatus(`Recorded task result for ${result.taskId.slice(0, 8)}`);
+			this.ui.requestRender();
+		} catch (error) {
+			this.showError(error instanceof Error ? error.message : String(error));
+		}
 	}
 
 	private handleDebugCommand(): void {
