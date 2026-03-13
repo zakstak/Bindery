@@ -29,6 +29,12 @@ import type {
 	RpcSlashCommand,
 } from "./rpc-types.js";
 
+const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
+
+function isPromptReviewCommand(text: string): boolean {
+	return text.trim() === "/prompt-review";
+}
+
 // Re-export types for consumers
 export type {
 	RpcCommand,
@@ -327,6 +333,10 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 			// =================================================================
 
 			case "prompt": {
+				if (isPromptReviewCommand(command.message)) {
+					return error(id, "prompt", PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+				}
+
 				// Don't await - events will stream
 				// Extension commands are executed immediately, file prompt templates are expanded
 				// If streaming and streamingBehavior specified, queues via steer/followUp
@@ -341,11 +351,19 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 			}
 
 			case "steer": {
+				if (isPromptReviewCommand(command.message)) {
+					return error(id, "steer", PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+				}
+
 				await session.steer(command.message, command.images);
 				return success(id, "steer");
 			}
 
 			case "follow_up": {
+				if (isPromptReviewCommand(command.message)) {
+					return error(id, "follow_up", PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR);
+				}
+
 				await session.followUp(command.message, command.images);
 				return success(id, "follow_up");
 			}
