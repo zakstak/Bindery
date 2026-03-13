@@ -17,6 +17,7 @@ export interface BuiltinSlashCommand {
 
 export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
 	{ name: "settings", description: "Open settings menu" },
+	{ name: "prompt-review", description: "Review pending system prompt proposal" },
 	{ name: "model", description: "Select model (opens selector UI)" },
 	{ name: "scoped-models", description: "Enable/disable models for Ctrl+P cycling" },
 	{ name: "export", description: "Export session to HTML file" },

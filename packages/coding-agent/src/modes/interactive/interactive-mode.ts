@@ -57,7 +57,9 @@ import { FooterDataProvider, type ReadonlyFooterDataProvider } from "../../core/
 import { type AppAction, KeybindingsManager } from "../../core/keybindings.js";
 import { createCompactionSummaryMessage } from "../../core/messages.js";
 import { resolveModelScope } from "../../core/model-resolver.js";
+import { getPromptSourceCanonicalVersion, type PromptSourceProposal } from "../../core/prompt-source-state.js";
 import type { ResourceDiagnostic } from "../../core/resource-loader.js";
+import { getProjectSystemPromptPath } from "../../core/resource-loader.js";
 import { type SessionContext, SessionManager } from "../../core/session-manager.js";
 import { BUILTIN_SLASH_COMMANDS } from "../../core/slash-commands.js";
 import type { TruncationResult } from "../../core/tools/truncate.js";
@@ -83,6 +85,7 @@ import { appKey, appKeyHint, editorKey, keyHint, rawKeyHint } from "./components
 import { LoginDialogComponent } from "./components/login-dialog.js";
 import { ModelSelectorComponent } from "./components/model-selector.js";
 import { OAuthSelectorComponent } from "./components/oauth-selector.js";
+import { PromptReviewSelectorComponent } from "./components/prompt-review-selector.js";
 import { ScopedModelsSelectorComponent } from "./components/scoped-models-selector.js";
 import { SessionSelectorComponent } from "./components/session-selector.js";
 import { SettingsSelectorComponent } from "./components/settings-selector.js";
@@ -1931,6 +1934,11 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
+			if (text === "/prompt-review") {
+				this.showPromptReviewSelector();
+				this.editor.setText("");
+				return;
+			}
 			if (text === "/scoped-models") {
 				this.editor.setText("");
 				await this.showModelsSelector();
@@ -3217,6 +3225,76 @@ export class InteractiveMode {
 				},
 			);
 			return { component: selector, focus: selector.getSettingsList() };
+		});
+	}
+
+	private approvePromptProposal(proposal: PromptSourceProposal, done: () => void): void {
+		try {
+			const result = this.session.approvePromptSourceProposal(proposal);
+			done();
+			this.showStatus(`Accepted prompt proposal v${result.proposal.proposedVersion} and persisted ${result.path}`);
+			this.ui.requestRender();
+		} catch (error) {
+			this.showError(error instanceof Error ? error.message : String(error));
+		}
+	}
+
+	private rejectPromptProposal(proposal: PromptSourceProposal, done: () => void): void {
+		try {
+			const result = this.session.rejectPromptSourceProposal(proposal);
+			done();
+			this.showStatus(`Rejected prompt proposal v${result.proposedVersion}`);
+			this.ui.requestRender();
+		} catch (error) {
+			this.showError(error instanceof Error ? error.message : String(error));
+		}
+	}
+
+	private rollbackPromptProposal(targetApprovedProposal: PromptSourceProposal, done: () => void): void {
+		try {
+			const result = this.session.rollbackPromptSourceProposal(targetApprovedProposal);
+			done();
+			this.showStatus(
+				`Rolled back to approved version v${targetApprovedProposal.proposedVersion} as v${result.proposal.proposedVersion}`,
+			);
+			this.ui.requestRender();
+		} catch (error) {
+			this.showError(error instanceof Error ? error.message : String(error));
+		}
+	}
+
+	private showPromptReviewSelector(): void {
+		const proposals = this.sessionManager.getPromptSourceProposals();
+		const pendingProposal = this.sessionManager.getPendingPromptSourceProposal();
+		const canonicalVersion = getPromptSourceCanonicalVersion(proposals);
+		const approvedProposals = this.sessionManager.getApprovedPromptSourceProposals();
+
+		this.showSelector((done) => {
+			const selector = new PromptReviewSelectorComponent(
+				{
+					canonicalPath: getProjectSystemPromptPath(this.sessionManager.getCwd()),
+					canonicalVersion,
+					effectivePromptPreview: this.session.systemPrompt,
+					pendingProposal,
+					approvedProposals,
+				},
+				{
+					onAcceptProposal: (proposal) => {
+						this.approvePromptProposal(proposal, done);
+					},
+					onRejectProposal: (proposal) => {
+						this.rejectPromptProposal(proposal, done);
+					},
+					onRollbackToApproved: (approvedProposal) => {
+						this.rollbackPromptProposal(approvedProposal, done);
+					},
+					onCancel: () => {
+						done();
+						this.ui.requestRender();
+					},
+				},
+			);
+			return { component: selector, focus: selector.getActionList() };
 		});
 	}
 
