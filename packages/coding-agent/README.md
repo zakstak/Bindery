@@ -14,67 +14,54 @@
   <a href="https://exe.dev"><img src="docs/images/exy.png" alt="Exy mascot" width="48" /><br />exe.dev</a>
 </p>
 
-Pi is a minimal terminal coding harness. Adapt pi to your workflows, not the other way around, without having to fork and modify pi internals. Extend it with TypeScript [Extensions](#extensions), [Skills](#skills), [Prompt Templates](#prompt-templates), and [Themes](#themes). Put your extensions, skills, prompt templates, and themes in [Pi Packages](#pi-packages) and share them with others via npm or git.
+Pi is the coding agent that drives the Bindery web workspace. The browser surface is now the canonical interactive experience: it shows the conversation stream, tool responses, session history, and extension UI in one place. The CLI and SDK remain for headless automation, batch jobs, or embedding into your own service.
 
-Pi ships with powerful defaults but skips features like sub agents and plan mode. Instead, you can ask pi to build what you want or install a third party pi package that matches your workflow.
-
-Pi runs in four modes: interactive, print or JSON, RPC for process integration, and an SDK for embedding in your own apps. See [openclaw/openclaw](https://github.com/openclaw/openclaw) for a real-world SDK integration.
+Use Bindery web to carry out interactive flows so you can see cards from extensions, drag context around, and branch without losing track of history. When you need responses for scripts, CI, or RPC clients, keep running `pi` with `--print`, `--mode json`, or `--mode rpc`. You can still extend the agent with TypeScript [Extensions](#extensions), [Skills](#skills), [Prompt Templates](#prompt-templates), and [Themes](#themes), and bundle them into [Pi Packages](#pi-packages).
 
 ## Table of Contents
 
 - [Quick Start](#quick-start)
 - [Providers & Models](#providers--models)
-- [Interactive Mode](#interactive-mode)
-  - [Editor](#editor)
-  - [Commands](#commands)
-  - [Keyboard Shortcuts](#keyboard-shortcuts)
-  - [Message Queue](#message-queue)
+- [Bindery Web](#bindery-web)
 - [Sessions](#sessions)
-  - [Branching](#branching)
-  - [Compaction](#compaction)
-- [Settings](#settings)
-- [Context Files](#context-files)
 - [Customization](#customization)
-  - [Prompt Templates](#prompt-templates)
-  - [Skills](#skills)
-  - [Extensions](#extensions)
-  - [Themes](#themes)
-  - [Pi Packages](#pi-packages)
 - [Programmatic Usage](#programmatic-usage)
-- [Philosophy](#philosophy)
 - [CLI Reference](#cli-reference)
+- [Philosophy](#philosophy)
+- [Contributing & Development](#contributing--development)
+- [License](#license)
+- [See Also](#see-also)
 
 ---
 
 ## Quick Start
 
+### 1. Open Bindery web for interactive work
+
+Visit your Bindery web workspace (for example the hosted experience documented at pi.dev or your self-hosted endpoint). Sign in with your provider account or API key, choose a model, and start typing—web handles the session timeline, tool output, and extensions in one panel. If you previously expected `pi` to bring up a terminal UI, note that `pi` now runs headless, so drop straight into web for interactive conversations.
+
+### 2. Keep installs and automation headless
+
+Install the CLI for automation and tooling work:
+
 ```bash
 npm install -g @mariozechner/pi-coding-agent
+pi --print "Summarize the workspace architecture"
+pi --mode json "Extract the TODO items"
+pi --mode rpc   # pair with a client that speaks JSONL frames
 ```
 
-Authenticate with an API key:
+Running `pi` without flags still produces a short help message and logs that remind you to open Bindery web if you expect an interactive board. `pi --resume` now prints a short deprecation reminder that directs you to the web workspace and exits; it no longer acts as a branch summary or selector. `pi config` prints the same deprecation guidance and exits, so edit the JSON files by hand or open Bindery web if you need an interactive settings view.
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-pi
-```
+### 3. Align CLI with scripting requirements
 
-Or use your existing subscription:
-
-```bash
-pi
-/login  # Then select provider
-```
-
-Then just talk to pi. By default, pi gives the model four tools: `read`, `write`, `edit`, and `bash`. The model uses these to fulfill your requests. Add capabilities via [skills](#skills), [prompt templates](#prompt-templates), [extensions](#extensions), or [pi packages](#pi-packages).
-
-**Platform notes:** [Windows](docs/windows.md) | [Termux (Android)](docs/termux.md) | [tmux](docs/tmux.md) | [Terminal setup](docs/terminal-setup.md) | [Shell aliases](docs/shell-aliases.md)
+Headless mode respects the same resource discovery as your web workspace: config directories default to `~/.pi/agent`, context files are picked up from the current working tree, and installed packages stay in sync. Keep using standard JSON files for settings and extensions so both surfaces see the same context.
 
 ---
 
 ## Providers & Models
 
-For each built-in provider, pi maintains a list of tool-capable models, updated with every release. Authenticate via subscription (`/login`) or API key, then select any model from that provider via `/model` (or Ctrl+L).
+Bindery keeps named providers and tool-capable models cataloged for you. Select them from the web UI or with CLI flags when you dispatch headless commands.
 
 **Subscriptions:**
 - Anthropic Claude Pro/Max
@@ -103,159 +90,32 @@ For each built-in provider, pi maintains a list of tool-capable models, updated 
 - Kimi For Coding
 - MiniMax
 
-See [docs/providers.md](docs/providers.md) for detailed setup instructions.
-
-**Custom providers & models:** Add providers via `~/.pi/agent/models.json` if they speak a supported API (OpenAI, Anthropic, Google). For custom APIs or OAuth, use extensions. See [docs/models.md](docs/models.md) and [docs/custom-provider.md](docs/custom-provider.md).
+See [docs/providers.md](docs/providers.md) for setup instructions. Add custom providers via `~/.pi/agent/models.json` when they speak OpenAI, Anthropic, or Google APIs. Dual-transport models and OAuth flows are still surfaced through [extensions](#extensions) when needed.
 
 ---
 
-## Interactive Mode
+## Bindery Web
 
-<p align="center"><img src="docs/images/interactive-mode.png" alt="Interactive Mode" width="600"></p>
+Bindery web is where you read replies, review tool output, and let extensions draw their own UI. A single session page mixes:
 
-The interface from top to bottom:
+- A **message stream** with every user prompt, assistant response, tool call, and notification.
+- A **tool palette** that lets extensions inject cards, sliders, or selectors beside the conversation.
+- A **context sidebar** that lists open files, linked prompts, and loaded AGENTS.md instructions.
+- A **session timeline** for branching, labeling, compacting, and exporting history.
 
-- **Startup header** - Shows shortcuts (`/hotkeys` for all), loaded AGENTS.md files, prompt templates, skills, and extensions
-- **Messages** - Your messages, assistant responses, tool calls and results, notifications, errors, and extension UI
-- **Editor** - Where you type; border color indicates thinking level
-- **Footer** - Working directory, session name, total token/cache usage, cost, context usage, current model
+Keyboard shortcuts, thinking-level controls, and completion delivery modes live on the web page—`Alt+Enter` queuing, suspending, and canceling behave the same but are handled by the browser, not a terminal. Extensions can inject cards, sliders, and selectors beside the conversation via the tool palette, but the overlay/custom-footer/status-line hooks are still unsupported in the runtime and throw when invoked, so rely on the palette/context hooks instead.
 
-The editor can be temporarily replaced by other UI, like built-in `/settings` or custom UI from extensions (e.g., a Q&A tool that lets the user answer model questions in a structured format). [Extensions](#extensions) can also replace the editor, add widgets above/below it, a status line, custom footer, or overlays.
-
-### Editor
-
-| Feature | How |
-|---------|-----|
-| File reference | Type `@` to fuzzy-search project files |
-| Path completion | Tab to complete paths |
-| Multi-line | Shift+Enter (or Ctrl+Enter on Windows Terminal) |
-| Images | Ctrl+V to paste (Alt+V on Windows), or drag onto terminal |
-| Bash commands | `!command` runs and sends output to LLM, `!!command` runs without sending |
-
-Standard editing keybindings for delete word, undo, etc. See [docs/keybindings.md](docs/keybindings.md).
-
-### Commands
-
-Type `/` in the editor to trigger commands. [Extensions](#extensions) can register custom commands, [skills](#skills) are available as `/skill:name`, and [prompt templates](#prompt-templates) expand via `/templatename`.
-
-| Command | Description |
-|---------|-------------|
-| `/login`, `/logout` | OAuth authentication |
-| `/model` | Switch models |
-| `/scoped-models` | Enable/disable models for Ctrl+P cycling |
-| `/settings` | Thinking level, theme, message delivery, transport |
-| `/resume` | Pick from previous sessions |
-| `/new` | Start a new session |
-| `/name <name>` | Set session display name |
-| `/session` | Show session info (path, tokens, cost) |
-| `/tree` | Jump to any point in the session and continue from there |
-| `/fork` | Create a new session from the current branch |
-| `/compact [prompt]` | Manually compact context, optional custom instructions |
-| `/copy` | Copy last assistant message to clipboard |
-| `/export [file]` | Export session to HTML file |
-| `/share` | Upload as private GitHub gist with shareable HTML link |
-| `/reload` | Reload extensions, skills, prompts, context files (themes hot-reload automatically) |
-| `/hotkeys` | Show all keyboard shortcuts |
-| `/changelog` | Display version history |
-| `/quit`, `/exit` | Quit pi |
-
-### Keyboard Shortcuts
-
-See `/hotkeys` for the full list. Customize via `~/.pi/agent/keybindings.json`. See [docs/keybindings.md](docs/keybindings.md).
-
-**Commonly used:**
-
-| Key | Action |
-|-----|--------|
-| Ctrl+C | Clear editor |
-| Ctrl+C twice | Quit |
-| Escape | Cancel/abort |
-| Escape twice | Open `/tree` |
-| Ctrl+L | Open model selector |
-| Ctrl+P / Shift+Ctrl+P | Cycle scoped models forward/backward |
-| Shift+Tab | Cycle thinking level |
-| Ctrl+O | Collapse/expand tool output |
-| Ctrl+T | Collapse/expand thinking blocks |
-
-### Message Queue
-
-Submit messages while the agent is working:
-
-- **Enter** queues a *steering* message, delivered after current tool execution (interrupts remaining tools)
-- **Alt+Enter** queues a *follow-up* message, delivered only after the agent finishes all work
-- **Escape** aborts and restores queued messages to editor
-- **Alt+Up** retrieves queued messages back to editor
-
-On Windows Terminal, `Alt+Enter` is fullscreen by default. Remap it in [docs/terminal-setup.md](docs/terminal-setup.md) so pi can receive the follow-up shortcut.
-
-Configure delivery in [settings](docs/settings.md): `steeringMode` and `followUpMode` can be `"one-at-a-time"` (default, waits for response) or `"all"` (delivers all queued at once). `transport` selects provider transport preference (`"sse"`, `"websocket"`, or `"auto"`) for providers that support multiple transports.
+Want a feature you remember from the old terminal UI? Build it with an extension, share it as a pi package, and the web surface will host it just the same.
 
 ---
 
 ## Sessions
 
-Sessions are stored as JSONL files with a tree structure. Each entry has an `id` and `parentId`, enabling in-place branching without creating new files. See [docs/session.md](docs/session.md) for file format.
+Every session records a JSONL tree inside `~/.pi/agent/sessions/` (or the directory you override with `PI_CODING_AGENT_DIR`). Each entry has an `id`, `parentId`, and a `branch` attribute; branches let you fork, compact, and revisit earlier points without mutating history.
 
-### Management
+Headless commands like `pi --resume` and `pi --session` operate on the same files, so you can script recovery flows or post-process logs. `pi --resume` now just prints the deprecation guidance and exits; open Bindery web when you need to explore or branch off with an interactive timeline.
 
-Sessions auto-save to `~/.pi/agent/sessions/` organized by working directory.
-
-```bash
-pi -c                  # Continue most recent session
-pi -r                  # Browse and select from past sessions
-pi --no-session        # Ephemeral mode (don't save)
-pi --session <path>    # Use specific session file or ID
-```
-
-### Branching
-
-**`/tree`** - Navigate the session tree in-place. Select any previous point, continue from there, and switch between branches. All history preserved in a single file.
-
-<p align="center"><img src="docs/images/tree-view.png" alt="Tree View" width="600"></p>
-
-- Search by typing, fold/unfold and jump between branches with Ctrl+←/Ctrl+→ or Alt+←/Alt+→, page with ←/→
-- Filter modes (Ctrl+O): default → no-tools → user-only → labeled-only → all
-- Press `l` to label entries as bookmarks
-
-**`/fork`** - Create a new session file from the current branch. Opens a selector, copies history up to the selected point, and places that message in the editor for modification.
-
-### Compaction
-
-Long sessions can exhaust context windows. Compaction summarizes older messages while keeping recent ones.
-
-**Manual:** `/compact` or `/compact <custom instructions>`
-
-**Automatic:** Enabled by default. Triggers on context overflow (recovers and retries) or when approaching the limit (proactive). Configure via `/settings` or `settings.json`.
-
-Compaction is lossy. The full history remains in the JSONL file; use `/tree` to revisit. Customize compaction behavior via [extensions](#extensions). See [docs/compaction.md](docs/compaction.md) for internals.
-
----
-
-## Settings
-
-Use `/settings` to modify common options, or edit JSON files directly:
-
-| Location | Scope |
-|----------|-------|
-| `~/.pi/agent/settings.json` | Global (all projects) |
-| `.pi/settings.json` | Project (overrides global) |
-
-See [docs/settings.md](docs/settings.md) for all options.
-
----
-
-## Context Files
-
-Pi loads `AGENTS.md` (or `CLAUDE.md`) at startup from:
-- `~/.pi/agent/AGENTS.md` (global)
-- Parent directories (walking up from cwd)
-- Current directory
-
-Use for project instructions, conventions, common commands. All matching files are concatenated.
-
-### System Prompt
-
-Replace the default system prompt with `.pi/SYSTEM.md` (project) or `~/.pi/agent/SYSTEM.md` (global). Append without replacing via `APPEND_SYSTEM.md`.
+Compaction still runs automatically when the history grows too large, and you can manually request it from the web UI or by issuing the `pi --compact` script flag. The full JSONL history stays intact so you can always roll back.
 
 ---
 
@@ -263,7 +123,7 @@ Replace the default system prompt with `.pi/SYSTEM.md` (project) or `~/.pi/agent
 
 ### Prompt Templates
 
-Reusable prompts as Markdown files. Type `/name` to expand.
+Reusable prompts live in Markdown files. Type `/name` on Bindery web or include `@prompt.md` when you invoke `pi --print` to expand them server-side.
 
 ```markdown
 <!-- ~/.pi/agent/prompts/review.md -->
@@ -271,11 +131,11 @@ Review this code for bugs, security issues, and performance problems.
 Focus on: {{focus}}
 ```
 
-Place in `~/.pi/agent/prompts/`, `.pi/prompts/`, or a [pi package](#pi-packages) to share with others. See [docs/prompt-templates.md](docs/prompt-templates.md).
+Place templates in `~/.pi/agent/prompts/`, `.pi/prompts/`, or inside a [pi package](#pi-packages).
 
 ### Skills
 
-On-demand capability packages following the [Agent Skills standard](https://agentskills.io). Invoke via `/skill:name` or let the agent load them automatically.
+Skills follow the Agent Skills spec: they register instructions, tools, and event handlers that both the web workspace and CLI can load.
 
 ```markdown
 <!-- ~/.pi/agent/skills/my-skill/SKILL.md -->
@@ -287,13 +147,11 @@ Use this skill when the user asks about X.
 2. Then that
 ```
 
-Place in `~/.pi/agent/skills/`, `~/.agents/skills/`, `.pi/skills/`, or `.agents/skills/` (from `cwd` up through parent directories) or a [pi package](#pi-packages) to share with others. See [docs/skills.md](docs/skills.md).
+Drop them in `~/.pi/agent/skills/`, `.pi/skills/`, `.agents/skills/`, or a pi package.
 
 ### Extensions
 
-<p align="center"><img src="docs/images/doom-extension.png" alt="Doom Extension" width="600"></p>
-
-TypeScript modules that extend pi with custom tools, commands, keyboard shortcuts, event handlers, and UI components.
+Extensions are TypeScript modules that register tools, commands, or UI hooks.
 
 ```typescript
 export default function (pi: ExtensionAPI) {
@@ -303,54 +161,25 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
-**What's possible:**
-- Custom tools (or replace built-in tools entirely)
-- Sub-agents and plan mode
-- Custom compaction and summarization
-- Permission gates and path protection
-- Custom editors and UI components
-- Status lines, headers, footers
-- Git checkpointing and auto-commit
-- SSH and sandbox execution
-- MCP server integration
-- Make pi look like Claude Code
-- Games while waiting (yes, Doom runs)
-- ...anything you can dream up
-
-Place in `~/.pi/agent/extensions/`, `.pi/extensions/`, or a [pi package](#pi-packages) to share with others. See [docs/extensions.md](docs/extensions.md) and [examples/extensions/](examples/extensions/).
+They unlock MCP servers, SSH helpers, git automation, and more. Bind them to `~/.pi/agent/extensions/`, `.pi/extensions/`, or a pi package.
 
 ### Themes
 
-Built-in: `dark`, `light`. Themes hot-reload: modify the active theme file and pi immediately applies changes.
-
-Place in `~/.pi/agent/themes/`, `.pi/themes/`, or a [pi package](#pi-packages) to share with others. See [docs/themes.md](docs/themes.md).
+Built-in themes (`dark`, `light`) hot-reload as soon as you edit the active file. Store custom themes in `~/.pi/agent/themes/`, `.pi/themes/`, or a package so the web surface and CLI share them.
 
 ### Pi Packages
 
-Bundle and share extensions, skills, prompts, and themes via npm or git. Find packages on [npmjs.com](https://www.npmjs.com/search?q=keywords%3Api-package) or [Discord](https://discord.com/channels/1456806362351669492/1457744485428629628).
-
-> **Security:** Pi packages run with full system access. Extensions execute arbitrary code, and skills can instruct the model to perform any action including running executables. Review source code before installing third-party packages.
+> **Security:** Pi packages execute code with the permissions of your coding agent. Review what you install before granting access.
 
 ```bash
 pi install npm:@foo/pi-tools
-pi install npm:@foo/pi-tools@1.2.3      # pinned version
 pi install git:github.com/user/repo
-pi install git:github.com/user/repo@v1  # tag or commit
-pi install git:git@github.com:user/repo
-pi install git:git@github.com:user/repo@v1  # tag or commit
-pi install https://github.com/user/repo
-pi install https://github.com/user/repo@v1      # tag or commit
-pi install ssh://git@github.com/user/repo
-pi install ssh://git@github.com/user/repo@v1    # tag or commit
 pi remove npm:@foo/pi-tools
 pi list
-pi update                               # skips pinned packages
-pi config                               # enable/disable extensions, skills, prompts, themes
+pi update
 ```
 
-Packages install to `~/.pi/agent/git/` (git) or global npm. Use `-l` for project-local installs (`.pi/git/`, `.pi/npm/`).
-
-Create a package by adding a `pi` key to `package.json`:
+Install packages globally or with `-l` for project scope (`.pi/git/`, `.pi/npm/`). Pi auto-discovers extensions, skills, prompts, and themes from standard directories when no manifest is present. A `package.json` entry looks like:
 
 ```json
 {
@@ -365,15 +194,13 @@ Create a package by adding a `pi` key to `package.json`:
 }
 ```
 
-Without a `pi` manifest, pi auto-discovers from conventional directories (`extensions/`, `skills/`, `prompts/`, `themes/`).
-
-See [docs/packages.md](docs/packages.md).
-
 ---
 
 ## Programmatic Usage
 
 ### SDK
+
+Use the SDK to embed the agent into your own UI or service:
 
 ```typescript
 import { AuthStorage, createAgentSession, ModelRegistry, SessionManager } from "@mariozechner/pi-coding-agent";
@@ -391,35 +218,13 @@ See [docs/sdk.md](docs/sdk.md) and [examples/sdk/](examples/sdk/).
 
 ### RPC Mode
 
-For non-Node.js integrations, use RPC mode over stdin/stdout:
+For non-Node.js integrations, talk to the agent over stdin/stdout:
 
 ```bash
 pi --mode rpc
 ```
 
-RPC mode uses strict LF-delimited JSONL framing. Clients must split records on `\n` only. Do not use generic line readers like Node `readline`, which also split on Unicode separators inside JSON payloads.
-
-See [docs/rpc.md](docs/rpc.md) for the protocol.
-
----
-
-## Philosophy
-
-Pi is aggressively extensible so it doesn't have to dictate your workflow. Features that other tools bake in can be built with [extensions](#extensions), [skills](#skills), or installed from third-party [pi packages](#pi-packages). This keeps the core minimal while letting you shape pi to fit how you work.
-
-**No MCP.** Build CLI tools with READMEs (see [Skills](#skills)), or build an extension that adds MCP support. [Why?](https://mariozechner.at/posts/2025-11-02-what-if-you-dont-need-mcp/)
-
-**No sub-agents.** There's many ways to do this. Spawn pi instances via tmux, or build your own with [extensions](#extensions), or install a package that does it your way.
-
-**No permission popups.** Run in a container, or build your own confirmation flow with [extensions](#extensions) inline with your environment and security requirements.
-
-**No plan mode.** Write plans to files, or build it with [extensions](#extensions), or install a package.
-
-**No built-in to-dos.** They confuse models. Use a TODO.md file, or build your own with [extensions](#extensions).
-
-**No background bash.** Use tmux. Full observability, direct interaction.
-
-Read the [blog post](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/) for the full rationale.
+RPC mode streams LF-delimited JSON records. Clients must split only on `\n`; avoid readers that split on additional separators. See [docs/rpc.md](docs/rpc.md) for the protocol.
 
 ---
 
@@ -432,111 +237,102 @@ pi [options] [@files...] [messages...]
 ### Package Commands
 
 ```bash
-pi install <source> [-l]    # Install package, -l for project-local
-pi remove <source> [-l]     # Remove package
-pi update [source]          # Update packages (skips pinned)
-pi list                     # List installed packages
-pi config                   # Enable/disable package resources
+pi install <source> [-l]
+pi remove <source> [-l]
+pi update [source]
+pi list
+pi config                   # prints a deprecation reminder and exits (no config dump)
 ```
+
+`pi config` simply prints a deprecation reminder and exits; open Bindery web or edit the JSON files directly for real configuration work.
 
 ### Modes
 
 | Flag | Description |
 |------|-------------|
-| (default) | Interactive mode |
-| `-p`, `--print` | Print response and exit |
-| `--mode json` | Output all events as JSON lines (see [docs/json.md](docs/json.md)) |
-| `--mode rpc` | RPC mode for process integration (see [docs/rpc.md](docs/rpc.md)) |
-| `--export <in> [out]` | Export session to HTML |
+| (default) | Headless run (prints status and connection hints); interactive work belongs on Bindery web |
+| `-p`, `--print` | Print a single response and exit |
+| `--mode json` | Emit a JSON event stream (see [docs/json.md](docs/json.md)) |
+| `--mode rpc` | RPC framing for process integration (see [docs/rpc.md](docs/rpc.md)) |
+| `--export <in> [out]` | Export a session file or HTML snapshot |
 
 ### Model Options
 
 | Option | Description |
 |--------|-------------|
-| `--provider <name>` | Provider (anthropic, openai, google, etc.) |
-| `--model <pattern>` | Model pattern or ID (supports `provider/id` and optional `:<thinking>`) |
-| `--api-key <key>` | API key (overrides env vars) |
+| `--provider <name>` | Select a provider (anthropic, openai, google, etc.) |
+| `--model <pattern>` | Model pattern or ID (`provider/id` with optional `:<thinking>`) |
+| `--api-key <key>` | Override environment credentials |
 | `--thinking <level>` | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
-| `--models <patterns>` | Comma-separated patterns for Ctrl+P cycling |
-| `--list-models [search]` | List available models |
+| `--models <patterns>` | Comma-separated models for cycling |
+| `--list-models [search]` | Show available models |
 
 ### Session Options
 
 | Option | Description |
 |--------|-------------|
-| `-c`, `--continue` | Continue most recent session |
-| `-r`, `--resume` | Browse and select session |
+| `-c`, `--continue` | Continue the most recent session headlessly |
+| `-r`, `--resume` | Print deprecation guidance pointing to Bindery web and exit; no branch summary is emitted |
 | `--session <path>` | Use specific session file or partial UUID |
-| `--session-dir <dir>` | Custom session storage directory |
-| `--no-session` | Ephemeral mode (don't save) |
+| `--session-dir <dir>` | Override session storage directory |
+| `--no-session` | Run ephemeral (do not save) |
 
 ### Tool Options
 
 | Option | Description |
 |--------|-------------|
-| `--tools <list>` | Enable specific built-in tools (default: `read,bash,edit,write`) |
-| `--no-tools` | Disable all built-in tools (extension tools still work) |
+| `--tools <list>` | Enable builtin tools (`read,bash,edit,write` by default) |
+| `--no-tools` | Disable builtin tools (extensions still run) |
 
-Available built-in tools: `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`
+Built-in tools: `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`
 
 ### Resource Options
 
 | Option | Description |
 |--------|-------------|
-| `-e`, `--extension <source>` | Load extension from path, npm, or git (repeatable) |
+| `-e`, `--extension <source>` | Load an extension (repeatable) |
 | `--no-extensions` | Disable extension discovery |
-| `--skill <path>` | Load skill (repeatable) |
+| `--skill <path>` | Load a skill (repeatable) |
 | `--no-skills` | Disable skill discovery |
-| `--prompt-template <path>` | Load prompt template (repeatable) |
-| `--no-prompt-templates` | Disable prompt template discovery |
-| `--theme <path>` | Load theme (repeatable) |
+| `--prompt-template <path>` | Load a template (repeatable) |
+| `--no-prompt-templates` | Disable template discovery |
+| `--theme <path>` | Load a theme (repeatable) |
 | `--no-themes` | Disable theme discovery |
-
-Combine `--no-*` with explicit flags to load exactly what you need, ignoring settings.json (e.g., `--no-extensions -e ./my-ext.ts`).
 
 ### Other Options
 
 | Option | Description |
 |--------|-------------|
-| `--system-prompt <text>` | Replace default prompt (context files and skills still appended) |
-| `--append-system-prompt <text>` | Append to system prompt |
+| `--system-prompt <text>` | Replace the default system prompt (context files still append) |
+| `--append-system-prompt <text>` | Append extra system instructions |
 | `--verbose` | Force verbose startup |
 | `-h`, `--help` | Show help |
 | `-v`, `--version` | Show version |
 
 ### File Arguments
 
-Prefix files with `@` to include in the message:
+Prefix files with `@` to include them in a prompt:
 
 ```bash
-pi @prompt.md "Answer this"
-pi -p @screenshot.png "What's in this image?"
+pi @prompt.md "Answer this"     # headless prompt that includes prompt.md
+pi -p @screenshot.png "Describe this image"
 pi @code.ts @test.ts "Review these files"
 ```
 
 ### Examples
 
 ```bash
-# Interactive with initial prompt
-pi "List all .ts files in src/"
+# Summaries remain headless
+pi --print "List all .ts files in src/"
 
-# Non-interactive
-pi -p "Summarize this codebase"
+# JSON stream for tooling
+pi --mode json "Review dependencies"
 
-# Different model
+# Different provider
 pi --provider openai --model gpt-4o "Help me refactor"
 
-# Model with provider prefix (no --provider needed)
-pi --model openai/gpt-4o "Help me refactor"
-
-# Model with thinking level shorthand
-pi --model sonnet:high "Solve this complex problem"
-
-# Limit model cycling
-pi --models "claude-*,gpt-4o"
-
 # Read-only mode
-pi --tools read,grep,find,ls -p "Review the code"
+pi --tools read,grep,find,ls --print "Review the code"
 
 # High thinking level
 pi --thinking high "Solve this complex problem"
@@ -546,19 +342,25 @@ pi --thinking high "Solve this complex problem"
 
 | Variable | Description |
 |----------|-------------|
-| `PI_CODING_AGENT_DIR` | Override config directory (default: `~/.pi/agent`) |
-| `PI_PACKAGE_DIR` | Override package directory (useful for Nix/Guix where store paths tokenize poorly) |
-| `PI_SKIP_VERSION_CHECK` | Skip version check at startup |
-| `PI_CACHE_RETENTION` | Set to `long` for extended prompt cache (Anthropic: 1h, OpenAI: 24h) |
-| `VISUAL`, `EDITOR` | External editor for Ctrl+G |
+| `PI_CODING_AGENT_DIR` | Override the config directory (default: `~/.pi/agent`) |
+| `PI_PACKAGE_DIR` | Override the package directory (handy for Nix/Guix) |
+| `PI_SKIP_VERSION_CHECK` | Skip the update check at startup |
+| `PI_CACHE_RETENTION` | Set to `long` for extended prompt caching (anthropic 1h, OpenAI 24h) |
+| `VISUAL`, `EDITOR` | External editor used when the agent opens files |
+
+---
+
+## Philosophy
+
+Pi keeps the core minimal so you can augment it however you need. Extensions, skills, and prompt templates do the heavy lifting while Bindery web surfaces the interactive experience and the CLI/SDK stay headless.
+
+Read the [blog post](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/) for the full rationale.
 
 ---
 
 ## Contributing & Development
 
-See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines and [docs/development.md](docs/development.md) for setup, forking, and debugging.
-
-Living architecture research for self-hosting the Bindery agent lives in [docs/architecture/README.md](docs/architecture/README.md), [docs/architecture/comparative-methods.md](docs/architecture/comparative-methods.md), and [docs/architecture/self-hosting-roadmap.md](docs/architecture/self-hosting-roadmap.md).
+Follow [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines and [docs/development.md](docs/development.md) for setup. Architecture research lives in [docs/architecture/README.md](docs/architecture/README.md), [docs/architecture/comparative-methods.md](docs/architecture/comparative-methods.md), and [docs/architecture/self-hosting-roadmap.md](docs/architecture/self-hosting-roadmap.md).
 
 ---
 
@@ -570,4 +372,3 @@ MIT
 
 - [@mariozechner/pi-ai](https://www.npmjs.com/package/@mariozechner/pi-ai): Core LLM toolkit
 - [@mariozechner/pi-agent](https://www.npmjs.com/package/@mariozechner/pi-agent): Agent framework
-- [@mariozechner/pi-tui](https://www.npmjs.com/package/@mariozechner/pi-tui): Terminal UI components

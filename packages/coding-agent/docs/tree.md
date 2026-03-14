@@ -154,13 +154,13 @@ Flow:
 - `branch(id)` - Change leaf pointer
 - `branchWithSummary(id, summary)` - Change leaf and create summary entry
 
-### InteractiveMode
+### Surface integration
 
-`/tree` command shows `TreeSelectorComponent`, then:
-1. Prompt for summarization
+Bindery web or any custom client built on top of the SDK decides how to present the tree picker. The shared behavior is:
+1. Prompt for summarization choice
 2. Call `session.navigateTree()`
-3. Clear and re-render chat
-4. Set editor text if applicable
+3. Refresh the visible conversation state
+4. Rehydrate pending input if `editorText` is returned
 
 ## Hook Events
 
