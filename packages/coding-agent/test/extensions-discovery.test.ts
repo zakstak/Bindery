@@ -1,11 +1,8 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { discoverAndLoadExtensions } from "../src/core/extensions/loader.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 describe("extensions discovery", () => {
 	let tempDir: string;
@@ -297,17 +294,34 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].path).toContain("my-ext.ts");
 	});
 
-	it("resolves dependencies from extension's own node_modules", async () => {
-		// Load extension that has its own package.json and node_modules with 'ms' package
-		const extPath = path.resolve(__dirname, "../examples/extensions/with-deps");
+	it("reports deterministic errors for extension packages that depend on @mariozechner/pi-tui", async () => {
+		const extPath = path.join(tempDir, "with-deps");
+		fs.mkdirSync(extPath, { recursive: true });
+		fs.writeFileSync(
+			path.join(extPath, "index.ts"),
+			`
+				import { Text } from "@mariozechner/pi-tui";
+				export default function(pi) {
+					void Text;
+					pi.registerCommand("test", { handler: async () => {} });
+				}
+			`,
+		);
+		fs.writeFileSync(
+			path.join(extPath, "package.json"),
+			JSON.stringify({
+				name: "with-deps",
+				pi: {
+					extensions: ["./index.ts"],
+				},
+			}),
+		);
 
 		const result = await discoverAndLoadExtensions([extPath], tempDir, tempDir);
 
-		expect(result.errors).toHaveLength(0);
-		expect(result.extensions).toHaveLength(1);
-		expect(result.extensions[0].path).toContain("with-deps");
-		// The extension registers a 'parse_duration' tool
-		expect(result.extensions[0].tools.has("parse_duration")).toBe(true);
+		expect(result.extensions).toHaveLength(0);
+		expect(result.errors).toHaveLength(1);
+		expect(result.errors[0]?.error).toContain("@mariozechner/pi-tui");
 	});
 
 	it("registers message renderers", async () => {
@@ -355,6 +369,23 @@ describe("extensions discovery", () => {
 		expect(result.errors).toHaveLength(1);
 		expect(result.errors[0].error).toContain("does not export a valid factory function");
 		expect(result.extensions).toHaveLength(0);
+	});
+
+	it("reports deterministic load error when extension imports @mariozechner/pi-tui", async () => {
+		const extCode = `
+			import { Text } from "@mariozechner/pi-tui";
+			export default function(pi) {
+				void Text;
+				pi.registerCommand("test", { handler: async () => {} });
+			}
+		`;
+		fs.writeFileSync(path.join(extensionsDir, "imports-pi-tui.ts"), extCode);
+
+		const result = await discoverAndLoadExtensions([], tempDir, tempDir);
+
+		expect(result.extensions).toHaveLength(0);
+		expect(result.errors).toHaveLength(1);
+		expect(result.errors[0]?.error).toContain("@mariozechner/pi-tui");
 	});
 
 	it("allows multiple extensions to register different tools", async () => {
