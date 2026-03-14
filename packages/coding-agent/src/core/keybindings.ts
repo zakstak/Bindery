@@ -1,15 +1,15 @@
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
+import { getAgentDir } from "../config.js";
 import {
 	DEFAULT_EDITOR_KEYBINDINGS,
 	type EditorAction,
 	type EditorKeybindingsConfig,
 	EditorKeybindingsManager,
 	type KeyId,
-	matchesKey,
 	setEditorKeybindings,
-} from "@mariozechner/pi-tui";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
-import { getAgentDir } from "../config.js";
+} from "./editor-keybindings.js";
+import { matchesKey } from "./key-input.js";
 
 /**
  * Application-level actions (coding agent specific).
