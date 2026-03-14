@@ -9,10 +9,12 @@
 import type { AssistantMessage, ImageContent } from "@mariozechner/pi-ai";
 import type { AgentSession } from "../core/agent-session.js";
 
-const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
-const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in interactive mode.";
-const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in interactive mode.";
-const TASK_DONE_INTERACTIVE_ONLY_ERROR = "The /task-done command is only available in interactive mode.";
+const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR =
+	"The /prompt-review command is only available in Bindery web interactive sessions.";
+const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in Bindery web interactive sessions.";
+const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in Bindery web interactive sessions.";
+const TASK_DONE_INTERACTIVE_ONLY_ERROR =
+	"The /task-done command is only available in Bindery web interactive sessions.";
 
 function isPromptReviewCommand(text: string): boolean {
 	return text.trim() === "/prompt-review";
