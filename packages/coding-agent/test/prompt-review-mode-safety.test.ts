@@ -68,7 +68,9 @@ describe("/prompt-review mode safety", () => {
 			});
 
 			expect(promptSpy).not.toHaveBeenCalled();
-			expect(stderrSpy).toHaveBeenCalledWith("The /prompt-review command is only available in interactive mode.");
+			expect(stderrSpy).toHaveBeenCalledWith(
+				"The /prompt-review command is only available in Bindery web interactive sessions.",
+			);
 			expect(process.exitCode).toBe(1);
 		} finally {
 			process.exitCode = previousExitCode;
@@ -97,7 +99,7 @@ describe("/prompt-review mode safety", () => {
 				type: "response",
 				command: "prompt",
 				success: false,
-				error: "The /prompt-review command is only available in interactive mode.",
+				error: "The /prompt-review command is only available in Bindery web interactive sessions.",
 			});
 			expect(session.prompt).not.toHaveBeenCalled();
 		});
@@ -117,14 +119,14 @@ describe("/prompt-review mode safety", () => {
 				type: "response",
 				command: "steer",
 				success: false,
-				error: "The /prompt-review command is only available in interactive mode.",
+				error: "The /prompt-review command is only available in Bindery web interactive sessions.",
 			});
 			expect(responses).toContainEqual({
 				id: "3",
 				type: "response",
 				command: "follow_up",
 				success: false,
-				error: "The /prompt-review command is only available in interactive mode.",
+				error: "The /prompt-review command is only available in Bindery web interactive sessions.",
 			});
 			expect(session.steer).not.toHaveBeenCalled();
 			expect(session.followUp).not.toHaveBeenCalled();
