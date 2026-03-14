@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Removed the legacy TUI exports, extension UI hooks, and terminal-only interaction surface so Bindery web is the canonical interactive experience; headless CLI/SDK runs now rely on streaming, JSON, and RPC outputs instead of shared UI hooks.
+
+### Deprecated
+
+- Deprecated the bare `pi` startup path, `pi --resume`, and the interactive `pi config` walker: these commands now print their summary/help directly and steer users toward Bindery web for branching, browsing, and configuration. Expect the interactive selectors to disappear in a future release.
+
 ### Fixed
 
 - Fixed interactive input fields backed by the TUI `Input` component to scroll by visual column width for wide Unicode text (CJK, fullwidth characters), preventing rendered line overflow and TUI crashes in places like search and filter inputs ([#1982](https://github.com/badlogic/pi-mono/issues/1982))

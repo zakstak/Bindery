@@ -1,19 +1,19 @@
+
 > pi can create extensions. Ask it to build one for your use case.
 
 # Extensions
 
-Extensions are TypeScript modules that extend pi's behavior. They can subscribe to lifecycle events, register custom tools callable by the LLM, add commands, and more.
+Extensions are TypeScript modules that extend pi's behavior with events, tools, automation, and optional UI signals. They load in the headless CLI or SDK by default, and they only rely on an interactive surface (Bindery web or another compatible host) when they need dialogs, notifications, or widgets. Keep automation code portable so that `pi --print`, `pi --mode json`, and `pi --mode rpc` can run it without requiring a terminal UI.
 
 > **Placement for /reload:** Put extensions in `~/.pi/agent/extensions/` (global) or `.pi/extensions/` (project-local) for auto-discovery. Use `pi -e ./path.ts` only for quick tests. Extensions in auto-discovered locations can be hot-reloaded with `/reload`.
 
 **Key capabilities:**
-- **Custom tools** - Register tools the LLM can call via `pi.registerTool()`
-- **Event interception** - Block or modify tool calls, inject context, customize compaction
-- **User interaction** - Prompt users via `ctx.ui` (select, confirm, input, notify)
-- **Custom UI components** - Full TUI components with keyboard input via `ctx.ui.custom()` for complex interactions
-- **Custom commands** - Register commands like `/mycommand` via `pi.registerCommand()`
-- **Session persistence** - Store state that survives restarts via `pi.appendEntry()`
-- **Custom rendering** - Control how tool calls/results and messages appear in TUI
+- **Custom tools** - Register tools the LLM can call via `pi.registerTool()`.
+- **Event interception** - Block or modify tool calls, inject context, or customize compaction.
+- **Interactive signaling** - Send selects, confirms, editors, or notifications when a UI client is attached (guard with `ctx.hasUI`).
+- **Custom commands** - Register commands like `/mycommand` via `pi.registerCommand()`.
+- **Session persistence** - Store state that survives restarts via `pi.appendEntry()`.
+- **Automation helpers** - Register shortcuts, flags, execute shell commands, and manage providers for scripted workflows.
 
 **Example use cases:**
 - Permission gates (confirm before `rm -rf`, `sudo`, etc.)
@@ -31,6 +31,7 @@ See [examples/extensions/](../examples/extensions/) for working implementations.
 ## Table of Contents
 
 - [Quick Start](#quick-start)
+- [Headless vs. Bindery Web](#headless-vs-bindery-web)
 - [Extension Locations](#extension-locations)
 - [Available Imports](#available-imports)
 - [Writing an Extension](#writing-an-extension)
@@ -61,11 +62,14 @@ import { Type } from "@sinclair/typebox";
 export default function (pi: ExtensionAPI) {
   // React to events
   pi.on("session_start", async (_event, ctx) => {
-    ctx.ui.notify("Extension loaded!", "info");
+    if (ctx.hasUI) ctx.ui.notify("Extension loaded!", "info");
   });
 
   pi.on("tool_call", async (event, ctx) => {
     if (event.toolName === "bash" && event.input.command?.includes("rm -rf")) {
+      if (!ctx.hasUI) {
+        return { block: true, reason: "Interactive approval required" };
+      }
       const ok = await ctx.ui.confirm("Dangerous!", "Allow rm -rf?");
       if (!ok) return { block: true, reason: "Blocked by user" };
     }
@@ -91,7 +95,7 @@ export default function (pi: ExtensionAPI) {
   pi.registerCommand("hello", {
     description: "Say hello",
     handler: async (args, ctx) => {
-      ctx.ui.notify(`Hello ${args || "world"}!`, "info");
+      if (ctx.hasUI) ctx.ui.notify(`Hello ${args || "world"}!`, "info");
     },
   });
 }
@@ -101,6 +105,21 @@ Test with `--extension` (or `-e`) flag:
 
 ```bash
 pi -e ./my-extension.ts
+```
+
+## Headless vs. Bindery Web
+
+Extensions load in the headless CLI/SDK by default and can also surface UI through Bindery web (or any client that speaks the extension UI sub-protocol). When you run `pi` with `--print`, `--mode json`, `--mode rpc`, or from another headless host, there is no interactive surface. In those cases `ctx.hasUI` is `false`, and any call to `ctx.ui` helpers rejects immediately with `ERR_EXTENSION_UI_UNSUPPORTED`. Guard UI calls with `ctx.hasUI` or skip them entirely.
+
+Bindery web is the canonical interactive surface. It renders the conversation stream, tool results, widgets, and dialogs that extensions request through the UI sub-protocol. Nothing in the CLI (without a linked web client) can render custom components, footers, or editors, so extensions that rely on those hooks should either detect the host or move those flows into Bindery web.
+
+```typescript
+if (!ctx.hasUI) {
+  // CLI alone: keep responses headless
+  return;
+}
+
+await ctx.ui.confirm("Continue?", "This needs web approval");
 ```
 
 ## Extension Locations
@@ -140,7 +159,6 @@ To share extensions via npm or git as pi packages, see [packages.md](packages.md
 | `@mariozechner/pi-coding-agent` | Extension types (`ExtensionAPI`, `ExtensionContext`, events) |
 | `@sinclair/typebox` | Schema definitions for tool parameters |
 | `@mariozechner/pi-ai` | AI utilities (`StringEnum` for Google-compatible enums) |
-| `@mariozechner/pi-tui` | TUI components for custom rendering |
 
 npm dependencies work too. Add a `package.json` next to your extension (or in a parent directory), run `npm install`, and imports from `node_modules/` are resolved automatically.
 
@@ -155,13 +173,13 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
   // Subscribe to events
-  pi.on("event_name", async (event, ctx) => {
-    // ctx.ui for user interaction
+pi.on("event_name", async (event, ctx) => {
+  // ctx.ui for user interaction
+  if (ctx.hasUI) {
     const ok = await ctx.ui.confirm("Title", "Are you sure?");
-    ctx.ui.notify("Done!", "success");
-    ctx.ui.setStatus("my-ext", "Processing...");  // Footer status
-    ctx.ui.setWidget("my-ext", ["Line 1", "Line 2"]);  // Widget above editor (default)
-  });
+    if (ok) ctx.ui.notify("Done!", "success");
+  }
+});
 
   // Register tools, commands, shortcuts, flags
   pi.registerTool({ ... });
@@ -701,11 +719,11 @@ All handlers except `session_directory` receive `ctx: ExtensionContext`.
 
 ### ctx.ui
 
-UI methods for user interaction. See [Custom UI](#custom-ui) for full details.
+UI methods for user interaction. See [Custom UI](#custom-ui) for the list of helpers. When `ctx.hasUI` is `false` (headless CLI/SDK without a UI host), every `ctx.ui` call rejects with `ERR_EXTENSION_UI_UNSUPPORTED`, so guard before invoking these helpers.
 
 ### ctx.hasUI
 
-`false` in print mode (`-p`) and JSON mode. `true` in interactive and RPC mode. In RPC mode, dialog methods (`select`, `confirm`, `input`, `editor`) work via the extension UI sub-protocol, and fire-and-forget methods (`notify`, `setStatus`, `setWidget`, `setTitle`, `setEditorText`) emit requests to the client. Some TUI-specific methods are no-ops or return defaults (see [rpc.md](rpc.md#extension-ui-protocol)).
+`false` whenever pi runs without an interactive host, for example in print mode (`-p`), JSON mode, RPC mode without a Bindery web connection, or any pure headless automation. `true` when Bindery web or another client implements the extension UI sub-protocol. When `ctx.hasUI` is `true` you can call dialog methods (`select`, `confirm`, `input`, `editor`) and fire-and-forget helpers (`notify`, `setStatus`, `setWidget`, `setTitle`, `setEditorText`). When it is `false`, those calls throw `ERR_EXTENSION_UI_UNSUPPORTED` instead of falling back to no-ops.
 
 ### ctx.cwd
 
@@ -763,15 +781,15 @@ if (usage && usage.tokens > 100_000) {
 Trigger compaction without awaiting completion. Use `onComplete` and `onError` for follow-up actions.
 
 ```typescript
-ctx.compact({
-  customInstructions: "Focus on recent changes",
-  onComplete: (result) => {
-    ctx.ui.notify("Compaction completed", "info");
-  },
-  onError: (error) => {
-    ctx.ui.notify(`Compaction failed: ${error.message}`, "error");
-  },
-});
+  ctx.compact({
+    customInstructions: "Focus on recent changes",
+    onComplete: (result) => {
+      if (ctx.hasUI) ctx.ui.notify("Compaction completed", "info");
+    },
+    onError: (error) => {
+      if (ctx.hasUI) ctx.ui.notify(`Compaction failed: ${error.message}`, "error");
+    },
+  });
 ```
 
 ### ctx.getSystemPrompt()
@@ -1079,18 +1097,16 @@ pi.registerCommand("stats", {
 Optional: add argument auto-completion for `/command ...`:
 
 ```typescript
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
-
 pi.registerCommand("deploy", {
   description: "Deploy to an environment",
-  getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
+  getArgumentCompletions: (prefix: string) => {
     const envs = ["dev", "staging", "prod"];
     const items = envs.map((e) => ({ value: e, label: e }));
     const filtered = items.filter((i) => i.value.startsWith(prefix));
     return filtered.length > 0 ? filtered : null;
   },
   handler: async (args, ctx) => {
-    ctx.ui.notify(`Deploying: ${args}`, "info");
+    if (ctx.hasUI) ctx.ui.notify(`Deploying: ${args}`, "info");
   },
 });
 ```
@@ -1122,7 +1138,7 @@ mode and would not execute if sent via `prompt`.
 
 ### pi.registerMessageRenderer(customType, renderer)
 
-Register a custom TUI renderer for messages with your `customType`. See [Custom UI](#custom-ui).
+`pi.registerMessageRenderer` is the legacy hook the retired terminal once used to display custom message components. It now throws `ERR_EXTENSION_UI_UNSUPPORTED` unless a host (like Bindery web) explicitly re-implements it, so prefer sending structured content/details and letting the host render the card. See [Custom UI](#custom-ui) for the supported dialog/status helpers.
 
 ### pi.registerShortcut(shortcut, options)
 
@@ -1336,7 +1352,6 @@ Note: Some models are idiots and include the @ prefix in tool path arguments. Bu
 ```typescript
 import { Type } from "@sinclair/typebox";
 import { StringEnum } from "@mariozechner/pi-ai";
-import { Text } from "@mariozechner/pi-tui";
 
 pi.registerTool({
   name: "my_tool",
@@ -1373,9 +1388,7 @@ pi.registerTool({
     };
   },
 
-  // Optional: Custom rendering
-  renderCall(args, theme) { ... },
-  renderResult(result, options, theme) { ... },
+  // Legacy renderCall/renderResult hooks are unsupported in Bindery web; return structured details instead
 });
 ```
 
@@ -1542,390 +1555,29 @@ export default function (pi: ExtensionAPI) {
 
 ### Custom Rendering
 
-Tools can provide `renderCall` and `renderResult` for custom TUI display. See [tui.md](tui.md) for the full component API and [tool-execution.ts](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/src/modes/interactive/components/tool-execution.ts) for how built-in tools render.
-
-Tool output is wrapped in a `Box` that handles padding and background. Your render methods return `Component` instances (typically `Text`).
-
-#### renderCall
-
-Renders the tool call (before/during execution):
-
-```typescript
-import { Text } from "@mariozechner/pi-tui";
-
-renderCall(args, theme) {
-  let text = theme.fg("toolTitle", theme.bold("my_tool "));
-  text += theme.fg("muted", args.action);
-  if (args.text) {
-    text += " " + theme.fg("dim", `"${args.text}"`);
-  }
-  return new Text(text, 0, 0);  // 0,0 padding - Box handles it
-}
-```
-
-#### renderResult
-
-Renders the tool result:
-
-```typescript
-renderResult(result, { expanded, isPartial }, theme) {
-  // Handle streaming
-  if (isPartial) {
-    return new Text(theme.fg("warning", "Processing..."), 0, 0);
-  }
-
-  // Handle errors
-  if (result.details?.error) {
-    return new Text(theme.fg("error", `Error: ${result.details.error}`), 0, 0);
-  }
-
-  // Normal result - support expanded view (Ctrl+O)
-  let text = theme.fg("success", "✓ Done");
-  if (expanded && result.details?.items) {
-    for (const item of result.details.items) {
-      text += "\n  " + theme.fg("dim", item);
-    }
-  }
-  return new Text(text, 0, 0);
-}
-```
-
-#### Keybinding Hints
-
-Use `keyHint()` to display keybinding hints that respect user's keybinding configuration:
-
-```typescript
-import { keyHint } from "@mariozechner/pi-coding-agent";
-
-renderResult(result, { expanded }, theme) {
-  let text = theme.fg("success", "✓ Done");
-  if (!expanded) {
-    text += ` (${keyHint("expandTools", "to expand")})`;
-  }
-  return new Text(text, 0, 0);
-}
-```
-
-Available functions:
-- `keyHint(action, description)` - Editor actions (e.g., `"expandTools"`, `"selectConfirm"`)
-- `appKeyHint(keybindings, action, description)` - App actions (requires `KeybindingsManager`)
-- `editorKey(action)` - Get raw key string for editor action
-- `rawKeyHint(key, description)` - Format a raw key string
-
-#### Best Practices
-
-- Use `Text` with padding `(0, 0)` - the Box handles padding
-- Use `\n` for multi-line content
-- Handle `isPartial` for streaming progress
-- Support `expanded` for detail on demand
-- Keep default view compact
-
-#### Fallback
-
-If `renderCall`/`renderResult` is not defined or throws:
-- `renderCall`: Shows tool name
-- `renderResult`: Shows raw text from `content`
+The `renderCall`/`renderResult` hooks and `pi.registerMessageRenderer` powered the retired terminal renderer. Those APIs are no longer supported in headless mode, and calls to them now reject with `ERR_EXTENSION_UI_UNSUPPORTED` unless an interactive client like Bindery web implements a replacement. Bindery web renders tool output using the `content` array, `details` object, and flags such as `isError`, so structure your return values accordingly instead of trying to paint the screen yourself. If you need richer presentation, send helper messages (`pi.sendMessage`) or rely on the host to decorate the conversation stream.
 
 ## Custom UI
 
-Extensions can interact with users via `ctx.ui` methods and customize how messages/tools render.
-
-**For custom components, see [tui.md](tui.md)** which has copy-paste patterns for:
-- Selection dialogs (SelectList)
-- Async operations with cancel (BorderedLoader)
-- Settings toggles (SettingsList)
-- Status indicators (setStatus)
-- Working message during streaming (setWorkingMessage)
-- Widgets above/below editor (setWidget)
-- Custom footers (setFooter)
-
-### Dialogs
+User interaction is now hosted by Bindery web (or another UI client that implements the extension UI protocol). The CLI/SDK surfaces are headless, so any `ctx.ui` call requires the client to participate. When `ctx.hasUI` is `false`, the runtime throws `ERR_EXTENSION_UI_UNSUPPORTED` for every method on `ctx.ui`, including `select`, `confirm`, `input`, `editor`, `notify`, `setStatus`, `setWidget`, `setFooter`, `setEditorText`, `setEditorComponent`, `setTheme`, `setTitle`, and the deprecated `ctx.ui.custom`. Guard with `ctx.hasUI` before calling these helpers.
 
 ```typescript
-// Select from options
-const choice = await ctx.ui.select("Pick one:", ["A", "B", "C"]);
+if (!ctx.hasUI) {
+  return; // keep the headless flow simple
+}
 
-// Confirm dialog
-const ok = await ctx.ui.confirm("Delete?", "This cannot be undone");
-
-// Text input
-const name = await ctx.ui.input("Name:", "placeholder");
-
-// Multi-line editor
-const text = await ctx.ui.editor("Edit:", "prefilled text");
-
-// Notification (non-blocking)
-ctx.ui.notify("Done!", "info");  // "info" | "warning" | "error"
-```
-
-#### Timed Dialogs with Countdown
-
-Dialogs support a `timeout` option that auto-dismisses with a live countdown display:
-
-```typescript
-// Dialog shows "Title (5s)" → "Title (4s)" → ... → auto-dismisses at 0
-const confirmed = await ctx.ui.confirm(
-  "Timed Confirmation",
-  "This dialog will auto-cancel in 5 seconds. Confirm?",
-  { timeout: 5000 }
-);
-
-if (confirmed) {
-  // User confirmed
-} else {
-  // User cancelled or timed out
+const choice = await ctx.ui.select("Pick one:", ["Yes", "No"]);
+if (choice === "Yes") {
+  await ctx.ui.notify("Confirmed", "info");
 }
 ```
 
-**Return values on timeout:**
-- `select()` returns `undefined`
-- `confirm()` returns `false`
-- `input()` returns `undefined`
+Bindery web renders dialogs, notifications, widgets, and status text whenever an extension requests them. Use the sub-protocol for simple operations:
+- `select`, `confirm`, `input`, `editor` surface prompts or editors.
+- `notify` emits non-blocking notifications.
+- `setStatus`, `setWidget`, `setFooter`, `setTitle`, `setEditorText`, `setToolsExpanded`, and `setTheme` control pieces of the web UI once it is connected.
 
-#### Manual Dismissal with AbortSignal
-
-For more control (e.g., to distinguish timeout from user cancel), use `AbortSignal`:
-
-```typescript
-const controller = new AbortController();
-const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-const confirmed = await ctx.ui.confirm(
-  "Timed Confirmation",
-  "This dialog will auto-cancel in 5 seconds. Confirm?",
-  { signal: controller.signal }
-);
-
-clearTimeout(timeoutId);
-
-if (confirmed) {
-  // User confirmed
-} else if (controller.signal.aborted) {
-  // Dialog timed out
-} else {
-  // User cancelled (pressed Escape or selected "No")
-}
-```
-
-See [examples/extensions/timed-confirm.ts](../examples/extensions/timed-confirm.ts) for complete examples.
-
-### Widgets, Status, and Footer
-
-```typescript
-// Status in footer (persistent until cleared)
-ctx.ui.setStatus("my-ext", "Processing...");
-ctx.ui.setStatus("my-ext", undefined);  // Clear
-
-// Working message (shown during streaming)
-ctx.ui.setWorkingMessage("Thinking deeply...");
-ctx.ui.setWorkingMessage();  // Restore default
-
-// Widget above editor (default)
-ctx.ui.setWidget("my-widget", ["Line 1", "Line 2"]);
-// Widget below editor
-ctx.ui.setWidget("my-widget", ["Line 1", "Line 2"], { placement: "belowEditor" });
-ctx.ui.setWidget("my-widget", (tui, theme) => new Text(theme.fg("accent", "Custom"), 0, 0));
-ctx.ui.setWidget("my-widget", undefined);  // Clear
-
-// Custom footer (replaces built-in footer entirely)
-ctx.ui.setFooter((tui, theme) => ({
-  render(width) { return [theme.fg("dim", "Custom footer")]; },
-  invalidate() {},
-}));
-ctx.ui.setFooter(undefined);  // Restore built-in footer
-
-// Terminal title
-ctx.ui.setTitle("pi - my-project");
-
-// Editor text
-ctx.ui.setEditorText("Prefill text");
-const current = ctx.ui.getEditorText();
-
-// Paste into editor (triggers paste handling, including collapse for large content)
-ctx.ui.pasteToEditor("pasted content");
-
-// Tool output expansion
-const wasExpanded = ctx.ui.getToolsExpanded();
-ctx.ui.setToolsExpanded(true);
-ctx.ui.setToolsExpanded(wasExpanded);
-
-// Custom editor (vim mode, emacs mode, etc.)
-ctx.ui.setEditorComponent((tui, theme, keybindings) => new VimEditor(tui, theme, keybindings));
-ctx.ui.setEditorComponent(undefined);  // Restore default editor
-
-// Theme management (see themes.md for creating themes)
-const themes = ctx.ui.getAllThemes();  // [{ name: "dark", path: "/..." | undefined }, ...]
-const lightTheme = ctx.ui.getTheme("light");  // Load without switching
-const result = ctx.ui.setTheme("light");  // Switch by name
-if (!result.success) {
-  ctx.ui.notify(`Failed: ${result.error}`, "error");
-}
-ctx.ui.setTheme(lightTheme!);  // Or switch by Theme object
-ctx.ui.theme.fg("accent", "styled text");  // Access current theme
-```
-
-### Custom Components
-
-For complex UI, use `ctx.ui.custom()`. This temporarily replaces the editor with your component until `done()` is called:
-
-```typescript
-import { Text, Component } from "@mariozechner/pi-tui";
-
-const result = await ctx.ui.custom<boolean>((tui, theme, keybindings, done) => {
-  const text = new Text("Press Enter to confirm, Escape to cancel", 1, 1);
-
-  text.onKey = (key) => {
-    if (key === "return") done(true);
-    if (key === "escape") done(false);
-    return true;
-  };
-
-  return text;
-});
-
-if (result) {
-  // User pressed Enter
-}
-```
-
-The callback receives:
-- `tui` - TUI instance (for screen dimensions, focus management)
-- `theme` - Current theme for styling
-- `keybindings` - App keybinding manager (for checking shortcuts)
-- `done(value)` - Call to close component and return value
-
-See [tui.md](tui.md) for the full component API.
-
-#### Overlay Mode (Experimental)
-
-Pass `{ overlay: true }` to render the component as a floating modal on top of existing content, without clearing the screen:
-
-```typescript
-const result = await ctx.ui.custom<string | null>(
-  (tui, theme, keybindings, done) => new MyOverlayComponent({ onClose: done }),
-  { overlay: true }
-);
-```
-
-For advanced positioning (anchors, margins, percentages, responsive visibility), pass `overlayOptions`. Use `onHandle` to control visibility programmatically:
-
-```typescript
-const result = await ctx.ui.custom<string | null>(
-  (tui, theme, keybindings, done) => new MyOverlayComponent({ onClose: done }),
-  {
-    overlay: true,
-    overlayOptions: { anchor: "top-right", width: "50%", margin: 2 },
-    onHandle: (handle) => { /* handle.setHidden(true/false) */ }
-  }
-);
-```
-
-See [tui.md](tui.md) for the full `OverlayOptions` API and [overlay-qa-tests.ts](../examples/extensions/overlay-qa-tests.ts) for examples.
-
-### Custom Editor
-
-Replace the main input editor with a custom implementation (vim mode, emacs mode, etc.):
-
-```typescript
-import { CustomEditor, type ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { matchesKey } from "@mariozechner/pi-tui";
-
-class VimEditor extends CustomEditor {
-  private mode: "normal" | "insert" = "insert";
-
-  handleInput(data: string): void {
-    if (matchesKey(data, "escape") && this.mode === "insert") {
-      this.mode = "normal";
-      return;
-    }
-    if (this.mode === "normal" && data === "i") {
-      this.mode = "insert";
-      return;
-    }
-    super.handleInput(data);  // App keybindings + text editing
-  }
-}
-
-export default function (pi: ExtensionAPI) {
-  pi.on("session_start", (_event, ctx) => {
-    ctx.ui.setEditorComponent((_tui, theme, keybindings) =>
-      new VimEditor(theme, keybindings)
-    );
-  });
-}
-```
-
-**Key points:**
-- Extend `CustomEditor` (not base `Editor`) to get app keybindings (escape to abort, ctrl+d, model switching)
-- Call `super.handleInput(data)` for keys you don't handle
-- Factory receives `theme` and `keybindings` from the app
-- Pass `undefined` to restore default: `ctx.ui.setEditorComponent(undefined)`
-
-See [tui.md](tui.md) Pattern 7 for a complete example with mode indicator.
-
-### Message Rendering
-
-Register a custom renderer for messages with your `customType`:
-
-```typescript
-import { Text } from "@mariozechner/pi-tui";
-
-pi.registerMessageRenderer("my-extension", (message, options, theme) => {
-  const { expanded } = options;
-  let text = theme.fg("accent", `[${message.customType}] `);
-  text += message.content;
-
-  if (expanded && message.details) {
-    text += "\n" + theme.fg("dim", JSON.stringify(message.details, null, 2));
-  }
-
-  return new Text(text, 0, 0);
-});
-```
-
-Messages are sent via `pi.sendMessage()`:
-
-```typescript
-pi.sendMessage({
-  customType: "my-extension",  // Matches registerMessageRenderer
-  content: "Status update",
-  display: true,               // Show in TUI
-  details: { ... },            // Available in renderer
-});
-```
-
-### Theme Colors
-
-All render functions receive a `theme` object. See [themes.md](themes.md) for creating custom themes and the full color palette.
-
-```typescript
-// Foreground colors
-theme.fg("toolTitle", text)   // Tool names
-theme.fg("accent", text)      // Highlights
-theme.fg("success", text)     // Success (green)
-theme.fg("error", text)       // Errors (red)
-theme.fg("warning", text)     // Warnings (yellow)
-theme.fg("muted", text)       // Secondary text
-theme.fg("dim", text)         // Tertiary text
-
-// Text styles
-theme.bold(text)
-theme.italic(text)
-theme.strikethrough(text)
-```
-
-For syntax highlighting in custom tool renderers:
-
-```typescript
-import { highlightCode, getLanguageFromPath } from "@mariozechner/pi-coding-agent";
-
-// Highlight code with explicit language
-const highlighted = highlightCode("const x = 1;", "typescript", theme);
-
-// Auto-detect language from file path
-const lang = getLanguageFromPath("/path/to/file.rs");  // "rust"
-const highlighted = highlightCode(code, lang, theme);
-```
+Avoid trying to draw terminal-only components. Hooks such as `ctx.ui.custom`, `ctx.ui.setEditorComponent`, `pi.registerMessageRenderer`, and `renderCall`/`renderResult` are not supported and will throw `ERR_EXTENSION_UI_UNSUPPORTED` except when Bindery web (or a compatible host) implements an alternative. Build the UI you need by returning structured `content`/`details` from tools, sending messages via `pi.sendMessage()`, and letting the host render cards, charts, or overlays.
 
 ## Error Handling
 
@@ -1937,7 +1589,7 @@ const highlighted = highlightCode(code, lang, theme);
 
 | Mode | UI Methods | Notes |
 |------|-----------|-------|
-| Interactive | Full TUI | Normal operation |
+| Interactive | Bindery web/host UI | Normal operation when a web client is connected |
 | RPC (`--mode rpc`) | JSON protocol | Host handles UI, see [rpc.md](rpc.md) |
 | JSON (`--mode json`) | No-op | Event stream to stdout, see [json.md](json.md) |
 | Print (`-p`) | No-op | Extensions run but can't prompt |
@@ -1952,17 +1604,17 @@ All examples in [examples/extensions/](../examples/extensions/).
 |---------|-------------|----------|
 | **Tools** |||
 | `hello.ts` | Minimal tool registration | `registerTool` |
-| `question.ts` | Tool with user interaction | `registerTool`, `ui.select` |
-| `questionnaire.ts` | Multi-step wizard tool | `registerTool`, `ui.custom` |
-| `todo.ts` | Stateful tool with persistence | `registerTool`, `appendEntry`, `renderResult`, session events |
+| `question.ts` | Tool with user interaction (Bindery web only) | `registerTool`, `ui.select` |
+| `questionnaire.ts` | Multi-step wizard tool (Bindery web only) | `registerTool`, `ui.custom` |
+| `todo.ts` | Stateful tool with persistence | `registerTool`, `appendEntry`, structured `details`, session events |
 | `dynamic-tools.ts` | Register tools after startup and during commands | `registerTool`, `session_start`, `registerCommand` |
 | `truncated-tool.ts` | Output truncation example | `registerTool`, `truncateHead` |
 | `tool-override.ts` | Override built-in read tool | `registerTool` (same name as built-in) |
 | **Commands** |||
 | `pirate.ts` | Modify system prompt per-turn | `registerCommand`, `before_agent_start` |
-| `summarize.ts` | Conversation summary command | `registerCommand`, `ui.custom` |
-| `handoff.ts` | Cross-provider model handoff | `registerCommand`, `ui.editor`, `ui.custom` |
-| `qna.ts` | Q&A with custom UI | `registerCommand`, `ui.custom`, `setEditorText` |
+| `summarize.ts` | Conversation summary command (Bindery web only) | `registerCommand`, `ui.custom` |
+| `handoff.ts` | Cross-provider model handoff (Bindery web only) | `registerCommand`, `ui.editor`, `ui.custom` |
+| `qna.ts` | Q&A with custom UI (Bindery web only) | `registerCommand`, `ui.custom`, `setEditorText` |
 | `send-user-message.ts` | Inject user messages | `registerCommand`, `sendUserMessage` |
 | `reload-runtime.ts` | Reload command and LLM tool handoff | `registerCommand`, `ctx.reload()`, `sendUserMessage` |
 | `shutdown-command.ts` | Graceful shutdown command | `registerCommand`, `shutdown()` |
@@ -1972,7 +1624,7 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `confirm-destructive.ts` | Confirm session changes | `on("session_before_switch")`, `on("session_before_fork")` |
 | `dirty-repo-guard.ts` | Warn on dirty git repo | `on("session_before_*")`, `exec` |
 | `input-transform.ts` | Transform user input | `on("input")` |
-| `model-status.ts` | React to model changes | `on("model_select")`, `setStatus` |
+| `model-status.ts` | React to model changes (Bindery web only) | `on("model_select")`, `setStatus` |
 | `provider-payload.ts` | Inspect or patch provider payloads | `on("before_provider_request")` |
 | `system-prompt-header.ts` | Display system prompt info | `on("agent_start")`, `getSystemPrompt` |
 | `claude-rules.ts` | Load rules from files | `on("session_start")`, `on("before_agent_start")` |
@@ -1983,21 +1635,21 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `git-checkpoint.ts` | Git stash on turns | `on("turn_end")`, `on("session_fork")`, `exec` |
 | `auto-commit-on-exit.ts` | Commit on shutdown | `on("session_shutdown")`, `exec` |
 | **UI Components** |||
-| `status-line.ts` | Footer status indicator | `setStatus`, session events |
-| `custom-footer.ts` | Replace footer entirely | `registerCommand`, `setFooter` |
-| `custom-header.ts` | Replace startup header | `on("session_start")`, `setHeader` |
-| `modal-editor.ts` | Vim-style modal editor | `setEditorComponent`, `CustomEditor` |
-| `rainbow-editor.ts` | Custom editor styling | `setEditorComponent` |
-| `widget-placement.ts` | Widget above/below editor | `setWidget` |
-| `overlay-test.ts` | Overlay components | `ui.custom` with overlay options |
-| `overlay-qa-tests.ts` | Comprehensive overlay tests | `ui.custom`, all overlay options |
-| `notify.ts` | Simple notifications | `ui.notify` |
-| `timed-confirm.ts` | Dialogs with timeout | `ui.confirm` with timeout/signal |
-| `mac-system-theme.ts` | Auto-switch theme | `setTheme`, `exec` |
+| `status-line.ts` | Footer status indicator (Bindery web only) | `setStatus`, session events |
+| `custom-footer.ts` | Replace footer entirely (Bindery web only) | `registerCommand`, `setFooter` |
+| `custom-header.ts` | Replace startup header (Bindery web only) | `on("session_start")`, `setHeader` |
+| `modal-editor.ts` | Vim-style modal editor (Bindery web only) | `setEditorComponent`, `CustomEditor` |
+| `rainbow-editor.ts` | Custom editor styling (Bindery web only) | `setEditorComponent` |
+| `widget-placement.ts` | Widget above/below editor (Bindery web only) | `setWidget` |
+| `overlay-test.ts` | Overlay components (Bindery web only) | `ui.custom` with overlay options |
+| `overlay-qa-tests.ts` | Comprehensive overlay tests (Bindery web only) | `ui.custom`, all overlay options |
+| `notify.ts` | Simple notifications (Bindery web only) | `ui.notify` |
+| `timed-confirm.ts` | Dialogs with timeout (Bindery web only) | `ui.confirm` with timeout/signal |
+| `mac-system-theme.ts` | Auto-switch theme (Bindery web only) | `setTheme`, `exec` |
 | **Complex Extensions** |||
-| `plan-mode/` | Full plan mode implementation | All event types, `registerCommand`, `registerShortcut`, `registerFlag`, `setStatus`, `setWidget`, `sendMessage`, `setActiveTools` |
+| `plan-mode/` | Full plan mode implementation (Bindery web only) | All event types, `registerCommand`, `registerShortcut`, `registerFlag`, `setStatus`, `setWidget`, `sendMessage`, `setActiveTools` |
 | `preset.ts` | Saveable presets (model, tools, thinking) | `registerCommand`, `registerShortcut`, `registerFlag`, `setModel`, `setActiveTools`, `setThinkingLevel`, `appendEntry` |
-| `tools.ts` | Toggle tools on/off UI | `registerCommand`, `setActiveTools`, `SettingsList`, session events |
+| `tools.ts` | Toggle tools on/off UI (Bindery web only) | `registerCommand`, `setActiveTools`, `SettingsList`, session events |
 | **Remote & Sandbox** |||
 | `ssh.ts` | SSH remote execution | `registerFlag`, `on("user_bash")`, `on("before_agent_start")`, tool operations |
 | `interactive-shell.ts` | Persistent shell session | `on("user_bash")` |
@@ -2011,7 +1663,7 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `custom-provider-anthropic/` | Custom Anthropic proxy | `registerProvider` |
 | `custom-provider-gitlab-duo/` | GitLab Duo integration | `registerProvider` with OAuth |
 | **Messages & Communication** |||
-| `message-renderer.ts` | Custom message rendering | `registerMessageRenderer`, `sendMessage` |
+| `message-renderer.ts` | Custom message rendering (Bindery web only) | `registerMessageRenderer`, `sendMessage` |
 | `event-bus.ts` | Inter-extension events | `pi.events` |
 | **Session Metadata** |||
 | `session-name.ts` | Name sessions for selector | `setSessionName`, `getSessionName` |

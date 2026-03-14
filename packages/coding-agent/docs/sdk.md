@@ -846,25 +846,22 @@ await session.prompt("Get status and list files.");
 
 The SDK exports run mode utilities for building custom interfaces on top of `createAgentSession()`:
 
-### InteractiveMode
+### Build your own interactive surface
 
-Full TUI interactive mode with editor, chat history, and all built-in commands:
+Bindery web is the maintained interactive shell. If you need a custom surface, build it on top of `createAgentSession()` by subscribing to session events, issuing prompts, and rendering the state in your own UI.
 
 ```typescript
-import { createAgentSession, InteractiveMode } from "@mariozechner/pi-coding-agent";
+import { createAgentSession } from "@mariozechner/pi-coding-agent";
 
 const { session } = await createAgentSession({ /* ... */ });
 
-const mode = new InteractiveMode(session, {
-  // All optional
-  migratedProviders: [],           // Show migration warnings
-  modelFallbackMessage: undefined, // Show model restore warning
-  initialMessage: "Hello",         // Send on startup
-  initialImages: [],               // Images with initial message
-  initialMessages: [],             // Additional startup prompts
+session.subscribe((event) => {
+  if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
+    process.stdout.write(event.assistantMessageEvent.delta);
+  }
 });
 
-await mode.run();  // Blocks until exit
+await session.prompt("Hello");
 ```
 
 ### runPrintMode
