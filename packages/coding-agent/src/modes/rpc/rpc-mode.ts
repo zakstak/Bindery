@@ -18,8 +18,9 @@ import type {
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
 } from "../../core/extensions/index.js";
+import { headlessTheme } from "../../core/headless-theme.js";
 import { resizeImage } from "../../utils/image-resize.js";
-import { type Theme, theme } from "../interactive/theme/theme.js";
+import type { Theme } from "../interactive/theme/theme.js";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.js";
 import type {
 	RpcCommand,
@@ -30,10 +31,19 @@ import type {
 	RpcSlashCommand,
 } from "./rpc-types.js";
 
-const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR = "The /prompt-review command is only available in interactive mode.";
-const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in interactive mode.";
-const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in interactive mode.";
-const TASK_DONE_INTERACTIVE_ONLY_ERROR = "The /task-done command is only available in interactive mode.";
+const PROMPT_REVIEW_INTERACTIVE_ONLY_ERROR =
+	"The /prompt-review command is only available in Bindery web interactive sessions.";
+const HANDOFF_INTERACTIVE_ONLY_ERROR = "The /handoff command is only available in Bindery web interactive sessions.";
+const TASK_INTERACTIVE_ONLY_ERROR = "The /task command is only available in Bindery web interactive sessions.";
+const TASK_DONE_INTERACTIVE_ONLY_ERROR =
+	"The /task-done command is only available in Bindery web interactive sessions.";
+const UNSUPPORTED_EXTENSION_UI_ERROR_CODE = "ERR_EXTENSION_UI_UNSUPPORTED";
+
+function throwUnsupportedExtensionUIMethod(method: string): never {
+	const error = new Error(`Extension UI method "${method}" is unsupported in rpc mode.`) as Error & { code?: string };
+	error.code = UNSUPPORTED_EXTENSION_UI_ERROR_CODE;
+	throw error;
+}
 
 function isPromptReviewCommand(text: string): boolean {
 	return text.trim() === "/prompt-review";
@@ -207,8 +217,7 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		},
 
 		onTerminalInput(): () => void {
-			// Raw terminal input not supported in RPC mode
-			return () => {};
+			return throwUnsupportedExtensionUIMethod("onTerminalInput");
 		},
 
 		setStatus(key: string, text: string | undefined): void {
@@ -223,30 +232,29 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		},
 
 		setWorkingMessage(_message?: string): void {
-			// Working message not supported in RPC mode - requires TUI loader access
+			throwUnsupportedExtensionUIMethod("setWorkingMessage");
 		},
 
 		setWidget(key: string, content: unknown, options?: ExtensionWidgetOptions): void {
-			// Only support string arrays in RPC mode - factory functions are ignored
-			if (content === undefined || Array.isArray(content)) {
-				output({
-					type: "extension_ui_request",
-					id: crypto.randomUUID(),
-					method: "setWidget",
-					widgetKey: key,
-					widgetLines: content as string[] | undefined,
-					widgetPlacement: options?.placement,
-				} as RpcExtensionUIRequest);
+			if (content !== undefined && !Array.isArray(content)) {
+				throwUnsupportedExtensionUIMethod("setWidget");
 			}
-			// Component factories are not supported in RPC mode - would need TUI access
+			output({
+				type: "extension_ui_request",
+				id: crypto.randomUUID(),
+				method: "setWidget",
+				widgetKey: key,
+				widgetLines: content as string[] | undefined,
+				widgetPlacement: options?.placement,
+			} as RpcExtensionUIRequest);
 		},
 
 		setFooter(_factory: unknown): void {
-			// Custom footer not supported in RPC mode - requires TUI access
+			throwUnsupportedExtensionUIMethod("setFooter");
 		},
 
 		setHeader(_factory: unknown): void {
-			// Custom header not supported in RPC mode - requires TUI access
+			throwUnsupportedExtensionUIMethod("setHeader");
 		},
 
 		setTitle(title: string): void {
@@ -260,8 +268,7 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		},
 
 		async custom() {
-			// Custom UI not supported in RPC mode
-			return undefined as never;
+			return throwUnsupportedExtensionUIMethod("custom");
 		},
 
 		pasteToEditor(text: string): void {
@@ -280,9 +287,7 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		},
 
 		getEditorText(): string {
-			// Synchronous method can't wait for RPC response
-			// Host should track editor state locally if needed
-			return "";
+			return throwUnsupportedExtensionUIMethod("getEditorText");
 		},
 
 		async editor(title: string, prefill?: string): Promise<string | undefined> {
@@ -305,33 +310,31 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 		},
 
 		setEditorComponent(): void {
-			// Custom editor components not supported in RPC mode
+			throwUnsupportedExtensionUIMethod("setEditorComponent");
 		},
 
 		get theme() {
-			return theme;
+			return headlessTheme;
 		},
 
 		getAllThemes() {
-			return [];
+			return throwUnsupportedExtensionUIMethod("getAllThemes");
 		},
 
 		getTheme(_name: string) {
-			return undefined;
+			return throwUnsupportedExtensionUIMethod("getTheme");
 		},
 
 		setTheme(_theme: string | Theme) {
-			// Theme switching not supported in RPC mode
-			return { success: false, error: "Theme switching not supported in RPC mode" };
+			return throwUnsupportedExtensionUIMethod("setTheme");
 		},
 
 		getToolsExpanded() {
-			// Tool expansion not supported in RPC mode - no TUI
-			return false;
+			return throwUnsupportedExtensionUIMethod("getToolsExpanded");
 		},
 
 		setToolsExpanded(_expanded: boolean) {
-			// Tool expansion not supported in RPC mode - no TUI
+			throwUnsupportedExtensionUIMethod("setToolsExpanded");
 		},
 	});
 

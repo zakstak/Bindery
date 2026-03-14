@@ -26,7 +26,7 @@ import type {
 import type { AssistantMessage, ImageContent, Message, Model, TextContent } from "@mariozechner/pi-ai";
 import { isContextOverflow, modelsAreEqual, resetApiProviders, supportsXhigh } from "@mariozechner/pi-ai";
 import { getDocsPath } from "../config.js";
-import { theme } from "../modes/interactive/theme/theme.js";
+import { getThemeByName } from "../modes/interactive/theme/theme.js";
 import { stripFrontmatter } from "../utils/frontmatter.js";
 import { sleep } from "../utils/sleep.js";
 import { type BashResult, executeBash as executeBashCommand, executeBashWithOperations } from "./bash-executor.js";
@@ -3348,13 +3348,17 @@ export class AgentSession {
 	 */
 	async exportToHtml(outputPath?: string): Promise<string> {
 		const themeName = this.settingsManager.getTheme();
+		let exportTheme = getThemeByName("dark");
+		if (themeName) {
+			exportTheme = getThemeByName(themeName) ?? exportTheme;
+		}
 
 		// Create tool renderer if we have an extension runner (for custom tool HTML rendering)
 		let toolRenderer: ToolHtmlRenderer | undefined;
-		if (this._extensionRunner) {
+		if (this._extensionRunner && exportTheme) {
 			toolRenderer = createToolHtmlRenderer({
 				getToolDefinition: (name) => this._extensionRunner!.getToolDefinition(name),
-				theme,
+				theme: exportTheme,
 			});
 		}
 
