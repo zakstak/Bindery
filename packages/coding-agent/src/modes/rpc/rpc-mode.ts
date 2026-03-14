@@ -18,6 +18,7 @@ import type {
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
 } from "../../core/extensions/index.js";
+import { resizeImage } from "../../utils/image-resize.js";
 import { type Theme, theme } from "../interactive/theme/theme.js";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.js";
 import type {
@@ -48,6 +49,33 @@ function isTaskCommand(text: string): boolean {
 
 function isTaskDoneCommand(text: string): boolean {
 	return text.trim() === "/task-done" || text.trimStart().startsWith("/task-done ");
+}
+
+type RpcPromptImages = Extract<RpcCommand, { type: "prompt" }>["images"];
+
+async function preprocessRpcImages(session: AgentSession, images: RpcPromptImages): Promise<RpcPromptImages> {
+	if (!images || images.length === 0) {
+		return images;
+	}
+
+	if (!session.settingsManager.getImageAutoResize()) {
+		return images;
+	}
+
+	return Promise.all(
+		images.map(async (image) => {
+			try {
+				const resized = await resizeImage(image);
+				return {
+					...image,
+					data: resized.data,
+					mimeType: resized.mimeType,
+				};
+			} catch {
+				return image;
+			}
+		}),
+	);
 }
 
 // Re-export types for consumers
@@ -377,12 +405,14 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				// Don't await - events will stream
 				// Extension commands are executed immediately, file prompt templates are expanded
 				// If streaming and streamingBehavior specified, queues via steer/followUp
-				session
-					.prompt(command.message, {
-						images: command.images,
-						streamingBehavior: command.streamingBehavior,
-						source: "rpc",
-					})
+				void preprocessRpcImages(session, command.images)
+					.then((images) =>
+						session.prompt(command.message, {
+							images,
+							streamingBehavior: command.streamingBehavior,
+							source: "rpc",
+						}),
+					)
 					.catch((e) => output(error(id, "prompt", e.message)));
 				return success(id, "prompt");
 			}
@@ -401,7 +431,8 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 					return error(id, "steer", TASK_DONE_INTERACTIVE_ONLY_ERROR);
 				}
 
-				await session.steer(command.message, command.images);
+				const images = await preprocessRpcImages(session, command.images);
+				await session.steer(command.message, images);
 				return success(id, "steer");
 			}
 
@@ -419,7 +450,8 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 					return error(id, "follow_up", TASK_DONE_INTERACTIVE_ONLY_ERROR);
 				}
 
-				await session.followUp(command.message, command.images);
+				const images = await preprocessRpcImages(session, command.images);
+				await session.followUp(command.message, images);
 				return success(id, "follow_up");
 			}
 

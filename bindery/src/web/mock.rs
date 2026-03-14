@@ -27,6 +27,48 @@ fn current_model_label(model: &Value) -> String {
     format!("{provider}/{id}")
 }
 
+fn prompt_images(command: &Value) -> Vec<Value> {
+    command
+        .get("images")
+        .and_then(Value::as_array)
+        .map(|images| {
+            images
+                .iter()
+                .filter(|image| image.is_object())
+                .cloned()
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn prompt_summary(prompt: &str, image_count: usize) -> String {
+    let trimmed = prompt.trim();
+    if !trimmed.is_empty() {
+        if image_count > 0 {
+            format!(
+                "{trimmed} (+{image_count} image attachment{})",
+                if image_count == 1 { "" } else { "s" }
+            )
+        } else {
+            trimmed.to_string()
+        }
+    } else if image_count == 1 {
+        String::from("Inspect the attached image.")
+    } else {
+        format!("Inspect the attached {image_count} images.")
+    }
+}
+
+fn prompt_message_content(prompt: &str, images: &[Value]) -> Vec<Value> {
+    let mut content = Vec::new();
+    let trimmed = prompt.trim();
+    if !trimmed.is_empty() {
+        content.push(json!({ "type": "text", "text": trimmed }));
+    }
+    content.extend(images.iter().cloned());
+    content
+}
+
 /// Mock routes for testing the real shell without a live agent process.
 pub fn router() -> Router {
     Router::new()
@@ -163,8 +205,9 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                     .unwrap_or_default()
                     .trim()
                     .to_string();
+                let prompt_images = prompt_images(&command);
 
-                if user_prompt.is_empty() {
+                if user_prompt.is_empty() && prompt_images.is_empty() {
                     if send_json(
                         &mut socket,
                         json!({
@@ -201,7 +244,7 @@ async fn handle_mock_socket(mut socket: WebSocket) {
 
                 if !play_sequence(
                     &mut socket,
-                    build_prompt_sequence(prompt_index, &user_prompt, &model),
+                    build_prompt_sequence(prompt_index, &user_prompt, &prompt_images, &model),
                 )
                 .await
                 {
@@ -531,21 +574,36 @@ fn build_boot_sequence() -> Vec<MockEvent> {
     ]
 }
 
-fn build_prompt_sequence(prompt_index: u32, prompt: &str, model: &Value) -> Vec<MockEvent> {
+fn build_prompt_sequence(prompt_index: u32, prompt: &str, images: &[Value], model: &Value) -> Vec<MockEvent> {
     let turn_label = format!("mock-turn-{prompt_index}");
     let user_message_id = format!("mock-user-{prompt_index}");
     let assistant_message_id = format!("mock-assistant-{prompt_index}");
-    let user_text = prompt.to_string();
-    let kickoff_text = format!(
-        "Got it. I will orchestrate this as a release concierge run: {prompt}"
-    );
+    let user_summary = prompt_summary(prompt, images.len());
+    let user_content = prompt_message_content(prompt, images);
+    let kickoff_text = if prompt.trim().is_empty() {
+        format!(
+            "Got it. I will inspect {} attached image{} and turn that into a coordinated plan with tool steps, UI updates, and a final brief.",
+            images.len(),
+            if images.len() == 1 { "" } else { "s" }
+        )
+    } else if images.is_empty() {
+        format!("Got it. I will orchestrate this as a release concierge run: {prompt}")
+    } else {
+        format!(
+            "Got it. I will orchestrate this as a release concierge run: {prompt} I will also inspect {} attached image{}.",
+            images.len(),
+            if images.len() == 1 { "" } else { "s" }
+        )
+    };
     let progress_text =
         "Status update: intake complete, dependency scan done, and risk checks are now running.";
     let final_text = format!(
         "Launch brief ready.\n\nObjective\n- {}\n\nOrchestration flow\n- Parsed goal and constraints from your request\n- Inspected shell/event surfaces and mock storyline touchpoints\n- Ran validation checkpoints for compile, test, and UI walkthrough\n\nRecommendation\n- Ship the refined shared shell with clearer event semantics\n- Keep /ws and /ws/mock on the same client contract\n- Use this mock sequence for stakeholder demos because it shows agent, tool, UI notify/update, and final assistant synthesis in one pass.",
-        prompt
+        user_summary
     );
-    let context_percent = 26_u32.saturating_add((prompt_index.saturating_mul(7)).min(46));
+    let context_percent = 26_u32
+        .saturating_add((prompt_index.saturating_mul(7)).min(46))
+        .saturating_add((images.len() as u32).min(3) * 4);
 
     vec![
         MockEvent {
@@ -592,7 +650,7 @@ fn build_prompt_sequence(prompt_index: u32, prompt: &str, model: &Value) -> Vec<
                 "message": {
                     "id": user_message_id.clone(),
                     "role": "user",
-                    "content": [{ "type": "text", "text": user_text.clone() }],
+                    "content": user_content.clone(),
                 },
             }),
         },
@@ -603,7 +661,7 @@ fn build_prompt_sequence(prompt_index: u32, prompt: &str, model: &Value) -> Vec<
                 "message": {
                     "id": user_message_id,
                     "role": "user",
-                    "content": [{ "type": "text", "text": user_text }],
+                    "content": user_content,
                 },
             }),
         },
@@ -746,7 +804,7 @@ fn build_prompt_sequence(prompt_index: u32, prompt: &str, model: &Value) -> Vec<
                     "content": [{ "type": "text", "text": final_text }],
                 },
                 "usage": {
-                    "inputTokens": 118_u64 + prompt.len() as u64,
+                    "inputTokens": 118_u64 + prompt.len() as u64 + (images.len() as u64 * 768),
                     "outputTokens": 168,
                 },
                 "contextPercent": context_percent.saturating_add(18),
