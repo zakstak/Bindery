@@ -2,6 +2,15 @@ pub mod client;
 
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RpcImageContent {
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[serde(rename = "mimeType", alias = "mime_type")]
+    pub mime_type: String,
+    pub data: String,
+}
+
 /// Commands sent from the browser to the agent (via WebSocket → stdin).
 /// Mirrors packages/coding-agent/src/modes/rpc/rpc-types.ts
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -10,6 +19,7 @@ pub enum RpcCommand {
     Prompt {
         id: Option<String>,
         message: String,
+        images: Option<Vec<RpcImageContent>>,
     },
     Abort {
         id: Option<String>,
