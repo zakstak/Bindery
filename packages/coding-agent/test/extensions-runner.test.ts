@@ -420,6 +420,30 @@ describe("ExtensionRunner", () => {
 		});
 	});
 
+	describe("headless extension UI", () => {
+		it("throws deterministic unsupported errors for UI hooks without a UI context", async () => {
+			const runtime = createExtensionRuntime();
+			const runner = new ExtensionRunner([], runtime, tempDir, sessionManager, modelRegistry);
+			const ctx = runner.createContext();
+
+			expect(() => ctx.ui.notify("hello")).toThrowError(
+				'Extension UI method "notify" is unsupported in headless mode.',
+			);
+			expect(() => ctx.ui.setFooter(undefined)).toThrowError(
+				'Extension UI method "setFooter" is unsupported in headless mode.',
+			);
+			expect(() => ctx.ui.setEditorText("hello")).toThrowError(
+				'Extension UI method "setEditorText" is unsupported in headless mode.',
+			);
+			await expect(ctx.ui.select("Pick", ["a"])).rejects.toThrowError(
+				'Extension UI method "select" is unsupported in headless mode.',
+			);
+			await expect(ctx.ui.editor("Edit", "text")).rejects.toThrowError(
+				'Extension UI method "editor" is unsupported in headless mode.',
+			);
+		});
+	});
+
 	describe("message renderers", () => {
 		it("gets message renderer by type", async () => {
 			const extCode = `
