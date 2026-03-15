@@ -127,6 +127,44 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
                             .filter(|value| !value.is_empty())
                             .map(|value| format!("{prefix} · {value}"))
                             .unwrap_or_else(|| prefix.to_string())
+                    } else if command == "switch_session" {
+                        if data
+                            .get("cancelled")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                        {
+                            "session switch cancelled".to_string()
+                        } else {
+                            "session switched".to_string()
+                        }
+                    } else if command == "fork" {
+                        let prefix = if data
+                            .get("cancelled")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                        {
+                            "fork cancelled"
+                        } else {
+                            "fork created"
+                        };
+                        data.get("text")
+                            .and_then(Value::as_str)
+                            .map(|value| compact_preview(value, 40))
+                            .filter(|value| !value.is_empty())
+                            .map(|value| format!("{prefix} · {value}"))
+                            .unwrap_or_else(|| prefix.to_string())
+                    } else if command == "get_available_models" {
+                        let count = data
+                            .get("models")
+                            .and_then(Value::as_array)
+                            .map_or(0, |models| models.len());
+                        format!("{count} model{} available", if count == 1 { "" } else { "s" })
+                    } else if command == "get_fork_messages" {
+                        let count = data
+                            .get("messages")
+                            .and_then(Value::as_array)
+                            .map_or(0, |messages| messages.len());
+                        format!("{count} fork point{} available", if count == 1 { "" } else { "s" })
                     } else {
                         format!("{command} ok")
                     }
@@ -245,6 +283,44 @@ fn with_bindery_meta(mut event: Value) -> Value {
     event
 }
 
+fn extract_command_name(command: &Value) -> String {
+    command
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown")
+        .to_string()
+}
+
+fn extract_command_id(command: &Value) -> Option<String> {
+    command
+        .get("id")
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+}
+
+fn response_error(id: Option<String>, command: &str, error: String) -> Value {
+    let mut payload = serde_json::Map::new();
+    payload.insert("type".to_string(), json!("response"));
+    payload.insert("command".to_string(), json!(command));
+    payload.insert("success".to_string(), json!(false));
+    payload.insert("error".to_string(), json!(error));
+    if let Some(id) = id {
+        payload.insert("id".to_string(), json!(id));
+    }
+    Value::Object(payload)
+}
+
+async fn send_json(socket: &mut WebSocket, payload: Value) -> bool {
+    let text = match serde_json::to_string(&payload) {
+        Ok(text) => text,
+        Err(error) => {
+            warn!("failed to serialize websocket payload: {error}");
+            return false;
+        }
+    };
+    socket.send(Message::Text(text.into())).await.is_ok()
+}
+
 pub fn router(config: AppConfig) -> Router {
     Router::new()
         .route("/ws", get(ws_handler))
@@ -291,15 +367,49 @@ async fn handle_socket(mut socket: WebSocket, config: AppConfig) {
             msg = socket.recv() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
-                        match serde_json::from_str::<RpcCommand>(&text) {
-                            Ok(cmd) => {
-                                if let Err(e) = client.send(&cmd).await {
-                                    warn!("failed to send command to agent: {e}");
-                                    break;
+                        match serde_json::from_str::<Value>(&text) {
+                            Ok(raw_command) => {
+                                let command_name = extract_command_name(&raw_command);
+                                let command_id = extract_command_id(&raw_command);
+                                let raw_command_for_agent = raw_command.clone();
+                                match serde_json::from_value::<RpcCommand>(raw_command) {
+                                    Ok(cmd) => {
+                                        let send_result = match &cmd {
+                                            RpcCommand::ExtensionUiResponse { .. } => {
+                                                client.send_raw(raw_command_for_agent).await
+                                            }
+                                            _ => client.send(&cmd).await,
+                                        };
+                                        if let Err(e) = send_result {
+                                            warn!("failed to send command to agent: {e}");
+                                            break;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        warn!("invalid command payload from browser: {e} — {text}");
+                                        let payload = response_error(
+                                            command_id,
+                                            &command_name,
+                                            format!("Invalid command payload: {e}"),
+                                        );
+                                        if !send_json(&mut socket, payload).await {
+                                            info!("WebSocket send failed — client disconnected");
+                                            break;
+                                        }
+                                    }
                                 }
                             }
                             Err(e) => {
-                                warn!("invalid command from browser: {e} — {text}");
+                                warn!("invalid command json from browser: {e} — {text}");
+                                let payload = response_error(
+                                    None,
+                                    "parse",
+                                    format!("Failed to parse command: {e}"),
+                                );
+                                if !send_json(&mut socket, payload).await {
+                                    info!("WebSocket send failed — client disconnected");
+                                    break;
+                                }
                             }
                         }
                     }

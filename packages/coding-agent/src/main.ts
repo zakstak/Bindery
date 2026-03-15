@@ -9,15 +9,12 @@ import { type ImageContent, modelsAreEqual, supportsXhigh } from "@mariozechner/
 import chalk from "chalk";
 import { createInterface } from "readline";
 import { type Args, parseArgs, printHelp } from "./cli/args.js";
-import { selectConfig } from "./cli/config-selector.js";
 import { processFileArguments } from "./cli/file-processor.js";
 import { listModels } from "./cli/list-models.js";
-import { selectSession } from "./cli/session-picker.js";
-import { APP_NAME, getAgentDir, getModelsPath, VERSION } from "./config.js";
+import { APP_NAME, CONFIG_DIR_NAME, getAgentDir, getModelsPath, getSettingsPath, VERSION } from "./config.js";
 import { AuthStorage } from "./core/auth-storage.js";
 import { exportFromFile } from "./core/export-html/index.js";
 import type { LoadExtensionsResult } from "./core/extensions/index.js";
-import { KeybindingsManager } from "./core/keybindings.js";
 import { ModelRegistry } from "./core/model-registry.js";
 import { resolveCliModel, resolveModelScope, type ScopedModel } from "./core/model-resolver.js";
 import { DefaultPackageManager } from "./core/package-manager.js";
@@ -25,11 +22,10 @@ import { DefaultResourceLoader } from "./core/resource-loader.js";
 import { type CreateAgentSessionOptions, createAgentSession } from "./core/sdk.js";
 import { SessionManager } from "./core/session-manager.js";
 import { SettingsManager } from "./core/settings-manager.js";
-import { printTimings, time } from "./core/timings.js";
+import { time } from "./core/timings.js";
 import { allTools } from "./core/tools/index.js";
-import { runMigrations, showDeprecationWarnings } from "./migrations.js";
-import { InteractiveMode, runPrintMode, runRpcMode } from "./modes/index.js";
-import { initTheme, stopThemeWatcher } from "./modes/interactive/theme/theme.js";
+import { runMigrations } from "./migrations.js";
+import { runPrintMode, runRpcMode } from "./modes/index.js";
 
 /**
  * Read all content from piped stdin.
@@ -558,22 +554,37 @@ async function handleConfigCommand(args: string[]): Promise<boolean> {
 		return false;
 	}
 
-	const cwd = process.cwd();
-	const agentDir = getAgentDir();
-	const settingsManager = SettingsManager.create(cwd, agentDir);
-	reportSettingsErrors(settingsManager, "config command");
-	const packageManager = new DefaultPackageManager({ cwd, agentDir, settingsManager });
+	printDeprecatedConfigGuidance();
+	process.exitCode = 1;
+	return true;
+}
 
-	const resolvedPaths = await packageManager.resolve();
+function printHeadlessSurfaceGuidance(): void {
+	console.error(chalk.yellow(`Use Bindery for interactive ${APP_NAME} workflows.`));
+	console.error(chalk.dim("Headless CLI surfaces still work:"));
+	console.error(`  ${APP_NAME} --print "Summarize the latest diff"`);
+	console.error(`  ${APP_NAME} --mode json "Summarize the latest diff"`);
+	console.error(`  ${APP_NAME} --mode rpc`);
+}
 
-	await selectConfig({
-		resolvedPaths,
-		settingsManager,
-		cwd,
-		agentDir,
-	});
+function printDeprecatedInteractiveGuidance(): void {
+	console.error(chalk.red(`${APP_NAME} no longer starts an interactive terminal UI.`));
+	console.error(`Open Bindery for interactive chat, session browsing, and other UI-driven flows.`);
+	printHeadlessSurfaceGuidance();
+}
 
-	process.exit(0);
+function printDeprecatedResumeGuidance(): void {
+	console.error(chalk.red(`The ${APP_NAME} --resume command has been deprecated.`));
+	console.error(`Open Bindery to browse sessions interactively, or pass --session <path-or-id-prefix> explicitly.`);
+	printHeadlessSurfaceGuidance();
+}
+
+function printDeprecatedConfigGuidance(): void {
+	console.error(chalk.red(`The ${APP_NAME} config command has been deprecated.`));
+	console.error(
+		`Open Bindery for interactive configuration, or edit ${getSettingsPath()} and ${CONFIG_DIR_NAME}/settings.json directly.`,
+	);
+	printHeadlessSurfaceGuidance();
 }
 
 export async function main(args: string[]) {
@@ -592,7 +603,7 @@ export async function main(args: string[]) {
 	}
 
 	// Run migrations (pass cwd for project-local migrations)
-	const { migratedAuthProviders: migratedProviders, deprecationWarnings } = runMigrations(process.cwd());
+	runMigrations(process.cwd());
 
 	// First pass: parse args to get --extension paths
 	const firstPass = parseArgs(args);
@@ -696,15 +707,21 @@ export async function main(args: string[]) {
 		process.exit(1);
 	}
 
-	const { initialMessage, initialImages } = await prepareInitialMessage(parsed, settingsManager.getImageAutoResize());
-	const isInteractive = !parsed.print && parsed.mode === undefined;
-	const mode = parsed.mode || "text";
-	initTheme(settingsManager.getTheme(), isInteractive);
-
-	// Show deprecation warnings in interactive mode
-	if (isInteractive && deprecationWarnings.length > 0) {
-		await showDeprecationWarnings(deprecationWarnings);
+	if (parsed.resume) {
+		printDeprecatedResumeGuidance();
+		process.exitCode = 1;
+		return;
 	}
+
+	const isLegacyInteractiveEntry = !parsed.print && parsed.mode === undefined;
+	if (isLegacyInteractiveEntry) {
+		printDeprecatedInteractiveGuidance();
+		process.exitCode = 1;
+		return;
+	}
+
+	const { initialMessage, initialImages } = await prepareInitialMessage(parsed, settingsManager.getImageAutoResize());
+	const mode = parsed.mode || "text";
 
 	let scopedModels: ScopedModel[] = [];
 	const modelPatterns = parsed.models ?? settingsManager.getEnabledModels();
@@ -713,27 +730,7 @@ export async function main(args: string[]) {
 	}
 
 	// Create session manager based on CLI flags
-	let sessionManager = await createSessionManager(parsed, cwd, extensionsResult);
-
-	// Handle --resume: show session picker
-	if (parsed.resume) {
-		// Initialize keybindings so session picker respects user config
-		KeybindingsManager.create();
-
-		// Compute effective session dir for resume (same logic as createSessionManager)
-		const effectiveSessionDir = parsed.sessionDir || (await callSessionDirectoryHook(extensionsResult, cwd));
-
-		const selectedPath = await selectSession(
-			(onProgress) => SessionManager.list(cwd, effectiveSessionDir, onProgress),
-			SessionManager.listAll,
-		);
-		if (!selectedPath) {
-			console.log(chalk.dim("No session selected"));
-			stopThemeWatcher();
-			process.exit(0);
-		}
-		sessionManager = SessionManager.open(selectedPath, effectiveSessionDir);
-	}
+	const sessionManager = await createSessionManager(parsed, cwd, extensionsResult);
 
 	const { options: sessionOptions, cliThinkingFromModel } = buildSessionOptions(
 		parsed,
@@ -757,9 +754,9 @@ export async function main(args: string[]) {
 		authStorage.setRuntimeApiKey(sessionOptions.model.provider, parsed.apiKey);
 	}
 
-	const { session, modelFallbackMessage } = await createAgentSession(sessionOptions);
+	const { session } = await createAgentSession(sessionOptions);
 
-	if (!isInteractive && !session.model) {
+	if (!session.model) {
 		console.error(chalk.red("No models available."));
 		console.error(chalk.yellow("\nSet an API key environment variable:"));
 		console.error("  ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, etc.");
@@ -784,27 +781,6 @@ export async function main(args: string[]) {
 
 	if (mode === "rpc") {
 		await runRpcMode(session);
-	} else if (isInteractive) {
-		if (scopedModels.length > 0 && (parsed.verbose || !settingsManager.getQuietStartup())) {
-			const modelList = scopedModels
-				.map((sm) => {
-					const thinkingStr = sm.thinkingLevel ? `:${sm.thinkingLevel}` : "";
-					return `${sm.model.id}${thinkingStr}`;
-				})
-				.join(", ");
-			console.log(chalk.dim(`Model scope: ${modelList} ${chalk.gray("(Ctrl+P to cycle)")}`));
-		}
-
-		printTimings();
-		const mode = new InteractiveMode(session, {
-			migratedProviders,
-			modelFallbackMessage,
-			initialMessage,
-			initialImages,
-			initialMessages: parsed.messages,
-			verbose: parsed.verbose,
-		});
-		await mode.run();
 	} else {
 		await runPrintMode(session, {
 			mode,
@@ -812,7 +788,6 @@ export async function main(args: string[]) {
 			initialMessage,
 			initialImages,
 		});
-		stopThemeWatcher();
 		if (process.stdout.writableLength > 0) {
 			await new Promise<void>((resolve) => process.stdout.once("drain", resolve));
 		}

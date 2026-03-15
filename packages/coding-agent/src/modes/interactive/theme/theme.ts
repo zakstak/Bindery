@@ -1,11 +1,51 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { EditorTheme, MarkdownTheme, SelectListTheme } from "@mariozechner/pi-tui";
 import { type Static, Type } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import chalk from "chalk";
 import { highlight, supportsLanguage } from "cli-highlight";
 import { getCustomThemesDir, getThemesDir } from "../../../config.js";
+
+type ThemeTextFormatter = (text: string) => string;
+
+type MarkdownTheme = {
+	heading: ThemeTextFormatter;
+	link: ThemeTextFormatter;
+	linkUrl: ThemeTextFormatter;
+	code: ThemeTextFormatter;
+	codeBlock: ThemeTextFormatter;
+	codeBlockBorder: ThemeTextFormatter;
+	quote: ThemeTextFormatter;
+	quoteBorder: ThemeTextFormatter;
+	hr: ThemeTextFormatter;
+	listBullet: ThemeTextFormatter;
+	bold: ThemeTextFormatter;
+	italic: ThemeTextFormatter;
+	underline: ThemeTextFormatter;
+	strikethrough: ThemeTextFormatter;
+	highlightCode: (code: string, lang?: string) => string[];
+};
+
+type SelectListTheme = {
+	selectedPrefix: ThemeTextFormatter;
+	selectedText: ThemeTextFormatter;
+	description: ThemeTextFormatter;
+	scrollInfo: ThemeTextFormatter;
+	noMatch: ThemeTextFormatter;
+};
+
+type EditorTheme = {
+	borderColor: ThemeTextFormatter;
+	selectList: SelectListTheme;
+};
+
+type SettingsListTheme = {
+	label: (text: string, selected: boolean) => string;
+	value: (text: string, selected: boolean) => string;
+	description: ThemeTextFormatter;
+	cursor: string;
+	hint: ThemeTextFormatter;
+};
 
 // ============================================================================
 // Types & Schema
@@ -1094,7 +1134,7 @@ export function getEditorTheme(): EditorTheme {
 	};
 }
 
-export function getSettingsListTheme(): import("@mariozechner/pi-tui").SettingsListTheme {
+export function getSettingsListTheme(): SettingsListTheme {
 	return {
 		label: (text: string, selected: boolean) => (selected ? theme.fg("accent", text) : text),
 		value: (text: string, selected: boolean) => (selected ? theme.fg("accent", text) : theme.fg("muted", text)),

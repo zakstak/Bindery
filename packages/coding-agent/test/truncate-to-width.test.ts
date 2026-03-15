@@ -1,5 +1,5 @@
-import { truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
 import { describe, expect, it } from "vitest";
+import { truncateToWidth, visibleWidth } from "../src/utils/terminal-text.js";
 
 /**
  * Tests for truncateToWidth behavior with Unicode characters.
