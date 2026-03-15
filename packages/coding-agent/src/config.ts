@@ -10,27 +10,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-/**
- * Detect if we're running as a Bun compiled binary.
- * Bun binaries have import.meta.url containing "$bunfs", "~BUN", or "%7EBUN" (Bun's virtual filesystem path)
- */
-export const isBunBinary =
-	import.meta.url.includes("$bunfs") || import.meta.url.includes("~BUN") || import.meta.url.includes("%7EBUN");
-
-/** Detect if Bun is the runtime (compiled binary or bun run) */
-export const isBunRuntime = !!process.versions.bun;
-
 // =============================================================================
 // Install Method Detection
 // =============================================================================
 
-export type InstallMethod = "bun-binary" | "npm" | "pnpm" | "yarn" | "bun" | "unknown";
+export type InstallMethod = "npm" | "pnpm" | "yarn" | "unknown";
 
 export function detectInstallMethod(): InstallMethod {
-	if (isBunBinary) {
-		return "bun-binary";
-	}
-
 	const resolvedPath = `${__dirname}\0${process.execPath || ""}`.toLowerCase();
 
 	if (resolvedPath.includes("/pnpm/") || resolvedPath.includes("/.pnpm/") || resolvedPath.includes("\\pnpm\\")) {
@@ -38,9 +24,6 @@ export function detectInstallMethod(): InstallMethod {
 	}
 	if (resolvedPath.includes("/yarn/") || resolvedPath.includes("/.yarn/") || resolvedPath.includes("\\yarn\\")) {
 		return "yarn";
-	}
-	if (isBunRuntime) {
-		return "bun";
 	}
 	if (resolvedPath.includes("/npm/") || resolvedPath.includes("/node_modules/") || resolvedPath.includes("\\npm\\")) {
 		return "npm";
@@ -52,14 +35,10 @@ export function detectInstallMethod(): InstallMethod {
 export function getUpdateInstruction(packageName: string): string {
 	const method = detectInstallMethod();
 	switch (method) {
-		case "bun-binary":
-			return `Download from: https://github.com/badlogic/pi-mono/releases/latest`;
 		case "pnpm":
 			return `Run: pnpm install -g ${packageName}`;
 		case "yarn":
 			return `Run: yarn global add ${packageName}`;
-		case "bun":
-			return `Run: bun install -g ${packageName}`;
 		case "npm":
 			return `Run: npm install -g ${packageName}`;
 		default:
@@ -86,10 +65,6 @@ export function getPackageDir(): string {
 		return envDir;
 	}
 
-	if (isBunBinary) {
-		// Bun binary: process.execPath points to the compiled executable
-		return dirname(process.execPath);
-	}
 	// Node.js: walk up from __dirname until we find package.json
 	let dir = __dirname;
 	while (dir !== dirname(dir)) {

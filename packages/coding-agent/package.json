@@ -32,12 +32,10 @@
 		"clean": "shx rm -rf dist",
 		"dev": "tsgo -p tsconfig.build.json --watch --preserveWatchOutput",
 		"build": "tsgo -p tsconfig.build.json && shx chmod +x dist/cli.js",
-		"build:binary": "npm --prefix ../ai run build && npm --prefix ../agent run build && npm run build && bun build --compile ./dist/cli.js --outfile dist/pi",
 		"test": "vitest --run",
 		"prepublishOnly": "npm run clean && npm run build"
 	},
 	"dependencies": {
-		"@mariozechner/jiti": "^2.6.2",
 		"@mariozechner/pi-agent-core": "^0.57.1",
 		"@mariozechner/pi-ai": "^0.57.1",
 		"bindery-tools": "*",
@@ -53,6 +51,7 @@
 		"strip-ansi": "^7.1.0",
 		"undici": "^7.24.1",
 		"yauzl": "^3.2.1",
+		"tsx": "^4.20.3",
 		"yaml": "^2.8.2"
 	},
 	"overrides": {

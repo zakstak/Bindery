@@ -189,7 +189,7 @@ pi.on("event_name", async (event, ctx) => {
 }
 ```
 
-Extensions are loaded via [jiti](https://github.com/unjs/jiti), so TypeScript works without compilation.
+Extensions are loaded via [tsx](https://tsx.is/), so TypeScript works without compilation.
 
 ### Extension Styles
 
