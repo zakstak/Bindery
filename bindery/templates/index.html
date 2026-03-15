@@ -2107,6 +2107,34 @@ function sendCommand(command) {
 function buildCommandFromInput(message, images = []) {
   const trimmed = message.trim();
 
+  const startMatch = /^\/task(?:\s+(.+))?$/.exec(trimmed);
+  if (startMatch) {
+    const goal = (startMatch[1] || '').trim();
+    if (!goal) {
+      appendLog('error', 'task goal is required');
+      return null;
+    }
+    return {
+      id: `task-start-${Date.now()}`,
+      type: 'start_task_session',
+      goal,
+    };
+  }
+
+  const completeMatch = /^\/task-done(?:\s+(.+))?$/.exec(trimmed);
+  if (completeMatch) {
+    const summary = (completeMatch[1] || '').trim();
+    if (!summary) {
+      appendLog('error', 'task summary is required');
+      return null;
+    }
+    return {
+      id: `task-complete-${Date.now()}`,
+      type: 'complete_task_session',
+      summary,
+    };
+  }
+
   return {
     id: `prompt-${Date.now()}`,
     type: 'prompt',
