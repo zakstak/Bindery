@@ -57,7 +57,6 @@ export type PackageSource =
 			extensions?: string[];
 			skills?: string[];
 			prompts?: string[];
-			themes?: string[];
 	  };
 
 export interface Settings {
@@ -68,7 +67,7 @@ export interface Settings {
 	transport?: TransportSetting; // default: "sse"
 	steeringMode?: "all" | "one-at-a-time";
 	followUpMode?: "all" | "one-at-a-time";
-	theme?: string;
+
 	compaction?: CompactionSettings;
 	branchSummary?: BranchSummarySettings;
 	retry?: RetrySettings;
@@ -81,7 +80,7 @@ export interface Settings {
 	extensions?: string[]; // Array of local extension file paths or directories
 	skills?: string[]; // Array of local skill file paths or directories
 	prompts?: string[]; // Array of local prompt template paths or directories
-	themes?: string[]; // Array of local theme file paths or directories
+
 	enableSkillCommands?: boolean; // default: true - register skills as /skill:name commands
 	terminal?: TerminalSettings;
 	images?: ImageSettings;
@@ -577,16 +576,6 @@ export class SettingsManager {
 		this.save();
 	}
 
-	getTheme(): string | undefined {
-		return this.settings.theme;
-	}
-
-	setTheme(theme: string): void {
-		this.globalSettings.theme = theme;
-		this.markModified("theme");
-		this.save();
-	}
-
 	getDefaultThinkingLevel(): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined {
 		return this.settings.defaultThinkingLevel;
 	}
@@ -784,23 +773,6 @@ export class SettingsManager {
 		const projectSettings = structuredClone(this.projectSettings);
 		projectSettings.prompts = paths;
 		this.markProjectModified("prompts");
-		this.saveProjectSettings(projectSettings);
-	}
-
-	getThemePaths(): string[] {
-		return [...(this.settings.themes ?? [])];
-	}
-
-	setThemePaths(paths: string[]): void {
-		this.globalSettings.themes = paths;
-		this.markModified("themes");
-		this.save();
-	}
-
-	setProjectThemePaths(paths: string[]): void {
-		const projectSettings = structuredClone(this.projectSettings);
-		projectSettings.themes = paths;
-		this.markProjectModified("themes");
 		this.saveProjectSettings(projectSettings);
 	}
 

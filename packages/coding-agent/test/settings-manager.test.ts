@@ -30,7 +30,7 @@ describe("SettingsManager", () => {
 			writeFileSync(
 				settingsPath,
 				JSON.stringify({
-					theme: "dark",
+					defaultThinkingLevel: "low",
 					defaultModel: "claude-sonnet",
 				}),
 			);
@@ -72,15 +72,15 @@ describe("SettingsManager", () => {
 			currentSettings.extensions = ["/path/to/extension.ts"];
 			writeFileSync(settingsPath, JSON.stringify(currentSettings, null, 2));
 
-			// User changes theme
-			manager.setTheme("light");
+			// User changes thinking level
+			manager.setDefaultThinkingLevel("low");
 			await manager.flush();
 
 			// Verify all settings preserved
 			const savedSettings = JSON.parse(readFileSync(settingsPath, "utf-8"));
 			expect(savedSettings.shellPath).toBe("/bin/zsh");
 			expect(savedSettings.extensions).toEqual(["/path/to/extension.ts"]);
-			expect(savedSettings.theme).toBe("light");
+			expect(savedSettings.defaultThinkingLevel).toBe("low");
 		});
 
 		it("should let in-memory changes override file changes for same key", async () => {
@@ -88,7 +88,7 @@ describe("SettingsManager", () => {
 			writeFileSync(
 				settingsPath,
 				JSON.stringify({
-					theme: "dark",
+					defaultThinkingLevel: "low",
 				}),
 			);
 
@@ -160,7 +160,7 @@ describe("SettingsManager", () => {
 			writeFileSync(
 				settingsPath,
 				JSON.stringify({
-					theme: "dark",
+					defaultThinkingLevel: "low",
 					extensions: ["/before.ts"],
 				}),
 			);
@@ -170,7 +170,7 @@ describe("SettingsManager", () => {
 			writeFileSync(
 				settingsPath,
 				JSON.stringify({
-					theme: "light",
+					defaultThinkingLevel: "low",
 					extensions: ["/after.ts"],
 					defaultModel: "claude-sonnet",
 				}),
@@ -178,21 +178,21 @@ describe("SettingsManager", () => {
 
 			manager.reload();
 
-			expect(manager.getTheme()).toBe("light");
+			expect(manager.getDefaultThinkingLevel()).toBe("low");
 			expect(manager.getExtensionPaths()).toEqual(["/after.ts"]);
 			expect(manager.getDefaultModel()).toBe("claude-sonnet");
 		});
 
 		it("should keep previous settings when file is invalid", () => {
 			const settingsPath = join(agentDir, "settings.json");
-			writeFileSync(settingsPath, JSON.stringify({ theme: "dark" }));
+			writeFileSync(settingsPath, JSON.stringify({ defaultThinkingLevel: "low" }));
 
 			const manager = SettingsManager.create(projectDir, agentDir);
 
 			writeFileSync(settingsPath, "{ invalid json");
 			manager.reload();
 
-			expect(manager.getTheme()).toBe("dark");
+			expect(manager.getDefaultThinkingLevel()).toBe("low");
 		});
 	});
 
@@ -228,13 +228,13 @@ describe("SettingsManager", () => {
 			expect(existsSync(join(projectDir, ".pi"))).toBe(false);
 
 			// Settings should still be loaded from global
-			expect(manager.getTheme()).toBe("dark");
+			expect(manager.getDefaultThinkingLevel()).toBe("low");
 		});
 
 		it("should create .pi folder when writing project settings", async () => {
 			// Create agent dir with global settings, but NO .pi folder in project
 			const settingsPath = join(agentDir, "settings.json");
-			writeFileSync(settingsPath, JSON.stringify({ theme: "dark" }));
+			writeFileSync(settingsPath, JSON.stringify({ defaultThinkingLevel: "low" }));
 
 			// Delete the .pi folder that beforeEach created
 			rmSync(join(projectDir, ".pi"), { recursive: true });
@@ -280,12 +280,12 @@ describe("SettingsManager", () => {
 			writeFileSync(settingsPath, JSON.stringify({ shellCommandPrefix: "shopt -s expand_aliases" }));
 
 			const manager = SettingsManager.create(projectDir, agentDir);
-			manager.setTheme("light");
+			manager.setDefaultThinkingLevel("low");
 			await manager.flush();
 
 			const savedSettings = JSON.parse(readFileSync(settingsPath, "utf-8"));
 			expect(savedSettings.shellCommandPrefix).toBe("shopt -s expand_aliases");
-			expect(savedSettings.theme).toBe("light");
+			expect(savedSettings.defaultThinkingLevel).toBe("low");
 		});
 	});
 });
