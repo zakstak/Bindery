@@ -349,6 +349,7 @@ dependencies = [
  "napi",
  "napi-build",
  "napi-derive",
+ "regex",
 ]
 
 [[package]]

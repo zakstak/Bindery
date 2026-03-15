@@ -285,17 +285,15 @@ pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
         builder.case_insensitive(true);
     }
 
-    let matcher = if options.literal.unwrap_or(false) {
-        // Escape the pattern for literal matching
-        let escaped = escape_regex(&options.pattern);
-        builder
-            .build(&escaped)
-            .map_err(|e| napi::Error::from_reason(format!("invalid pattern: {e}")))?
+    let effective_pattern = if options.literal.unwrap_or(false) {
+        regex::escape(&options.pattern)
     } else {
-        builder
-            .build(&options.pattern)
-            .map_err(|e| napi::Error::from_reason(format!("invalid pattern: {e}")))?
+        options.pattern.clone()
     };
+
+    let matcher = builder
+        .build(&effective_pattern)
+        .map_err(|e| napi::Error::from_reason(format!("invalid pattern: {e}")))?;
 
     let path = Path::new(&options.path);
     if !path.exists() {
@@ -391,18 +389,3 @@ pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
     Ok(all_matches)
 }
 
-/// Escape special regex characters for literal matching.
-fn escape_regex(pattern: &str) -> String {
-    let mut escaped = String::with_capacity(pattern.len() * 2);
-    for c in pattern.chars() {
-        if matches!(
-            c,
-            '\\' | '.' | '+' | '*' | '?' | '(' | ')' | '|'
-                | '[' | ']' | '{' | '}' | '^' | '$' | '#' | '&' | '-' | '~'
-        ) {
-            escaped.push('\\');
-        }
-        escaped.push(c);
-    }
-    escaped
-}
