@@ -25,8 +25,6 @@ const mocks = vi.hoisted(() => {
 
 	return {
 		createAgentSession,
-		selectSession: vi.fn(async () => "/tmp/resume-session.jsonl"),
-		selectConfig: vi.fn(async () => {}),
 		runPrintMode: vi.fn(async () => {}),
 		runRpcMode: vi.fn(async () => {}),
 		showDeprecationWarnings: vi.fn(async () => {}),
@@ -77,21 +75,12 @@ const mocks = vi.hoisted(() => {
 		},
 	};
 });
-
-vi.mock("../src/cli/config-selector.js", () => ({
-	selectConfig: mocks.selectConfig,
-}));
-
 vi.mock("../src/cli/file-processor.js", () => ({
 	processFileArguments: vi.fn(async () => ({ text: "", images: [] })),
 }));
 
 vi.mock("../src/cli/list-models.js", () => ({
 	listModels: vi.fn(async () => {}),
-}));
-
-vi.mock("../src/cli/session-picker.js", () => ({
-	selectSession: mocks.selectSession,
 }));
 
 vi.mock("../src/core/auth-storage.js", () => ({
@@ -235,29 +224,13 @@ const retiredTuiRegressionFiles = [
 	"packages/coding-agent/test/session-selector-rename.test.ts",
 ] as const;
 
-const compatibilityQuarantinePrefixes = [
-	"packages/coding-agent/src/cli/config-selector.ts",
-	"packages/coding-agent/src/cli/session-picker.ts",
-] as const;
-
-const migrationOnlyPaths = new Set(["packages/coding-agent/docs/tui.md"]);
-
 const staleReferenceRules = [
 	{ label: "@mariozechner/pi-tui", regex: /@mariozechner\/pi-tui/ },
 	{ label: ["Interactive", "Mode"].join(""), regex: new RegExp("\\bInteractive" + "Mode\\b") },
 	{ label: "run-agent", regex: /\brun-agent\b/ },
-	{ label: "docs/tui.md", regex: /docs\/tui\.md/ },
 	{ label: "SessionSelectorComponent", regex: /\bSessionSelectorComponent\b/ },
 	{ label: "ConfigSelectorComponent", regex: /\bConfigSelectorComponent\b/ },
 ] as const;
-
-function isAllowedCompatibilityPath(relativePath: string): boolean {
-	if (migrationOnlyPaths.has(relativePath)) {
-		return true;
-	}
-
-	return compatibilityQuarantinePrefixes.some((prefix) => relativePath.startsWith(prefix));
-}
 
 function collectLiveRepoFiles(): string[] {
 	const patterns = [
@@ -280,10 +253,6 @@ function collectStaleReferenceMatches(): string[] {
 	const matches: string[] = [];
 
 	for (const relativePath of collectLiveRepoFiles()) {
-		if (isAllowedCompatibilityPath(relativePath)) {
-			continue;
-		}
-
 		const content = readFileSync(resolve(repoRoot, relativePath), "utf8");
 		for (const rule of staleReferenceRules) {
 			if (rule.regex.test(content)) {
@@ -328,7 +297,6 @@ describe("CLI routing contract", () => {
 		expect(result.resultCode).toBe(1);
 		expectHeadlessGuidance(result.output);
 		expect(result.output).toContain("--session");
-		expect(mocks.selectSession).not.toHaveBeenCalled();
 	});
 
 	it("routes pi config to deterministic replacement guidance without opening the TUI config selector", async () => {
@@ -337,7 +305,6 @@ describe("CLI routing contract", () => {
 		expect(result.resultCode).toBe(1);
 		expectHeadlessGuidance(result.output);
 		expect(result.output).toContain("settings.json");
-		expect(mocks.selectConfig).not.toHaveBeenCalled();
 	});
 
 	it("retires TUI-only selector and renderer regression files", () => {
