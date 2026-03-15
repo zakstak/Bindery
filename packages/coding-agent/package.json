@@ -43,8 +43,7 @@
 		"@mariozechner/pi-agent-core": "^0.57.1",
 		"@mariozechner/pi-ai": "^0.57.1",
 		"bindery-tools": "*",
-		"chalk": "^5.5.0",
-		"cli-highlight": "^2.1.11",
+
 		"diff": "^8.0.2",
 		"file-type": "^21.3.2",
 		"glob": "^13.0.1",

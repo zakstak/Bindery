@@ -3,7 +3,6 @@
  */
 
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
-import chalk from "chalk";
 import { APP_NAME, CONFIG_DIR_NAME, ENV_AGENT_DIR } from "../config.js";
 import { allTools, type ToolName } from "../core/tools/index.js";
 
@@ -100,9 +99,7 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 				if (name in allTools) {
 					validTools.push(name as ToolName);
 				} else {
-					console.error(
-						chalk.yellow(`Warning: Unknown tool "${name}". Valid tools: ${Object.keys(allTools).join(", ")}`),
-					);
+					console.error(`Warning: Unknown tool "${name}". Valid tools: ${Object.keys(allTools).join(", ")}`);
 				}
 			}
 			result.tools = validTools;
@@ -112,9 +109,7 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 				result.thinking = level;
 			} else {
 				console.error(
-					chalk.yellow(
-						`Warning: Invalid thinking level "${level}". Valid values: ${VALID_THINKING_LEVELS.join(", ")}`,
-					),
+					`Warning: Invalid thinking level "${level}". Valid values: ${VALID_THINKING_LEVELS.join(", ")}`,
 				);
 			}
 		} else if (arg === "--print" || arg === "-p") {
@@ -168,12 +163,12 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 }
 
 export function printHelp(): void {
-	console.log(`${chalk.bold(APP_NAME)} - headless AI coding assistant for Bindery workflows
+	console.log(`${APP_NAME} - headless AI coding assistant for Bindery workflows
 
-${chalk.bold("Usage:")}
+${"Usage:"}
   ${APP_NAME} [options] [@files...] [messages...]
 
-${chalk.bold("Commands:")}
+${"Commands:"}
   ${APP_NAME} install <source> [-l]    Install extension source and add to settings
   ${APP_NAME} remove <source> [-l]     Remove extension source from settings
   ${APP_NAME} update [source]          Update installed extensions (skips pinned sources)
@@ -181,7 +176,7 @@ ${chalk.bold("Commands:")}
   ${APP_NAME} config                   Deprecated: use Bindery or edit settings files directly
   ${APP_NAME} <command> --help         Show help for install/remove/update/list
 
-${chalk.bold("Options:")}
+${"Options:"}
   --provider <name>              Provider name (default: google)
   --model <pattern>              Model pattern or ID (supports "provider/id" and optional ":<thinking>")
   --api-key <key>                API key (defaults to env vars)
@@ -216,7 +211,7 @@ Extensions can register additional flags (e.g., --plan from plan-mode extension)
 
 Interactive chat, session browsing, and config flows now live in Bindery.
 
-${chalk.bold("Examples:")}
+${"Examples:"}
   # Non-interactive mode (process and exit)
   ${APP_NAME} -p "List all .ts files in src/"
 
@@ -255,7 +250,7 @@ ${chalk.bold("Examples:")}
 
 
 
-${chalk.bold("Environment Variables:")}
+${"Environment Variables:"}
   OPENAI_API_KEY                   - OpenAI GPT API key
   GEMINI_API_KEY                   - Google Gemini API key
   ZAI_API_KEY                      - ZAI API key
@@ -265,7 +260,7 @@ ${chalk.bold("Environment Variables:")}
   PI_SHARE_VIEWER_URL              - Base URL for /share command (default: https://pi.dev/session/)
   PI_AI_ANTIGRAVITY_VERSION        - Override Antigravity User-Agent version (e.g., 1.23.0)
 
-${chalk.bold("Available Tools (default: read, bash, edit, write):")}
+${"Available Tools (default: read, bash, edit, write):"}
   read   - Read file contents
   bash   - Execute bash commands
   edit   - Edit files with find/replace

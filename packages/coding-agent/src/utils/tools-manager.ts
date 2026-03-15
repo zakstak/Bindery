@@ -1,4 +1,3 @@
-import chalk from "chalk";
 import { spawnSync } from "child_process";
 import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "fs";
 import { arch, platform } from "os";
@@ -351,7 +350,7 @@ export async function ensureTool(tool: "fd" | "rg", silent: boolean = false): Pr
 
 	if (isOfflineModeEnabled()) {
 		if (!silent) {
-			console.log(chalk.yellow(`${config.name} not found. Offline mode enabled, skipping download.`));
+			console.log(`${config.name} not found. Offline mode enabled, skipping download.`);
 		}
 		return undefined;
 	}
@@ -361,25 +360,25 @@ export async function ensureTool(tool: "fd" | "rg", silent: boolean = false): Pr
 	if (platform() === "android") {
 		const pkgName = TERMUX_PACKAGES[tool] ?? tool;
 		if (!silent) {
-			console.log(chalk.yellow(`${config.name} not found. Install with: pkg install ${pkgName}`));
+			console.log(`${config.name} not found. Install with: pkg install ${pkgName}`);
 		}
 		return undefined;
 	}
 
 	// Tool not found - download it
 	if (!silent) {
-		console.log(chalk.dim(`${config.name} not found. Downloading...`));
+		console.log(`${config.name} not found. Downloading...`);
 	}
 
 	try {
 		const path = await downloadTool(tool);
 		if (!silent) {
-			console.log(chalk.dim(`${config.name} installed to ${path}`));
+			console.log(`${config.name} installed to ${path}`);
 		}
 		return path;
 	} catch (e) {
 		if (!silent) {
-			console.log(chalk.yellow(`Failed to download ${config.name}: ${e instanceof Error ? e.message : e}`));
+			console.log(`Failed to download ${config.name}: ${e instanceof Error ? e.message : e}`);
 		}
 		return undefined;
 	}

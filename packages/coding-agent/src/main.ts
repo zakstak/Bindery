@@ -6,7 +6,6 @@
  */
 
 import { type ImageContent, modelsAreEqual, supportsXhigh } from "@mariozechner/pi-ai";
-import chalk from "chalk";
 import { createInterface } from "readline";
 import { type Args, parseArgs, printHelp } from "./cli/args.js";
 import { processFileArguments } from "./cli/file-processor.js";
@@ -53,9 +52,9 @@ async function readPipedStdin(): Promise<string | undefined> {
 function reportSettingsErrors(settingsManager: SettingsManager, context: string): void {
 	const errors = settingsManager.drainErrors();
 	for (const { scope, error } of errors) {
-		console.error(chalk.yellow(`Warning (${context}, ${scope} settings): ${error.message}`));
+		console.error(`Warning (${context}, ${scope} settings): ${error.message}`);
 		if (error.stack) {
-			console.error(chalk.dim(error.stack));
+			console.error(error.stack);
 		}
 	}
 }
@@ -91,7 +90,7 @@ function getPackageCommandUsage(command: PackageCommand): string {
 function printPackageCommandHelp(command: PackageCommand): void {
 	switch (command) {
 		case "install":
-			console.log(`${chalk.bold("Usage:")}
+			console.log(`${"Usage:"}
   ${getPackageCommandUsage("install")}
 
 Install a package and add it to settings.
@@ -110,7 +109,7 @@ Examples:
 			return;
 
 		case "remove":
-			console.log(`${chalk.bold("Usage:")}
+			console.log(`${"Usage:"}
   ${getPackageCommandUsage("remove")}
 
 Remove a package and its source from settings.
@@ -124,7 +123,7 @@ Example:
 			return;
 
 		case "update":
-			console.log(`${chalk.bold("Usage:")}
+			console.log(`${"Usage:"}
   ${getPackageCommandUsage("update")}
 
 Update installed packages.
@@ -133,7 +132,7 @@ If <source> is provided, only that package is updated.
 			return;
 
 		case "list":
-			console.log(`${chalk.bold("Usage:")}
+			console.log(`${"Usage:"}
   ${getPackageCommandUsage("list")}
 
 List installed packages from user and project settings.
@@ -193,16 +192,16 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 	}
 
 	if (options.invalidOption) {
-		console.error(chalk.red(`Unknown option ${options.invalidOption} for "${options.command}".`));
-		console.error(chalk.dim(`Use "${APP_NAME} --help" or "${getPackageCommandUsage(options.command)}".`));
+		console.error(`Unknown option ${options.invalidOption} for "${options.command}".`);
+		console.error(`Use "${APP_NAME} --help" or "${getPackageCommandUsage(options.command)}".`);
 		process.exitCode = 1;
 		return true;
 	}
 
 	const source = options.source;
 	if ((options.command === "install" || options.command === "remove") && !source) {
-		console.error(chalk.red(`Missing ${options.command} source.`));
-		console.error(chalk.dim(`Usage: ${getPackageCommandUsage(options.command)}`));
+		console.error(`Missing ${options.command} source.`);
+		console.error(`Usage: ${getPackageCommandUsage(options.command)}`);
 		process.exitCode = 1;
 		return true;
 	}
@@ -215,7 +214,7 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 
 	packageManager.setProgressCallback((event) => {
 		if (event.type === "start") {
-			process.stdout.write(chalk.dim(`${event.message}\n`));
+			process.stdout.write(`${event.message}\n`);
 		}
 	});
 
@@ -224,18 +223,18 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 			case "install":
 				await packageManager.install(source!, { local: options.local });
 				packageManager.addSourceToSettings(source!, { local: options.local });
-				console.log(chalk.green(`Installed ${source}`));
+				console.log(`Installed ${source}`);
 				return true;
 
 			case "remove": {
 				await packageManager.remove(source!, { local: options.local });
 				const removed = packageManager.removeSourceFromSettings(source!, { local: options.local });
 				if (!removed) {
-					console.error(chalk.red(`No matching package found for ${source}`));
+					console.error(`No matching package found for ${source}`);
 					process.exitCode = 1;
 					return true;
 				}
-				console.log(chalk.green(`Removed ${source}`));
+				console.log(`Removed ${source}`);
 				return true;
 			}
 
@@ -246,7 +245,7 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 				const projectPackages = projectSettings.packages ?? [];
 
 				if (globalPackages.length === 0 && projectPackages.length === 0) {
-					console.log(chalk.dim("No packages installed."));
+					console.log("No packages installed.");
 					return true;
 				}
 
@@ -257,12 +256,12 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 					console.log(`  ${display}`);
 					const path = packageManager.getInstalledPath(source, scope);
 					if (path) {
-						console.log(chalk.dim(`    ${path}`));
+						console.log(`    ${path}`);
 					}
 				};
 
 				if (globalPackages.length > 0) {
-					console.log(chalk.bold("User packages:"));
+					console.log("User packages:");
 					for (const pkg of globalPackages) {
 						formatPackage(pkg, "user");
 					}
@@ -270,7 +269,7 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 
 				if (projectPackages.length > 0) {
 					if (globalPackages.length > 0) console.log();
-					console.log(chalk.bold("Project packages:"));
+					console.log("Project packages:");
 					for (const pkg of projectPackages) {
 						formatPackage(pkg, "project");
 					}
@@ -282,15 +281,15 @@ async function handlePackageCommand(args: string[]): Promise<boolean> {
 			case "update":
 				await packageManager.update(source);
 				if (source) {
-					console.log(chalk.green(`Updated ${source}`));
+					console.log(`Updated ${source}`);
 				} else {
-					console.log(chalk.green("Updated packages"));
+					console.log("Updated packages");
 				}
 				return true;
 		}
 	} catch (error: unknown) {
 		const message = error instanceof Error ? error.message : "Unknown package command error";
-		console.error(chalk.red(`Error: ${message}`));
+		console.error(`Error: ${message}`);
 		process.exitCode = 1;
 		return true;
 	}
@@ -393,7 +392,7 @@ async function callSessionDirectoryHook(extensions: LoadExtensionsResult, cwd: s
 				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
-				console.error(chalk.red(`Extension "${ext.path}" session_directory handler failed: ${message}`));
+				console.error(`Extension "${ext.path}" session_directory handler failed: ${message}`);
 			}
 		}
 	}
@@ -426,17 +425,17 @@ async function createSessionManager(
 
 			case "global": {
 				// Session found in different project - ask user if they want to fork
-				console.log(chalk.yellow(`Session found in different project: ${resolved.cwd}`));
+				console.log(`Session found in different project: ${resolved.cwd}`);
 				const shouldFork = await promptConfirm("Fork this session into current directory?");
 				if (!shouldFork) {
-					console.log(chalk.dim("Aborted."));
+					console.log("Aborted.");
 					process.exit(0);
 				}
 				return SessionManager.forkFrom(resolved.path, cwd, effectiveSessionDir);
 			}
 
 			case "not_found":
-				console.error(chalk.red(`No session found matching '${resolved.arg}'`));
+				console.error(`No session found matching '${resolved.arg}'`);
 				process.exit(1);
 		}
 	}
@@ -476,10 +475,10 @@ function buildSessionOptions(
 			modelRegistry,
 		});
 		if (resolved.warning) {
-			console.warn(chalk.yellow(`Warning: ${resolved.warning}`));
+			console.warn(`Warning: ${resolved.warning}`);
 		}
 		if (resolved.error) {
-			console.error(chalk.red(resolved.error));
+			console.error(resolved.error);
 			process.exit(1);
 		}
 		if (resolved.model) {
@@ -560,27 +559,27 @@ async function handleConfigCommand(args: string[]): Promise<boolean> {
 }
 
 function printHeadlessSurfaceGuidance(): void {
-	console.error(chalk.yellow(`Use Bindery for interactive ${APP_NAME} workflows.`));
-	console.error(chalk.dim("Headless CLI surfaces still work:"));
+	console.error(`Use Bindery for interactive ${APP_NAME} workflows.`);
+	console.error("Headless CLI surfaces still work:");
 	console.error(`  ${APP_NAME} --print "Summarize the latest diff"`);
 	console.error(`  ${APP_NAME} --mode json "Summarize the latest diff"`);
 	console.error(`  ${APP_NAME} --mode rpc`);
 }
 
 function printDeprecatedInteractiveGuidance(): void {
-	console.error(chalk.red(`${APP_NAME} no longer starts an interactive terminal UI.`));
+	console.error(`${APP_NAME} no longer starts an interactive terminal UI.`);
 	console.error(`Open Bindery for interactive chat, session browsing, and other UI-driven flows.`);
 	printHeadlessSurfaceGuidance();
 }
 
 function printDeprecatedResumeGuidance(): void {
-	console.error(chalk.red(`The ${APP_NAME} --resume command has been deprecated.`));
+	console.error(`The ${APP_NAME} --resume command has been deprecated.`);
 	console.error(`Open Bindery to browse sessions interactively, or pass --session <path-or-id-prefix> explicitly.`);
 	printHeadlessSurfaceGuidance();
 }
 
 function printDeprecatedConfigGuidance(): void {
-	console.error(chalk.red(`The ${APP_NAME} config command has been deprecated.`));
+	console.error(`The ${APP_NAME} config command has been deprecated.`);
 	console.error(
 		`Open Bindery for interactive configuration, or edit ${getSettingsPath()} and ${CONFIG_DIR_NAME}/settings.json directly.`,
 	);
@@ -634,7 +633,7 @@ export async function main(args: string[]) {
 
 	const extensionsResult: LoadExtensionsResult = resourceLoader.getExtensions();
 	for (const { path, error } of extensionsResult.errors) {
-		console.error(chalk.red(`Failed to load extension "${path}": ${error}`));
+		console.error(`Failed to load extension "${path}": ${error}`);
 	}
 
 	// Apply pending provider registrations from extensions immediately
@@ -687,7 +686,7 @@ export async function main(args: string[]) {
 	}
 
 	if (parsed.mode === "rpc" && parsed.fileArgs.length > 0) {
-		console.error(chalk.red("Error: @file arguments are not supported in RPC mode"));
+		console.error("Error: @file arguments are not supported in RPC mode");
 		process.exit(1);
 	}
 
@@ -730,9 +729,7 @@ export async function main(args: string[]) {
 	// Handle CLI --api-key as runtime override (not persisted)
 	if (parsed.apiKey) {
 		if (!sessionOptions.model) {
-			console.error(
-				chalk.red("--api-key requires a model to be specified via --model, --provider/--model, or --models"),
-			);
+			console.error("--api-key requires a model to be specified via --model, --provider/--model, or --models");
 			process.exit(1);
 		}
 		authStorage.setRuntimeApiKey(sessionOptions.model.provider, parsed.apiKey);
@@ -741,10 +738,10 @@ export async function main(args: string[]) {
 	const { session } = await createAgentSession(sessionOptions);
 
 	if (!session.model) {
-		console.error(chalk.red("No models available."));
-		console.error(chalk.yellow("\nSet an API key environment variable:"));
+		console.error("No models available.");
+		console.error("\nSet an API key environment variable:");
 		console.error("  OPENAI_API_KEY, GEMINI_API_KEY, or ZAI_API_KEY");
-		console.error(chalk.yellow(`\nOr create ${getModelsPath()}`));
+		console.error(`\nOr create ${getModelsPath()}`);
 		process.exit(1);
 	}
 

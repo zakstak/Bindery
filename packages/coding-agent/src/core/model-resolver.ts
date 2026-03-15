@@ -4,7 +4,6 @@
 
 import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
 import { type Api, type KnownProvider, type Model, modelsAreEqual } from "@mariozechner/pi-ai";
-import chalk from "chalk";
 import { minimatch } from "minimatch";
 import { isValidThinkingLevel } from "../cli/args.js";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.js";
@@ -221,7 +220,7 @@ export async function resolveModelScope(patterns: string[], modelRegistry: Model
 			});
 
 			if (matchingModels.length === 0) {
-				console.warn(chalk.yellow(`Warning: No models match pattern "${pattern}"`));
+				console.warn(`Warning: No models match pattern "${pattern}"`);
 				continue;
 			}
 
@@ -236,11 +235,11 @@ export async function resolveModelScope(patterns: string[], modelRegistry: Model
 		const { model, thinkingLevel, warning } = parseModelPattern(pattern, availableModels);
 
 		if (warning) {
-			console.warn(chalk.yellow(`Warning: ${warning}`));
+			console.warn(`Warning: ${warning}`);
 		}
 
 		if (!model) {
-			console.warn(chalk.yellow(`Warning: No models match pattern "${pattern}"`));
+			console.warn(`Warning: No models match pattern "${pattern}"`);
 			continue;
 		}
 
@@ -453,7 +452,7 @@ export async function findInitialModel(options: {
 			modelRegistry,
 		});
 		if (resolved.error) {
-			console.error(chalk.red(resolved.error));
+			console.error(resolved.error);
 			process.exit(1);
 		}
 		if (resolved.model) {
@@ -521,7 +520,7 @@ export async function restoreModelFromSession(
 
 	if (restoredModel && hasApiKey) {
 		if (shouldPrintMessages) {
-			console.log(chalk.dim(`Restored model: ${savedProvider}/${savedModelId}`));
+			console.log(`Restored model: ${savedProvider}/${savedModelId}`);
 		}
 		return { model: restoredModel, fallbackMessage: undefined };
 	}
@@ -530,13 +529,13 @@ export async function restoreModelFromSession(
 	const reason = !restoredModel ? "model no longer exists" : "no API key available";
 
 	if (shouldPrintMessages) {
-		console.error(chalk.yellow(`Warning: Could not restore model ${savedProvider}/${savedModelId} (${reason}).`));
+		console.error(`Warning: Could not restore model ${savedProvider}/${savedModelId} (${reason}).`);
 	}
 
 	// If we already have a model, use it as fallback
 	if (currentModel) {
 		if (shouldPrintMessages) {
-			console.log(chalk.dim(`Falling back to: ${currentModel.provider}/${currentModel.id}`));
+			console.log(`Falling back to: ${currentModel.provider}/${currentModel.id}`);
 		}
 		return {
 			model: currentModel,
@@ -566,7 +565,7 @@ export async function restoreModelFromSession(
 		}
 
 		if (shouldPrintMessages) {
-			console.log(chalk.dim(`Falling back to: ${fallbackModel.provider}/${fallbackModel.id}`));
+			console.log(`Falling back to: ${fallbackModel.provider}/${fallbackModel.id}`);
 		}
 
 		return {

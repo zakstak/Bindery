@@ -1,7 +1,6 @@
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, resolve, sep } from "node:path";
-import chalk from "chalk";
 import { CONFIG_DIR_NAME, getAgentDir } from "../config.js";
 import type { ResourceDiagnostic } from "./diagnostics.js";
 
@@ -65,7 +64,7 @@ function resolvePromptInput(input: string | undefined, description: string): str
 		try {
 			return readFileSync(input, "utf-8");
 		} catch (error) {
-			console.error(chalk.yellow(`Warning: Could not read ${description} file ${input}: ${error}`));
+			console.error(`Warning: Could not read ${description} file ${input}: ${error}`);
 			return input;
 		}
 	}
@@ -84,7 +83,7 @@ function loadContextFileFromDir(dir: string): { path: string; content: string } 
 					content: readFileSync(filePath, "utf-8"),
 				};
 			} catch (error) {
-				console.error(chalk.yellow(`Warning: Could not read ${filePath}: ${error}`));
+				console.error(`Warning: Could not read ${filePath}: ${error}`);
 			}
 		}
 	}
