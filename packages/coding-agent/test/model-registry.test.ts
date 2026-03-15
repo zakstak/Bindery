@@ -57,6 +57,10 @@ describe("ModelRegistry", () => {
 		return registry.getAll().filter((m) => m.provider === provider);
 	}
 
+	function getBuiltInModels(provider: string) {
+		return getModelsForProvider(new ModelRegistry(authStorage, undefined), provider);
+	}
+
 	/** Create a baseUrl-only override (no custom models) */
 	function overrideConfig(baseUrl: string, headers?: Record<string, string>) {
 		return { baseUrl, ...(headers && { headers }) };
@@ -86,50 +90,50 @@ describe("ModelRegistry", () => {
 
 	describe("baseUrl override (no custom models)", () => {
 		test("overriding baseUrl keeps all built-in models", () => {
+			const builtInOpenAiModels = getBuiltInModels("openai");
+
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://my-proxy.example.com/v1"),
+				openai: overrideConfig("https://my-proxy.example.com/v1"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
+			const openAiModels = getModelsForProvider(registry, "openai");
 
-			// Should have multiple built-in models, not just one
-			expect(anthropicModels.length).toBeGreaterThan(1);
-			expect(anthropicModels.some((m) => m.id.includes("claude"))).toBe(true);
+			expect(openAiModels.map((m) => m.id)).toEqual(builtInOpenAiModels.map((m) => m.id));
 		});
 
 		test("overriding baseUrl changes URL on all built-in models", () => {
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://my-proxy.example.com/v1"),
+				openai: overrideConfig("https://my-proxy.example.com/v1"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
+			const openAiModels = getModelsForProvider(registry, "openai");
 
 			// All models should have the new baseUrl
-			for (const model of anthropicModels) {
+			for (const model of openAiModels) {
 				expect(model.baseUrl).toBe("https://my-proxy.example.com/v1");
 			}
 		});
 
 		test("overriding headers merges with model headers", () => {
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://my-proxy.example.com/v1", {
+				openai: overrideConfig("https://my-proxy.example.com/v1", {
 					"X-Custom-Header": "custom-value",
 				}),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
+			const openAiModels = getModelsForProvider(registry, "openai");
 
-			for (const model of anthropicModels) {
+			for (const model of openAiModels) {
 				expect(model.headers?.["X-Custom-Header"]).toBe("custom-value");
 			}
 		});
 
 		test("baseUrl-only override does not affect other providers", () => {
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://my-proxy.example.com/v1"),
+				openai: overrideConfig("https://my-proxy.example.com/v1"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
@@ -141,10 +145,10 @@ describe("ModelRegistry", () => {
 		});
 
 		test("can mix baseUrl override and models merge", () => {
+			const builtInOpenAiModels = getBuiltInModels("openai");
+
 			writeRawModelsJson({
-				// baseUrl-only for anthropic
-				anthropic: overrideConfig("https://anthropic-proxy.example.com/v1"),
-				// Add custom model for google (merged with built-ins)
+				openai: overrideConfig("https://openai-proxy.example.com/v1"),
 				google: providerConfig(
 					"https://google-proxy.example.com/v1",
 					[{ id: "gemini-custom" }],
@@ -154,12 +158,10 @@ describe("ModelRegistry", () => {
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 
-			// Anthropic: multiple built-in models with new baseUrl
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
-			expect(anthropicModels.length).toBeGreaterThan(1);
-			expect(anthropicModels[0].baseUrl).toBe("https://anthropic-proxy.example.com/v1");
+			const openAiModels = getModelsForProvider(registry, "openai");
+			expect(openAiModels.map((m) => m.id)).toEqual(builtInOpenAiModels.map((m) => m.id));
+			expect(openAiModels[0].baseUrl).toBe("https://openai-proxy.example.com/v1");
 
-			// Google: built-ins plus custom model
 			const googleModels = getModelsForProvider(registry, "google");
 			expect(googleModels.length).toBeGreaterThan(1);
 			expect(googleModels.some((m) => m.id === "gemini-custom")).toBe(true);
@@ -167,73 +169,91 @@ describe("ModelRegistry", () => {
 
 		test("refresh() picks up baseUrl override changes", () => {
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://first-proxy.example.com/v1"),
+				openai: overrideConfig("https://first-proxy.example.com/v1"),
 			});
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 
-			expect(getModelsForProvider(registry, "anthropic")[0].baseUrl).toBe("https://first-proxy.example.com/v1");
+			expect(getModelsForProvider(registry, "openai")[0].baseUrl).toBe("https://first-proxy.example.com/v1");
 
 			// Update and refresh
 			writeRawModelsJson({
-				anthropic: overrideConfig("https://second-proxy.example.com/v1"),
+				openai: overrideConfig("https://second-proxy.example.com/v1"),
 			});
 			registry.refresh();
 
-			expect(getModelsForProvider(registry, "anthropic")[0].baseUrl).toBe("https://second-proxy.example.com/v1");
+			expect(getModelsForProvider(registry, "openai")[0].baseUrl).toBe("https://second-proxy.example.com/v1");
+		});
+
+		test("override-only config for removed built-ins does not materialize models", () => {
+			writeRawModelsJson({
+				anthropic: overrideConfig("https://removed-provider.example.com/v1"),
+			});
+
+			const registry = new ModelRegistry(authStorage, modelsJsonPath);
+
+			expect(getModelsForProvider(registry, "anthropic")).toHaveLength(0);
+			expect(registry.getError()).toBeUndefined();
 		});
 	});
 
 	describe("custom models merge behavior", () => {
 		test("custom provider with same name as built-in merges with built-in models", () => {
+			const builtInOpenAiModels = getBuiltInModels("openai");
+
 			writeModelsJson({
-				anthropic: providerConfig("https://my-proxy.example.com/v1", [{ id: "claude-custom" }]),
+				openai: providerConfig("https://my-proxy.example.com/v1", [{ id: "gpt-custom" }], "openai-responses"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
+			const openAiModels = getModelsForProvider(registry, "openai");
 
-			expect(anthropicModels.length).toBeGreaterThan(1);
-			expect(anthropicModels.some((m) => m.id === "claude-custom")).toBe(true);
-			expect(anthropicModels.some((m) => m.id.includes("claude"))).toBe(true);
+			expect(openAiModels).toHaveLength(builtInOpenAiModels.length + 1);
+			expect(openAiModels.some((m) => m.id === "gpt-custom")).toBe(true);
 		});
 
 		test("custom model with same id replaces built-in model by id", () => {
+			const builtInOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(builtInOpenAiModelId).toBeDefined();
+
 			writeModelsJson({
-				openrouter: providerConfig(
+				openai: providerConfig(
 					"https://my-proxy.example.com/v1",
-					[{ id: "anthropic/claude-sonnet-4" }],
-					"openai-completions",
+					[{ id: builtInOpenAiModelId! }],
+					"openai-responses",
 				),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
-			const sonnetModels = models.filter((m) => m.id === "anthropic/claude-sonnet-4");
+			const models = getModelsForProvider(registry, "openai");
+			const matchingModels = models.filter((m) => m.id === builtInOpenAiModelId);
 
-			expect(sonnetModels).toHaveLength(1);
-			expect(sonnetModels[0].baseUrl).toBe("https://my-proxy.example.com/v1");
+			expect(matchingModels).toHaveLength(1);
+			expect(matchingModels[0].baseUrl).toBe("https://my-proxy.example.com/v1");
 		});
 
 		test("custom provider with same name as built-in does not affect other built-in providers", () => {
 			writeModelsJson({
-				anthropic: providerConfig("https://my-proxy.example.com/v1", [{ id: "claude-custom" }]),
+				openai: providerConfig("https://my-proxy.example.com/v1", [{ id: "gpt-custom" }], "openai-responses"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 
 			expect(getModelsForProvider(registry, "google").length).toBeGreaterThan(0);
-			expect(getModelsForProvider(registry, "openai").length).toBeGreaterThan(0);
+			expect(getModelsForProvider(registry, "zai").length).toBeGreaterThan(0);
 		});
 
 		test("provider-level baseUrl applies to both built-in and custom models", () => {
+			const builtInOpenAiModels = getBuiltInModels("openai");
+
 			writeModelsJson({
-				anthropic: providerConfig("https://merged-proxy.example.com/v1", [{ id: "claude-custom" }]),
+				openai: providerConfig("https://merged-proxy.example.com/v1", [{ id: "gpt-custom" }], "openai-responses"),
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
+			const openAiModels = getModelsForProvider(registry, "openai");
 
-			for (const model of anthropicModels) {
+			expect(openAiModels).toHaveLength(builtInOpenAiModels.length + 1);
+			for (const model of openAiModels) {
 				expect(model.baseUrl).toBe("https://merged-proxy.example.com/v1");
 			}
 		});
@@ -276,15 +296,18 @@ describe("ModelRegistry", () => {
 		});
 
 		test("modelOverrides still apply when provider also defines models", () => {
+			const builtInOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(builtInOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					baseUrl: "https://my-proxy.example.com/v1",
-					apiKey: "OPENROUTER_API_KEY",
-					api: "openai-completions",
+					apiKey: "OPENAI_API_KEY",
+					api: "openai-responses",
 					models: [
 						{
-							id: "custom/openrouter-model",
-							name: "Custom OpenRouter Model",
+							id: "gpt-custom",
+							name: "Custom OpenAI Model",
 							reasoning: false,
 							input: ["text"],
 							cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
@@ -293,64 +316,70 @@ describe("ModelRegistry", () => {
 						},
 					],
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
-							name: "Overridden Built-in Sonnet",
+						[builtInOpenAiModelId!]: {
+							name: "Overridden Built-in OpenAI Model",
 						},
 					},
 				},
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
+			const models = getModelsForProvider(registry, "openai");
 
-			expect(models.some((m) => m.id === "custom/openrouter-model")).toBe(true);
+			expect(models.some((m) => m.id === "gpt-custom")).toBe(true);
 			expect(
-				models.some((m) => m.id === "anthropic/claude-sonnet-4" && m.name === "Overridden Built-in Sonnet"),
+				models.some((m) => m.id === builtInOpenAiModelId && m.name === "Overridden Built-in OpenAI Model"),
 			).toBe(true);
 		});
 
 		test("refresh() reloads merged custom models from disk", () => {
 			writeModelsJson({
-				anthropic: providerConfig("https://first-proxy.example.com/v1", [{ id: "claude-custom" }]),
+				openai: providerConfig("https://first-proxy.example.com/v1", [{ id: "gpt-custom" }], "openai-responses"),
 			});
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			expect(getModelsForProvider(registry, "anthropic").some((m) => m.id === "claude-custom")).toBe(true);
+			expect(getModelsForProvider(registry, "openai").some((m) => m.id === "gpt-custom")).toBe(true);
 
 			// Update and refresh
 			writeModelsJson({
-				anthropic: providerConfig("https://second-proxy.example.com/v1", [{ id: "claude-custom-2" }]),
+				openai: providerConfig("https://second-proxy.example.com/v1", [{ id: "gpt-custom-2" }], "openai-responses"),
 			});
 			registry.refresh();
 
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
-			expect(anthropicModels.some((m) => m.id === "claude-custom")).toBe(false);
-			expect(anthropicModels.some((m) => m.id === "claude-custom-2")).toBe(true);
-			expect(anthropicModels.some((m) => m.id.includes("claude"))).toBe(true);
+			const openAiModels = getModelsForProvider(registry, "openai");
+			expect(openAiModels.some((m) => m.id === "gpt-custom")).toBe(false);
+			expect(openAiModels.some((m) => m.id === "gpt-custom-2")).toBe(true);
+			expect(openAiModels.length).toBeGreaterThan(1);
 		});
 
 		test("removing custom models from models.json keeps built-in provider models", () => {
+			const builtInOpenAiModels = getBuiltInModels("openai");
+
 			writeModelsJson({
-				anthropic: providerConfig("https://proxy.example.com/v1", [{ id: "claude-custom" }]),
+				openai: providerConfig("https://proxy.example.com/v1", [{ id: "gpt-custom" }], "openai-responses"),
 			});
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			expect(getModelsForProvider(registry, "anthropic").some((m) => m.id === "claude-custom")).toBe(true);
+			expect(getModelsForProvider(registry, "openai").some((m) => m.id === "gpt-custom")).toBe(true);
 
 			// Remove custom models and refresh
 			writeModelsJson({});
 			registry.refresh();
 
-			const anthropicModels = getModelsForProvider(registry, "anthropic");
-			expect(anthropicModels.some((m) => m.id === "claude-custom")).toBe(false);
-			expect(anthropicModels.some((m) => m.id.includes("claude"))).toBe(true);
+			const openAiModels = getModelsForProvider(registry, "openai");
+			expect(openAiModels.some((m) => m.id === "gpt-custom")).toBe(false);
+			expect(openAiModels.map((m) => m.id)).toEqual(builtInOpenAiModels.map((m) => m.id));
 		});
 	});
 
 	describe("modelOverrides (per-model customization)", () => {
 		test("model override applies to a single built-in model", () => {
+			const [firstOpenAiModel, secondOpenAiModel] = getBuiltInModels("openai");
+			expect(firstOpenAiModel).toBeDefined();
+			expect(secondOpenAiModel).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModel!.id]: {
 							name: "Custom Sonnet Name",
 						},
 					},
@@ -358,21 +387,24 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
+			const models = getModelsForProvider(registry, "openai");
 
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
-			expect(sonnet?.name).toBe("Custom Sonnet Name");
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModel!.id);
+			expect(overriddenModel?.name).toBe("Custom Sonnet Name");
 
 			// Other models should be unchanged
-			const opus = models.find((m) => m.id === "anthropic/claude-opus-4");
-			expect(opus?.name).not.toBe("Custom Sonnet Name");
+			const untouchedModel = models.find((m) => m.id === secondOpenAiModel!.id);
+			expect(untouchedModel?.name).not.toBe("Custom Sonnet Name");
 		});
 
 		test("model override with compat.openRouterRouting", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							compat: {
 								openRouterRouting: { only: ["amazon-bedrock"] },
 							},
@@ -382,18 +414,21 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
+			const models = getModelsForProvider(registry, "openai");
 
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
-			const compat = sonnet?.compat as OpenAICompletionsCompat | undefined;
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModelId);
+			const compat = overriddenModel?.compat as OpenAICompletionsCompat | undefined;
 			expect(compat?.openRouterRouting).toEqual({ only: ["amazon-bedrock"] });
 		});
 
 		test("model override deep merges compat settings", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							compat: {
 								openRouterRouting: { order: ["anthropic", "together"] },
 							},
@@ -403,22 +438,26 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
+			const models = getModelsForProvider(registry, "openai");
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModelId);
 
 			// Should have both the new routing AND preserve other compat settings
-			const compat = sonnet?.compat as OpenAICompletionsCompat | undefined;
+			const compat = overriddenModel?.compat as OpenAICompletionsCompat | undefined;
 			expect(compat?.openRouterRouting).toEqual({ order: ["anthropic", "together"] });
 		});
 
 		test("multiple model overrides on same provider", () => {
+			const [firstOpenAiModel, secondOpenAiModel] = getBuiltInModels("openai");
+			expect(firstOpenAiModel).toBeDefined();
+			expect(secondOpenAiModel).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModel!.id]: {
 							compat: { openRouterRouting: { only: ["amazon-bedrock"] } },
 						},
-						"anthropic/claude-opus-4": {
+						[secondOpenAiModel!.id]: {
 							compat: { openRouterRouting: { only: ["anthropic"] } },
 						},
 					},
@@ -426,23 +465,27 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
+			const models = getModelsForProvider(registry, "openai");
 
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
-			const opus = models.find((m) => m.id === "anthropic/claude-opus-4");
+			const firstModel = models.find((m) => m.id === firstOpenAiModel!.id);
+			const secondModel = models.find((m) => m.id === secondOpenAiModel!.id);
 
-			const sonnetCompat = sonnet?.compat as OpenAICompletionsCompat | undefined;
-			const opusCompat = opus?.compat as OpenAICompletionsCompat | undefined;
-			expect(sonnetCompat?.openRouterRouting).toEqual({ only: ["amazon-bedrock"] });
-			expect(opusCompat?.openRouterRouting).toEqual({ only: ["anthropic"] });
+			const firstCompat = firstModel?.compat as OpenAICompletionsCompat | undefined;
+			const secondCompat = secondModel?.compat as OpenAICompletionsCompat | undefined;
+			expect(firstCompat?.openRouterRouting).toEqual({ only: ["amazon-bedrock"] });
+			expect(secondCompat?.openRouterRouting).toEqual({ only: ["anthropic"] });
 		});
 
 		test("model override combined with baseUrl override", () => {
+			const [firstOpenAiModel, secondOpenAiModel] = getBuiltInModels("openai");
+			expect(firstOpenAiModel).toBeDefined();
+			expect(secondOpenAiModel).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					baseUrl: "https://my-proxy.example.com/v1",
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModel!.id]: {
 							name: "Proxied Sonnet",
 						},
 					},
@@ -450,22 +493,22 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
+			const models = getModelsForProvider(registry, "openai");
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModel!.id);
 
 			// Both overrides should apply
-			expect(sonnet?.baseUrl).toBe("https://my-proxy.example.com/v1");
-			expect(sonnet?.name).toBe("Proxied Sonnet");
+			expect(overriddenModel?.baseUrl).toBe("https://my-proxy.example.com/v1");
+			expect(overriddenModel?.name).toBe("Proxied Sonnet");
 
 			// Other models should have the baseUrl but not the name override
-			const opus = models.find((m) => m.id === "anthropic/claude-opus-4");
-			expect(opus?.baseUrl).toBe("https://my-proxy.example.com/v1");
-			expect(opus?.name).not.toBe("Proxied Sonnet");
+			const untouchedModel = models.find((m) => m.id === secondOpenAiModel!.id);
+			expect(untouchedModel?.baseUrl).toBe("https://my-proxy.example.com/v1");
+			expect(untouchedModel?.name).not.toBe("Proxied Sonnet");
 		});
 
 		test("model override for non-existent model ID is ignored", () => {
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
 						"nonexistent/model-id": {
 							name: "This should not appear",
@@ -475,7 +518,7 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
+			const models = getModelsForProvider(registry, "openai");
 
 			// Should not create a new model
 			expect(models.find((m) => m.id === "nonexistent/model-id")).toBeUndefined();
@@ -484,10 +527,13 @@ describe("ModelRegistry", () => {
 		});
 
 		test("model override can change cost fields partially", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							cost: { input: 99 },
 						},
 					},
@@ -495,20 +541,23 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
+			const models = getModelsForProvider(registry, "openai");
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModelId);
 
 			// Input cost should be overridden
-			expect(sonnet?.cost.input).toBe(99);
+			expect(overriddenModel?.cost.input).toBe(99);
 			// Other cost fields should be preserved from built-in
-			expect(sonnet?.cost.output).toBeGreaterThan(0);
+			expect(overriddenModel?.cost.output).toBeGreaterThan(0);
 		});
 
 		test("model override can add headers", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							headers: { "X-Custom-Model-Header": "value" },
 						},
 					},
@@ -516,17 +565,20 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const models = getModelsForProvider(registry, "openrouter");
-			const sonnet = models.find((m) => m.id === "anthropic/claude-sonnet-4");
+			const models = getModelsForProvider(registry, "openai");
+			const overriddenModel = models.find((m) => m.id === firstOpenAiModelId);
 
-			expect(sonnet?.headers?.["X-Custom-Model-Header"]).toBe("value");
+			expect(overriddenModel?.headers?.["X-Custom-Model-Header"]).toBe("value");
 		});
 
 		test("refresh() picks up model override changes", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							name: "First Name",
 						},
 					},
@@ -534,15 +586,15 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			expect(
-				getModelsForProvider(registry, "openrouter").find((m) => m.id === "anthropic/claude-sonnet-4")?.name,
-			).toBe("First Name");
+			expect(getModelsForProvider(registry, "openai").find((m) => m.id === firstOpenAiModelId)?.name).toBe(
+				"First Name",
+			);
 
 			// Update and refresh
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							name: "Second Name",
 						},
 					},
@@ -550,16 +602,19 @@ describe("ModelRegistry", () => {
 			});
 			registry.refresh();
 
-			expect(
-				getModelsForProvider(registry, "openrouter").find((m) => m.id === "anthropic/claude-sonnet-4")?.name,
-			).toBe("Second Name");
+			expect(getModelsForProvider(registry, "openai").find((m) => m.id === firstOpenAiModelId)?.name).toBe(
+				"Second Name",
+			);
 		});
 
 		test("removing model override restores built-in values", () => {
+			const firstOpenAiModelId = getBuiltInModels("openai")[0]?.id;
+			expect(firstOpenAiModelId).toBeDefined();
+
 			writeRawModelsJson({
-				openrouter: {
+				openai: {
 					modelOverrides: {
-						"anthropic/claude-sonnet-4": {
+						[firstOpenAiModelId!]: {
 							name: "Custom Name",
 						},
 					},
@@ -567,18 +622,14 @@ describe("ModelRegistry", () => {
 			});
 
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
-			const customName = getModelsForProvider(registry, "openrouter").find(
-				(m) => m.id === "anthropic/claude-sonnet-4",
-			)?.name;
+			const customName = getModelsForProvider(registry, "openai").find((m) => m.id === firstOpenAiModelId)?.name;
 			expect(customName).toBe("Custom Name");
 
 			// Remove override and refresh
 			writeRawModelsJson({});
 			registry.refresh();
 
-			const restoredName = getModelsForProvider(registry, "openrouter").find(
-				(m) => m.id === "anthropic/claude-sonnet-4",
-			)?.name;
+			const restoredName = getModelsForProvider(registry, "openai").find((m) => m.id === firstOpenAiModelId)?.name;
 			expect(restoredName).not.toBe("Custom Name");
 		});
 	});
@@ -587,9 +638,9 @@ describe("ModelRegistry", () => {
 		test("unregisterProvider removes custom OAuth provider and restores built-in OAuth provider", () => {
 			const registry = new ModelRegistry(authStorage, modelsJsonPath);
 
-			registry.registerProvider("anthropic", {
+			registry.registerProvider("google-gemini-cli", {
 				oauth: {
-					name: "Custom Anthropic OAuth",
+					name: "Custom Gemini OAuth",
 					login: async () => ({
 						access: "custom-access-token",
 						refresh: "custom-refresh-token",
@@ -600,11 +651,11 @@ describe("ModelRegistry", () => {
 				},
 			});
 
-			expect(getOAuthProvider("anthropic")?.name).toBe("Custom Anthropic OAuth");
+			expect(getOAuthProvider("google-gemini-cli")?.name).toBe("Custom Gemini OAuth");
 
-			registry.unregisterProvider("anthropic");
+			registry.unregisterProvider("google-gemini-cli");
 
-			expect(getOAuthProvider("anthropic")?.name).not.toBe("Custom Anthropic OAuth");
+			expect(getOAuthProvider("google-gemini-cli")?.name).not.toBe("Custom Gemini OAuth");
 		});
 
 		test("unregisterProvider removes custom streamSimple override and restores built-in API stream handler", () => {

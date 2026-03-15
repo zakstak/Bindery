@@ -28,7 +28,7 @@ export async function listModels(modelRegistry: ModelRegistry, searchPattern?: s
 	const models = modelRegistry.getAvailable();
 
 	if (models.length === 0) {
-		console.log("No models available. Set API keys in environment variables.");
+		console.log("No models available. Set OPENAI_API_KEY, GEMINI_API_KEY, or ZAI_API_KEY.");
 		return;
 	}
 

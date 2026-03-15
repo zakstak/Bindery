@@ -378,8 +378,13 @@ describe("default model selection", () => {
 		expect(defaultModelPerProvider["openai-codex"]).toBe("gpt-5.4");
 	});
 
-	test("ai-gateway default is opus 4.6", () => {
-		expect(defaultModelPerProvider["vercel-ai-gateway"]).toBe("anthropic/claude-opus-4-6");
+	test("google and zai defaults stay available", () => {
+		expect(defaultModelPerProvider.google).toBe("gemini-2.5-pro");
+		expect(defaultModelPerProvider["google-gemini-cli"]).toBe("gemini-2.5-pro");
+		expect(defaultModelPerProvider["google-antigravity"]).toBe("gemini-3.1-pro-high");
+		expect(defaultModelPerProvider.zai).toBe("glm-4.6");
+		expect(defaultModelPerProvider.anthropic).toBeUndefined();
+		expect(defaultModelPerProvider["vercel-ai-gateway"]).toBeUndefined();
 	});
 
 	test("findInitialModel accepts explicit provider custom model ids", async () => {
@@ -399,13 +404,13 @@ describe("default model selection", () => {
 		expect(result.model?.id).toBe("openai/ghost-model");
 	});
 
-	test("findInitialModel selects ai-gateway default when available", async () => {
-		const aiGatewayModel: Model<"anthropic-messages"> = {
-			id: "anthropic/claude-opus-4-6",
-			name: "Claude Opus 4.6",
+	test("findInitialModel selects google default when available", async () => {
+		const googleModel: Model<"anthropic-messages"> = {
+			id: "gemini-2.5-pro",
+			name: "Gemini 2.5 Pro",
 			api: "anthropic-messages",
-			provider: "vercel-ai-gateway",
-			baseUrl: "https://ai-gateway.vercel.sh",
+			provider: "google",
+			baseUrl: "https://generativelanguage.googleapis.com",
 			reasoning: true,
 			input: ["text", "image"],
 			cost: { input: 5, output: 15, cacheRead: 0.5, cacheWrite: 5 },
@@ -414,7 +419,7 @@ describe("default model selection", () => {
 		};
 
 		const registry = {
-			getAvailable: async () => [aiGatewayModel],
+			getAvailable: async () => [googleModel],
 		} as unknown as Parameters<typeof findInitialModel>[0]["modelRegistry"];
 
 		const result = await findInitialModel({
@@ -423,7 +428,7 @@ describe("default model selection", () => {
 			modelRegistry: registry,
 		});
 
-		expect(result.model?.provider).toBe("vercel-ai-gateway");
-		expect(result.model?.id).toBe("anthropic/claude-opus-4-6");
+		expect(result.model?.provider).toBe("google");
+		expect(result.model?.id).toBe("gemini-2.5-pro");
 	});
 });

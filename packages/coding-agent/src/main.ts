@@ -759,7 +759,7 @@ export async function main(args: string[]) {
 	if (!session.model) {
 		console.error(chalk.red("No models available."));
 		console.error(chalk.yellow("\nSet an API key environment variable:"));
-		console.error("  ANTHROPIC_API_KEY, OPENAI_API_KEY, GEMINI_API_KEY, etc.");
+		console.error("  OPENAI_API_KEY, GEMINI_API_KEY, or ZAI_API_KEY");
 		console.error(chalk.yellow(`\nOr create ${getModelsPath()}`));
 		process.exit(1);
 	}

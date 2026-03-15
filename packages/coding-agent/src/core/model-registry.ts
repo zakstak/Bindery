@@ -25,6 +25,7 @@ import { join } from "path";
 import { getAgentDir } from "../config.js";
 import type { AuthStorage } from "./auth-storage.js";
 import { clearConfigValueCache, resolveConfigValue, resolveHeaders } from "./resolve-config-value.js";
+import { isSupportedAuthProvider } from "./supported-providers.js";
 
 const Ajv = (AjvModule as any).default || AjvModule;
 const ajv = new Ajv();
@@ -300,33 +301,35 @@ export class ModelRegistry {
 		overrides: Map<string, ProviderOverride>,
 		modelOverrides: Map<string, Map<string, ModelOverride>>,
 	): Model<Api>[] {
-		return getProviders().flatMap((provider) => {
-			const models = getModels(provider as KnownProvider) as Model<Api>[];
-			const providerOverride = overrides.get(provider);
-			const perModelOverrides = modelOverrides.get(provider);
+		return getProviders()
+			.filter(isSupportedAuthProvider)
+			.flatMap((provider) => {
+				const models = getModels(provider as KnownProvider) as Model<Api>[];
+				const providerOverride = overrides.get(provider);
+				const perModelOverrides = modelOverrides.get(provider);
 
-			return models.map((m) => {
-				let model = m;
+				return models.map((m) => {
+					let model = m;
 
-				// Apply provider-level baseUrl/headers override
-				if (providerOverride) {
-					const resolvedHeaders = resolveHeaders(providerOverride.headers);
-					model = {
-						...model,
-						baseUrl: providerOverride.baseUrl ?? model.baseUrl,
-						headers: resolvedHeaders ? { ...model.headers, ...resolvedHeaders } : model.headers,
-					};
-				}
+					// Apply provider-level baseUrl/headers override
+					if (providerOverride) {
+						const resolvedHeaders = resolveHeaders(providerOverride.headers);
+						model = {
+							...model,
+							baseUrl: providerOverride.baseUrl ?? model.baseUrl,
+							headers: resolvedHeaders ? { ...model.headers, ...resolvedHeaders } : model.headers,
+						};
+					}
 
-				// Apply per-model override
-				const modelOverride = perModelOverrides?.get(m.id);
-				if (modelOverride) {
-					model = applyModelOverride(model, modelOverride);
-				}
+					// Apply per-model override
+					const modelOverride = perModelOverrides?.get(m.id);
+					if (modelOverride) {
+						model = applyModelOverride(model, modelOverride);
+					}
 
-				return model;
+					return model;
+				});
 			});
-		});
 	}
 
 	/** Merge custom models into built-in list by provider+id (custom wins on conflicts). */
