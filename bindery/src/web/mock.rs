@@ -15,6 +15,7 @@ struct MockTaskState {
     task_id: String,
     goal: String,
     completed: bool,
+    child_session_file: String,
 }
 
 fn current_model_label(model: &Value) -> String {
@@ -88,6 +89,11 @@ async fn handle_mock_socket(mut socket: WebSocket) {
     let mut task_index: u32 = 0;
     let mut boot_sent = false;
     let mut session_name = String::from("Bindery demo session");
+    let mut session_file = String::from("/tmp/mock-parent.jsonl");
+    let mut fork_messages: Vec<Value> = vec![
+        json!({ "entryId": "mock-entry-1", "text": "Ship a launch page this week with QA and release notes." }),
+        json!({ "entryId": "mock-entry-2", "text": "Stabilize onboarding before Friday and prepare a rollout brief." }),
+    ];
     let mut active_task: Option<MockTaskState> = None;
 
     while let Some(message) = socket.recv().await {
@@ -138,6 +144,8 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                         "success": true,
                         "data": {
                             "sessionName": session_name,
+                            "sessionFile": session_file,
+                            "sessionId": "mock-session",
                             "model": model.clone(),
                             "isStreaming": false,
                             "contextPercent": 18,
@@ -227,6 +235,16 @@ async fn handle_mock_socket(mut socket: WebSocket) {
 
                 prompt_index += 1;
 
+                if !user_prompt.is_empty() {
+                    fork_messages.push(json!({
+                        "entryId": format!("mock-entry-{}", prompt_index.saturating_add(2)),
+                        "text": user_prompt,
+                    }));
+                    if fork_messages.len() > 24 {
+                        fork_messages.remove(0);
+                    }
+                }
+
                 if send_json(
                     &mut socket,
                     json!({
@@ -279,11 +297,15 @@ async fn handle_mock_socket(mut socket: WebSocket) {
 
                 task_index += 1;
                 let task_id = format!("mock-task-{task_index}");
+                let previous_session_file = session_file.clone();
+                let next_session_file = format!("/tmp/mock-task-{task_index}.jsonl");
                 session_name = format!("Task · {goal}");
+                session_file = next_session_file.clone();
                 active_task = Some(MockTaskState {
                     task_id: task_id.clone(),
                     goal: goal.clone(),
                     completed: false,
+                    child_session_file: next_session_file.clone(),
                 });
 
                 if send_json(
@@ -299,7 +321,7 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                                 "taskId": task_id,
                                 "createdAt": format!("mock-task-created-{task_index}"),
                                 "parentSessionId": "mock-parent-session",
-                                "parentSessionFile": "/tmp/mock-parent.jsonl",
+                                "parentSessionFile": previous_session_file.clone(),
                                 "cwd": "/tmp/mock-project",
                                 "model": current_model_label(&model),
                                 "goal": goal,
@@ -308,8 +330,8 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                                 "doneDefinition": command.get("doneDefinition").or_else(|| command.get("done_definition")).and_then(Value::as_str).unwrap_or("Return one structured result summary with changed files, open risks, and the next recommended step."),
                                 "notes": command.get("notes").cloned().unwrap_or(Value::Null),
                             },
-                            "previousSessionFile": "/tmp/mock-parent.jsonl",
-                            "nextSessionFile": format!("/tmp/mock-task-{task_index}.jsonl"),
+                            "previousSessionFile": previous_session_file,
+                            "nextSessionFile": next_session_file.clone(),
                         }
                     }),
                 )
@@ -388,9 +410,12 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                     .and_then(Value::as_bool)
                     .unwrap_or(true);
                 let task_id = task_state.task_id.clone();
+                let parent_session_file = String::from("/tmp/mock-parent.jsonl");
+                let child_session_file = task_state.child_session_file.clone();
 
                 if resume_parent {
                     session_name = String::from("Bindery demo session");
+                    session_file = parent_session_file.clone();
                 } else {
                     task_state.completed = true;
                     session_name = format!("Task · {}", task_state.goal);
@@ -409,8 +434,8 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                                 "taskId": task_id,
                                 "createdAt": format!("mock-task-result-{task_index}"),
                                 "childSessionId": format!("mock-child-session-{task_index}"),
-                                "childSessionFile": format!("/tmp/mock-task-{task_index}.jsonl"),
-                                "parentSessionFile": "/tmp/mock-parent.jsonl",
+                                "childSessionFile": child_session_file,
+                                "parentSessionFile": parent_session_file.clone(),
                                 "model": current_model_label(&model),
                                 "summary": summary,
                                 "changedFiles": [],
@@ -419,7 +444,7 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                                 "notes": command.get("notes").cloned().unwrap_or(Value::Null),
                             },
                             "resumedParent": resume_parent,
-                            "parentSessionFile": "/tmp/mock-parent.jsonl",
+                            "parentSessionFile": parent_session_file,
                         }
                     }),
                 )
@@ -437,6 +462,188 @@ async fn handle_mock_socket(mut socket: WebSocket) {
                         "command": "abort",
                         "success": true,
                         "data": { "isStreaming": false },
+                    }),
+                )
+                .await
+                .is_err()
+                {
+                    return;
+                }
+            }
+            "get_available_models" => {
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "get_available_models",
+                        "success": true,
+                        "data": {
+                            "models": [
+                                {
+                                    "provider": "mock",
+                                    "id": "bindery-demo-orchestrator-v2",
+                                    "name": "Mock Orchestrator",
+                                },
+                                {
+                                    "provider": "mock",
+                                    "id": "bindery-demo-release-ops-v1",
+                                    "name": "Mock Release Ops",
+                                },
+                                {
+                                    "provider": "mock",
+                                    "id": "bindery-demo-research-v1",
+                                    "name": "Mock Research",
+                                }
+                            ]
+                        }
+                    }),
+                )
+                .await
+                .is_err()
+                {
+                    return;
+                }
+            }
+            "switch_session" => {
+                let session_path = command
+                    .get("sessionPath")
+                    .or_else(|| command.get("session_path"))
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string();
+
+                if session_path.is_empty() {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "switch_session",
+                            "success": false,
+                            "error": "sessionPath is required",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                session_file = session_path.clone();
+                let leaf = session_path
+                    .split('/')
+                    .filter(|part| !part.is_empty())
+                    .next_back()
+                    .unwrap_or("session");
+                session_name = format!("Session · {leaf}");
+
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "switch_session",
+                        "success": true,
+                        "data": { "cancelled": false },
+                    }),
+                )
+                .await
+                .is_err()
+                {
+                    return;
+                }
+            }
+            "get_fork_messages" => {
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "get_fork_messages",
+                        "success": true,
+                        "data": {
+                            "messages": fork_messages.clone(),
+                        }
+                    }),
+                )
+                .await
+                .is_err()
+                {
+                    return;
+                }
+            }
+            "fork" => {
+                let entry_id = command
+                    .get("entryId")
+                    .or_else(|| command.get("entry_id"))
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .trim()
+                    .to_string();
+
+                if entry_id.is_empty() {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "fork",
+                            "success": false,
+                            "error": "entryId is required",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                let selected_text = fork_messages
+                    .iter()
+                    .find(|entry| {
+                        entry
+                            .get("entryId")
+                            .and_then(Value::as_str)
+                            .map(|value| value == entry_id.as_str())
+                            .unwrap_or(false)
+                    })
+                    .and_then(|entry| entry.get("text"))
+                    .and_then(Value::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+
+                if selected_text.is_empty() {
+                    if send_json(
+                        &mut socket,
+                        json!({
+                            "type": "response",
+                            "command": "fork",
+                            "success": false,
+                            "error": "fork entry not found",
+                        }),
+                    )
+                    .await
+                    .is_err()
+                    {
+                        return;
+                    }
+                    continue;
+                }
+
+                session_file = format!("/tmp/mock-fork-{entry_id}.jsonl");
+                session_name = format!("Fork · {entry_id}");
+
+                if send_json(
+                    &mut socket,
+                    json!({
+                        "type": "response",
+                        "command": "fork",
+                        "success": true,
+                        "data": {
+                            "text": selected_text,
+                            "cancelled": false,
+                        }
                     }),
                 )
                 .await

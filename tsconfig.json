@@ -9,5 +9,8 @@
 		}
 	},
 	"include": ["packages/coding-agent/src/**/*", "packages/coding-agent/test/**/*"],
-	"exclude": ["**/dist/**"]
+	"exclude": [
+		"node_modules",
+		"**/dist/**"
+	]
 }

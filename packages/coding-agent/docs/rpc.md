@@ -939,15 +939,10 @@ There are two categories of extension UI methods:
 
 If a dialog method includes a `timeout` field, the agent-side will auto-resolve with a default value when the timeout expires. The client does not need to track timeouts.
 
-Some `ExtensionUIContext` methods are not supported or degraded in RPC mode because they require direct TUI access:
-- `custom()` returns `undefined`
-- `setWorkingMessage()`, `setFooter()`, `setHeader()`, `setEditorComponent()`, `setToolsExpanded()` are no-ops
-- `getEditorText()` returns `""`
-- `getToolsExpanded()` returns `false`
+Some `ExtensionUIContext` methods are unsupported in RPC mode because they require direct interactive runtime access and throw `ERR_EXTENSION_UI_UNSUPPORTED`:
+- `onTerminalInput()`, `setWorkingMessage()`, `setFooter()`, `setHeader()`, `custom()`, `setEditorComponent()`, `setToolsExpanded()`
+- `getEditorText()`, `getToolsExpanded()`, `getAllThemes()`, `getTheme()`, `setTheme()`
 - `pasteToEditor()` delegates to `setEditorText()` (no paste/collapse handling)
-- `getAllThemes()` returns `[]`
-- `getTheme()` returns `undefined`
-- `setTheme()` returns `{ success: false, error: "..." }`
 
 Note: `ctx.hasUI` is `true` in RPC mode because the dialog and fire-and-forget methods are functional via the extension UI sub-protocol.
 

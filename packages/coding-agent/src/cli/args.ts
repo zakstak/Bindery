@@ -177,7 +177,7 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 }
 
 export function printHelp(): void {
-	console.log(`${chalk.bold(APP_NAME)} - AI coding assistant with read, bash, edit, write tools
+	console.log(`${chalk.bold(APP_NAME)} - headless AI coding assistant for Bindery workflows
 
 ${chalk.bold("Usage:")}
   ${APP_NAME} [options] [@files...] [messages...]
@@ -187,7 +187,7 @@ ${chalk.bold("Commands:")}
   ${APP_NAME} remove <source> [-l]     Remove extension source from settings
   ${APP_NAME} update [source]          Update installed extensions (skips pinned sources)
   ${APP_NAME} list                     List installed extensions from settings
-  ${APP_NAME} config                   Open TUI to enable/disable package resources
+  ${APP_NAME} config                   Deprecated: use Bindery or edit settings files directly
   ${APP_NAME} <command> --help         Show help for install/remove/update/list
 
 ${chalk.bold("Options:")}
@@ -196,10 +196,10 @@ ${chalk.bold("Options:")}
   --api-key <key>                API key (defaults to env vars)
   --system-prompt <text>         System prompt (default: coding assistant prompt)
   --append-system-prompt <text>  Append text or file contents to the system prompt
-  --mode <mode>                  Output mode: text (default), json, or rpc
+  --mode <mode>                  Output mode: text, json, or rpc
   --print, -p                    Non-interactive mode: process prompt and exit
-  --continue, -c                 Continue previous session
-  --resume, -r                   Select a session to resume
+  --continue, -c                 Continue previous session in headless mode
+  --resume, -r                   Deprecated: use Bindery or --session <path>
   --session <path>               Use specific session file
   --session-dir <dir>            Directory for session storage and lookup
   --no-session                   Don't save session (ephemeral)
@@ -226,24 +226,20 @@ ${chalk.bold("Options:")}
 
 Extensions can register additional flags (e.g., --plan from plan-mode extension).
 
+Interactive chat, session browsing, and config flows now live in Bindery.
+
 ${chalk.bold("Examples:")}
-  # Interactive mode
-  ${APP_NAME}
-
-  # Interactive mode with initial prompt
-  ${APP_NAME} "List all .ts files in src/"
-
-  # Include files in initial message
-  ${APP_NAME} @prompt.md @image.png "What color is the sky?"
-
   # Non-interactive mode (process and exit)
   ${APP_NAME} -p "List all .ts files in src/"
 
-  # Multiple messages (interactive)
-  ${APP_NAME} "Read package.json" "What dependencies do we have?"
+  # Continue a saved session headlessly
+  ${APP_NAME} --session session.jsonl -p "What changed since last time?"
 
-  # Continue previous session
-  ${APP_NAME} --continue "What did we discuss?"
+  # Include files in the initial message
+  ${APP_NAME} -p @prompt.md @image.png "What color is the sky?"
+
+  # Continue previous session headlessly
+  ${APP_NAME} --continue -p "What did we discuss?"
 
   # Use different model
   ${APP_NAME} --provider openai --model gpt-4o-mini "Help me refactor this code"

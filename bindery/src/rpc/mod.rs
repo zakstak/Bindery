@@ -57,6 +57,28 @@ pub enum RpcCommand {
         #[serde(rename = "modelId", alias = "model_id")]
         model_id: String,
     },
+    GetAvailableModels {
+        id: Option<String>,
+    },
+    SwitchSession {
+        id: Option<String>,
+        #[serde(rename = "sessionPath", alias = "session_path")]
+        session_path: String,
+    },
+    Fork {
+        id: Option<String>,
+        #[serde(rename = "entryId", alias = "entry_id")]
+        entry_id: String,
+    },
+    ExtensionUiResponse {
+        id: String,
+        value: Option<String>,
+        confirmed: Option<bool>,
+        cancelled: Option<bool>,
+    },
+    GetForkMessages {
+        id: Option<String>,
+    },
 }
 
 /// Events streamed from the agent stdout to the browser (via WebSocket).

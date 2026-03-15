@@ -27,24 +27,13 @@ import type {
 	TextContent,
 	ToolResultMessage,
 } from "@mariozechner/pi-ai";
-import type {
-	AutocompleteItem,
-	Component,
-	EditorComponent,
-	EditorTheme,
-	KeyId,
-	OverlayHandle,
-	OverlayOptions,
-	TUI,
-} from "@mariozechner/pi-tui";
 import type { Static, TSchema } from "@sinclair/typebox";
 import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type { BashResult } from "../bash-executor.js";
 import type { CompactionPreparation, CompactionResult } from "../compaction/index.js";
 import type { EventBus } from "../event-bus.js";
 import type { ExecOptions, ExecResult } from "../exec.js";
-import type { ReadonlyFooterDataProvider } from "../footer-data-provider.js";
-import type { KeybindingsManager } from "../keybindings.js";
+import type { KeyId } from "../key-input.js";
 import type { CustomMessage } from "../messages.js";
 import type { ModelRegistry } from "../model-registry.js";
 import type {
@@ -75,6 +64,18 @@ import type {
 export type { ExecOptions, ExecResult } from "../exec.js";
 export type { AgentToolResult, AgentToolUpdateCallback };
 export type { AppAction, KeybindingsManager } from "../keybindings.js";
+
+export interface AutocompleteItem {
+	value: string;
+	label?: string;
+	description?: string;
+}
+
+export interface ExtensionUIComponent {
+	render(context: unknown): string[];
+	invalidate(): void;
+	dispose?(): void;
+}
 
 // ============================================================================
 // UI Context
@@ -128,11 +129,6 @@ export interface ExtensionUIContext {
 
 	/** Set a widget to display above or below the editor. Accepts string array or component factory. */
 	setWidget(key: string, content: string[] | undefined, options?: ExtensionWidgetOptions): void;
-	setWidget(
-		key: string,
-		content: ((tui: TUI, theme: Theme) => Component & { dispose?(): void }) | undefined,
-		options?: ExtensionWidgetOptions,
-	): void;
 
 	/** Set a custom footer component, or undefined to restore the built-in footer.
 	 *
@@ -140,32 +136,21 @@ export interface ExtensionUIContext {
 	 * git branch and extension statuses from setStatus(). Token stats, model info,
 	 * etc. are available via ctx.sessionManager and ctx.model.
 	 */
-	setFooter(
-		factory:
-			| ((tui: TUI, theme: Theme, footerData: ReadonlyFooterDataProvider) => Component & { dispose?(): void })
-			| undefined,
-	): void;
+	setFooter(factory: unknown | undefined): void;
 
 	/** Set a custom header component (shown at startup, above chat), or undefined to restore the built-in header. */
-	setHeader(factory: ((tui: TUI, theme: Theme) => Component & { dispose?(): void }) | undefined): void;
+	setHeader(factory: unknown | undefined): void;
 
 	/** Set the terminal window/tab title. */
 	setTitle(title: string): void;
 
 	/** Show a custom component with keyboard focus. */
 	custom<T>(
-		factory: (
-			tui: TUI,
-			theme: Theme,
-			keybindings: KeybindingsManager,
-			done: (result: T) => void,
-		) => (Component & { dispose?(): void }) | Promise<Component & { dispose?(): void }>,
+		factory: unknown,
 		options?: {
 			overlay?: boolean;
-			/** Overlay positioning/sizing options. Can be static or a function for dynamic updates. */
-			overlayOptions?: OverlayOptions | (() => OverlayOptions);
-			/** Called with the overlay handle after the overlay is shown. Use to control visibility. */
-			onHandle?: (handle: OverlayHandle) => void;
+			overlayOptions?: unknown;
+			onHandle?: (handle: unknown) => void;
 		},
 	): Promise<T>;
 
@@ -214,9 +199,7 @@ export interface ExtensionUIContext {
 	 * );
 	 * ```
 	 */
-	setEditorComponent(
-		factory: ((tui: TUI, theme: EditorTheme, keybindings: KeybindingsManager) => EditorComponent) | undefined,
-	): void;
+	setEditorComponent(factory: unknown | undefined): void;
 
 	/** Get the current theme for styling. */
 	readonly theme: Theme;
@@ -261,7 +244,7 @@ export interface CompactOptions {
 export interface ExtensionContext {
 	/** UI methods for user interaction */
 	ui: ExtensionUIContext;
-	/** Whether UI is available (false in print/RPC mode) */
+	/** Whether a mode-specific UI context is available (true in interactive and RPC modes). */
 	hasUI: boolean;
 	/** Current working directory */
 	cwd: string;
@@ -356,14 +339,14 @@ export interface ToolDefinition<TParams extends TSchema = TSchema, TDetails = un
 	): Promise<AgentToolResult<TDetails>>;
 
 	/** Custom rendering for tool call display */
-	renderCall?: (args: Static<TParams>, theme: Theme) => Component | undefined;
+	renderCall?: (args: Static<TParams>, theme: Theme) => ExtensionUIComponent | undefined;
 
 	/** Custom rendering for tool result display */
 	renderResult?: (
 		result: AgentToolResult<TDetails>,
 		options: ToolRenderResultOptions,
 		theme: Theme,
-	) => Component | undefined;
+	) => ExtensionUIComponent | undefined;
 }
 
 // ============================================================================
@@ -923,7 +906,7 @@ export type MessageRenderer<T = unknown> = (
 	message: CustomMessage<T>,
 	options: MessageRenderOptions,
 	theme: Theme,
-) => Component | undefined;
+) => ExtensionUIComponent | undefined;
 
 // ============================================================================
 // Command Registration

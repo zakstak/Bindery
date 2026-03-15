@@ -4,9 +4,10 @@
 
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent, Model } from "@mariozechner/pi-ai";
-import type { KeyId } from "@mariozechner/pi-tui";
-import { type Theme, theme } from "../../modes/interactive/theme/theme.js";
+import type { Theme } from "../../modes/interactive/theme/theme.js";
 import type { ResourceDiagnostic } from "../diagnostics.js";
+import { headlessTheme } from "../headless-theme.js";
+import type { KeyId } from "../key-input.js";
 import type { KeyAction, KeybindingsConfig } from "../keybindings.js";
 import type { ModelRegistry } from "../model-registry.js";
 import type { SessionManager } from "../session-manager.js";
@@ -168,32 +169,42 @@ export async function emitSessionShutdownEvent(extensionRunner: ExtensionRunner 
 	return false;
 }
 
+const UNSUPPORTED_EXTENSION_UI_ERROR_CODE = "ERR_EXTENSION_UI_UNSUPPORTED";
+
+function throwUnsupportedExtensionUIMethod(method: string, mode: string): never {
+	const error = new Error(`Extension UI method "${method}" is unsupported in ${mode} mode.`) as Error & {
+		code?: string;
+	};
+	error.code = UNSUPPORTED_EXTENSION_UI_ERROR_CODE;
+	throw error;
+}
+
 const noOpUIContext: ExtensionUIContext = {
-	select: async () => undefined,
-	confirm: async () => false,
-	input: async () => undefined,
-	notify: () => {},
-	onTerminalInput: () => () => {},
-	setStatus: () => {},
-	setWorkingMessage: () => {},
-	setWidget: () => {},
-	setFooter: () => {},
-	setHeader: () => {},
-	setTitle: () => {},
-	custom: async () => undefined as never,
-	pasteToEditor: () => {},
-	setEditorText: () => {},
-	getEditorText: () => "",
-	editor: async () => undefined,
-	setEditorComponent: () => {},
+	select: async () => throwUnsupportedExtensionUIMethod("select", "headless"),
+	confirm: async () => throwUnsupportedExtensionUIMethod("confirm", "headless"),
+	input: async () => throwUnsupportedExtensionUIMethod("input", "headless"),
+	notify: () => throwUnsupportedExtensionUIMethod("notify", "headless"),
+	onTerminalInput: () => throwUnsupportedExtensionUIMethod("onTerminalInput", "headless"),
+	setStatus: () => throwUnsupportedExtensionUIMethod("setStatus", "headless"),
+	setWorkingMessage: () => throwUnsupportedExtensionUIMethod("setWorkingMessage", "headless"),
+	setWidget: () => throwUnsupportedExtensionUIMethod("setWidget", "headless"),
+	setFooter: () => throwUnsupportedExtensionUIMethod("setFooter", "headless"),
+	setHeader: () => throwUnsupportedExtensionUIMethod("setHeader", "headless"),
+	setTitle: () => throwUnsupportedExtensionUIMethod("setTitle", "headless"),
+	custom: async () => throwUnsupportedExtensionUIMethod("custom", "headless"),
+	pasteToEditor: () => throwUnsupportedExtensionUIMethod("pasteToEditor", "headless"),
+	setEditorText: () => throwUnsupportedExtensionUIMethod("setEditorText", "headless"),
+	getEditorText: () => throwUnsupportedExtensionUIMethod("getEditorText", "headless"),
+	editor: async () => throwUnsupportedExtensionUIMethod("editor", "headless"),
+	setEditorComponent: () => throwUnsupportedExtensionUIMethod("setEditorComponent", "headless"),
 	get theme() {
-		return theme;
+		return headlessTheme;
 	},
-	getAllThemes: () => [],
-	getTheme: () => undefined,
-	setTheme: (_theme: string | Theme) => ({ success: false, error: "UI not available" }),
-	getToolsExpanded: () => false,
-	setToolsExpanded: () => {},
+	getAllThemes: () => throwUnsupportedExtensionUIMethod("getAllThemes", "headless"),
+	getTheme: () => throwUnsupportedExtensionUIMethod("getTheme", "headless"),
+	setTheme: (_theme: string | Theme) => throwUnsupportedExtensionUIMethod("setTheme", "headless"),
+	getToolsExpanded: () => throwUnsupportedExtensionUIMethod("getToolsExpanded", "headless"),
+	setToolsExpanded: () => throwUnsupportedExtensionUIMethod("setToolsExpanded", "headless"),
 };
 
 export class ExtensionRunner {
