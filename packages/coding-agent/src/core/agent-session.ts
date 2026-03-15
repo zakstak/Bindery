@@ -26,7 +26,6 @@ import type {
 import type { AssistantMessage, ImageContent, Message, Model, TextContent } from "@mariozechner/pi-ai";
 import { isContextOverflow, modelsAreEqual, resetApiProviders, supportsXhigh } from "@mariozechner/pi-ai";
 import { getDocsPath } from "../config.js";
-import { getThemeByName } from "../modes/interactive/theme/theme.js";
 import { stripFrontmatter } from "../utils/frontmatter.js";
 import { sleep } from "../utils/sleep.js";
 import { type BashResult, executeBash as executeBashCommand, executeBashWithOperations } from "./bash-executor.js";
@@ -102,6 +101,7 @@ import {
 	TASK_RESULT_CONTEXT_CUSTOM_TYPE,
 	TASK_RESULT_CUSTOM_TYPE,
 } from "./task-contract.js";
+import { getThemeByName } from "./theme/theme.js";
 import type { BashOperations } from "./tools/bash.js";
 import { createAllTools } from "./tools/index.js";
 
