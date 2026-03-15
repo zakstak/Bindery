@@ -22,11 +22,6 @@ export interface RetrySettings {
 	maxDelayMs?: number; // default: 60000 (max server-requested delay before failing)
 }
 
-export interface TerminalSettings {
-	showImages?: boolean; // default: true (only relevant if terminal supports images)
-	clearOnShrink?: boolean; // default: false (clear empty rows when content shrinks)
-}
-
 export interface ImageSettings {
 	autoResize?: boolean; // default: true (resize images to 2000x2000 max for better model compatibility)
 	blockImages?: boolean; // default: false - when true, prevents all images from being sent to LLM providers
@@ -37,10 +32,6 @@ export interface ThinkingBudgetsSettings {
 	low?: number;
 	medium?: number;
 	high?: number;
-}
-
-export interface MarkdownSettings {
-	codeBlockIndent?: string; // default: "  "
 }
 
 export type TransportSetting = Transport;
@@ -82,16 +73,9 @@ export interface Settings {
 	prompts?: string[]; // Array of local prompt template paths or directories
 
 	enableSkillCommands?: boolean; // default: true - register skills as /skill:name commands
-	terminal?: TerminalSettings;
 	images?: ImageSettings;
 	enabledModels?: string[]; // Model patterns for cycling (same format as --models CLI flag)
-	doubleEscapeAction?: "fork" | "tree" | "none"; // Action for double-escape with empty editor (default: "tree")
-	treeFilterMode?: "default" | "no-tools" | "user-only" | "labeled-only" | "all"; // Default filter when opening /tree
 	thinkingBudgets?: ThinkingBudgetsSettings; // Custom token budgets for thinking levels
-	editorPaddingX?: number; // Horizontal padding for input editor (default: 0)
-	autocompleteMaxVisible?: number; // Max visible items in autocomplete dropdown (default: 5)
-	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
-	markdown?: MarkdownSettings;
 }
 
 /** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
@@ -790,36 +774,6 @@ export class SettingsManager {
 		return this.settings.thinkingBudgets;
 	}
 
-	getShowImages(): boolean {
-		return this.settings.terminal?.showImages ?? true;
-	}
-
-	setShowImages(show: boolean): void {
-		if (!this.globalSettings.terminal) {
-			this.globalSettings.terminal = {};
-		}
-		this.globalSettings.terminal.showImages = show;
-		this.markModified("terminal", "showImages");
-		this.save();
-	}
-
-	getClearOnShrink(): boolean {
-		// Settings takes precedence, then env var, then default false
-		if (this.settings.terminal?.clearOnShrink !== undefined) {
-			return this.settings.terminal.clearOnShrink;
-		}
-		return process.env.PI_CLEAR_ON_SHRINK === "1";
-	}
-
-	setClearOnShrink(enabled: boolean): void {
-		if (!this.globalSettings.terminal) {
-			this.globalSettings.terminal = {};
-		}
-		this.globalSettings.terminal.clearOnShrink = enabled;
-		this.markModified("terminal", "clearOnShrink");
-		this.save();
-	}
-
 	getImageAutoResize(): boolean {
 		return this.settings.images?.autoResize ?? true;
 	}
@@ -854,61 +808,5 @@ export class SettingsManager {
 		this.globalSettings.enabledModels = patterns;
 		this.markModified("enabledModels");
 		this.save();
-	}
-
-	getDoubleEscapeAction(): "fork" | "tree" | "none" {
-		return this.settings.doubleEscapeAction ?? "tree";
-	}
-
-	setDoubleEscapeAction(action: "fork" | "tree" | "none"): void {
-		this.globalSettings.doubleEscapeAction = action;
-		this.markModified("doubleEscapeAction");
-		this.save();
-	}
-
-	getTreeFilterMode(): "default" | "no-tools" | "user-only" | "labeled-only" | "all" {
-		const mode = this.settings.treeFilterMode;
-		const valid = ["default", "no-tools", "user-only", "labeled-only", "all"];
-		return mode && valid.includes(mode) ? mode : "default";
-	}
-
-	setTreeFilterMode(mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all"): void {
-		this.globalSettings.treeFilterMode = mode;
-		this.markModified("treeFilterMode");
-		this.save();
-	}
-
-	getShowHardwareCursor(): boolean {
-		return this.settings.showHardwareCursor ?? process.env.PI_HARDWARE_CURSOR === "1";
-	}
-
-	setShowHardwareCursor(enabled: boolean): void {
-		this.globalSettings.showHardwareCursor = enabled;
-		this.markModified("showHardwareCursor");
-		this.save();
-	}
-
-	getEditorPaddingX(): number {
-		return this.settings.editorPaddingX ?? 0;
-	}
-
-	setEditorPaddingX(padding: number): void {
-		this.globalSettings.editorPaddingX = Math.max(0, Math.min(3, Math.floor(padding)));
-		this.markModified("editorPaddingX");
-		this.save();
-	}
-
-	getAutocompleteMaxVisible(): number {
-		return this.settings.autocompleteMaxVisible ?? 5;
-	}
-
-	setAutocompleteMaxVisible(maxVisible: number): void {
-		this.globalSettings.autocompleteMaxVisible = Math.max(3, Math.min(20, Math.floor(maxVisible)));
-		this.markModified("autocompleteMaxVisible");
-		this.save();
-	}
-
-	getCodeBlockIndent(): string {
-		return this.settings.markdown?.codeBlockIndent ?? "  ";
 	}
 }
