@@ -1,6 +1,12 @@
 use std::io::Cursor;
+use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
+use grep_regex::RegexMatcherBuilder;
+use grep_searcher::{Searcher, SearcherBuilder, Sink, SinkMatch};
+use ignore::WalkBuilder;
 use image::{
     codecs::jpeg::JpegEncoder,
     imageops::FilterType,
@@ -211,4 +217,192 @@ pub fn convert_to_png(data: String) -> napi::Result<ConvertResult> {
         width: img.width(),
         height: img.height(),
     })
+}
+
+// ── ripgrep search ─────────────────────────────────────────────────
+
+#[napi(object)]
+pub struct GrepOptions {
+    pub pattern: String,
+    pub path: String,
+    pub glob: Option<String>,
+    pub ignore_case: Option<bool>,
+    pub literal: Option<bool>,
+    pub limit: Option<u32>,
+}
+
+#[napi(object)]
+pub struct GrepMatch {
+    pub file_path: String,
+    pub line_number: u32,
+    pub line_text: String,
+}
+
+/// Collect matches from a single file into a shared vec, respecting a limit.
+struct MatchSink {
+    file_path: String,
+    matches: Vec<GrepMatch>,
+    limit: usize,
+    limit_reached: Arc<AtomicBool>,
+}
+
+impl Sink for MatchSink {
+    type Error = std::io::Error;
+
+    fn matched(
+        &mut self,
+        _searcher: &Searcher,
+        mat: &SinkMatch<'_>,
+    ) -> Result<bool, Self::Error> {
+        if self.limit_reached.load(Ordering::Relaxed) {
+            return Ok(false);
+        }
+
+        let line_text = String::from_utf8_lossy(mat.bytes()).trim_end().to_string();
+        self.matches.push(GrepMatch {
+            file_path: self.file_path.clone(),
+            line_number: mat.line_number().unwrap_or(0) as u32,
+            line_text,
+        });
+
+        if self.matches.len() >= self.limit {
+            self.limit_reached.store(true, Ordering::Relaxed);
+            return Ok(false);
+        }
+
+        Ok(true)
+    }
+}
+
+#[napi]
+pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
+    let limit = options.limit.unwrap_or(100) as usize;
+    let limit_reached = Arc::new(AtomicBool::new(false));
+
+    // Build regex matcher
+    let mut builder = RegexMatcherBuilder::new();
+    if options.ignore_case.unwrap_or(false) {
+        builder.case_insensitive(true);
+    }
+
+    let matcher = if options.literal.unwrap_or(false) {
+        // Escape the pattern for literal matching
+        let escaped = escape_regex(&options.pattern);
+        builder
+            .build(&escaped)
+            .map_err(|e| napi::Error::from_reason(format!("invalid pattern: {e}")))?
+    } else {
+        builder
+            .build(&options.pattern)
+            .map_err(|e| napi::Error::from_reason(format!("invalid pattern: {e}")))?
+    };
+
+    let path = Path::new(&options.path);
+    if !path.exists() {
+        return Err(napi::Error::from_reason(format!(
+            "Path not found: {}",
+            options.path
+        )));
+    }
+
+    let mut all_matches: Vec<GrepMatch> = Vec::new();
+
+    let is_dir = path.is_dir();
+
+    if is_dir {
+        // Directory search: walk with .gitignore awareness
+        let mut walk_builder = WalkBuilder::new(path);
+        walk_builder
+            .hidden(false) // include hidden files
+            .git_ignore(true)
+            .git_global(true)
+            .git_exclude(true);
+
+        // Apply glob filter
+        if let Some(ref glob_pattern) = options.glob {
+            // Use an override to filter by glob
+            let mut overrides = ignore::overrides::OverrideBuilder::new(path);
+            overrides
+                .add(glob_pattern)
+                .map_err(|e| napi::Error::from_reason(format!("invalid glob: {e}")))?;
+            let built = overrides
+                .build()
+                .map_err(|e| napi::Error::from_reason(format!("invalid glob: {e}")))?;
+            walk_builder.overrides(built);
+        }
+
+        let mut searcher = SearcherBuilder::new()
+            .line_number(true)
+            .build();
+
+        for entry in walk_builder.build() {
+            if limit_reached.load(Ordering::Relaxed) {
+                break;
+            }
+
+            let entry = match entry {
+                Ok(e) => e,
+                Err(_) => continue,
+            };
+
+            // Skip directories
+            if entry.file_type().map_or(true, |ft| ft.is_dir()) {
+                continue;
+            }
+
+            let file_path = entry.path().to_string_lossy().to_string();
+            let remaining = limit.saturating_sub(all_matches.len());
+            if remaining == 0 {
+                break;
+            }
+
+            let mut sink = MatchSink {
+                file_path,
+                matches: Vec::new(),
+                limit: remaining,
+                limit_reached: Arc::clone(&limit_reached),
+            };
+
+            // Ignore errors from individual files (binary, unreadable, etc.)
+            let _ = searcher.search_path(&matcher, entry.path(), &mut sink);
+            all_matches.extend(sink.matches);
+        }
+    } else {
+        // Single file search
+        let mut searcher = SearcherBuilder::new()
+            .line_number(true)
+            .build();
+
+        let file_path = path.to_string_lossy().to_string();
+        let mut sink = MatchSink {
+            file_path,
+            matches: Vec::new(),
+            limit,
+            limit_reached: Arc::clone(&limit_reached),
+        };
+
+        searcher
+            .search_path(&matcher, path, &mut sink)
+            .map_err(|e| napi::Error::from_reason(format!("search failed: {e}")))?;
+
+        all_matches = sink.matches;
+    }
+
+    Ok(all_matches)
+}
+
+/// Escape special regex characters for literal matching.
+fn escape_regex(pattern: &str) -> String {
+    let mut escaped = String::with_capacity(pattern.len() * 2);
+    for c in pattern.chars() {
+        if matches!(
+            c,
+            '\\' | '.' | '+' | '*' | '?' | '(' | ')' | '|'
+                | '[' | ']' | '{' | '}' | '^' | '$' | '#' | '&' | '-' | '~'
+        ) {
+            escaped.push('\\');
+        }
+        escaped.push(c);
+    }
+    escaped
 }
