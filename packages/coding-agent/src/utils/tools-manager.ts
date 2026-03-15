@@ -1,10 +1,9 @@
 import { spawnSync } from "node:child_process";
 import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
 import { arch, platform } from "node:os";
-import { dirname, join, normalize, sep } from "node:path";
+import { join } from "node:path";
 import { Readable } from "node:stream";
-import { finished, pipeline } from "node:stream/promises";
-import * as yauzl from "yauzl";
+import { finished } from "node:stream/promises";
 import { APP_NAME, getBinDir } from "../config.js";
 
 const TOOLS_DIR = getBinDir();
@@ -31,15 +30,11 @@ const TOOLS: Record<string, ToolConfig> = {
 		binaryName: "fd",
 		tagPrefix: "v",
 		getAssetName: (version, plat, architecture) => {
+			const archStr = architecture === "arm64" ? "aarch64" : "x86_64";
 			if (plat === "darwin") {
-				const archStr = architecture === "arm64" ? "aarch64" : "x86_64";
 				return `fd-v${version}-${archStr}-apple-darwin.tar.gz`;
 			} else if (plat === "linux") {
-				const archStr = architecture === "arm64" ? "aarch64" : "x86_64";
 				return `fd-v${version}-${archStr}-unknown-linux-gnu.tar.gz`;
-			} else if (plat === "win32") {
-				const archStr = architecture === "arm64" ? "aarch64" : "x86_64";
-				return `fd-v${version}-${archStr}-pc-windows-msvc.zip`;
 			}
 			return null;
 		},
@@ -58,9 +53,6 @@ const TOOLS: Record<string, ToolConfig> = {
 					return `ripgrep-${version}-aarch64-unknown-linux-gnu.tar.gz`;
 				}
 				return `ripgrep-${version}-x86_64-unknown-linux-musl.tar.gz`;
-			} else if (plat === "win32") {
-				const archStr = architecture === "arm64" ? "aarch64" : "x86_64";
-				return `ripgrep-${version}-${archStr}-pc-windows-msvc.zip`;
 			}
 			return null;
 		},
@@ -84,7 +76,7 @@ export function getToolPath(tool: "fd" | "rg"): string | null {
 	if (!config) return null;
 
 	// Check our tools directory first
-	const localPath = join(TOOLS_DIR, config.binaryName + (platform() === "win32" ? ".exe" : ""));
+	const localPath = join(TOOLS_DIR, config.binaryName);
 	if (existsSync(localPath)) {
 		return localPath;
 	}
@@ -152,106 +144,6 @@ function findBinaryRecursively(rootDir: string, binaryFileName: string): string 
 	return null;
 }
 
-function openZipFile(filePath: string): Promise<yauzl.ZipFile> {
-	return new Promise((resolve, reject) => {
-		yauzl.open(filePath, { lazyEntries: true, validateEntrySizes: true }, (error, zipFile) => {
-			if (error) {
-				reject(error);
-				return;
-			}
-			if (!zipFile) {
-				reject(new Error(`Failed to open zip archive: ${filePath}`));
-				return;
-			}
-			resolve(zipFile);
-		});
-	});
-}
-
-function readNextZipEntry(zipFile: yauzl.ZipFile): Promise<yauzl.Entry | null> {
-	return new Promise((resolve, reject) => {
-		const cleanup = () => {
-			zipFile.removeListener("entry", onEntry);
-			zipFile.removeListener("end", onEnd);
-			zipFile.removeListener("error", onError);
-		};
-
-		const onEntry = (entry: yauzl.Entry) => {
-			cleanup();
-			resolve(entry);
-		};
-
-		const onEnd = () => {
-			cleanup();
-			resolve(null);
-		};
-
-		const onError = (error: Error) => {
-			cleanup();
-			reject(error);
-		};
-
-		zipFile.once("entry", onEntry);
-		zipFile.once("end", onEnd);
-		zipFile.once("error", onError);
-		zipFile.readEntry();
-	});
-}
-
-function openZipReadStream(zipFile: yauzl.ZipFile, entry: yauzl.Entry): Promise<Readable> {
-	return new Promise((resolve, reject) => {
-		zipFile.openReadStream(entry, (error, stream) => {
-			if (error) {
-				reject(error);
-				return;
-			}
-			if (!stream) {
-				reject(new Error(`Failed to read zip entry: ${entry.fileName}`));
-				return;
-			}
-			resolve(stream);
-		});
-	});
-}
-
-async function extractZipArchive(archivePath: string, extractDir: string): Promise<void> {
-	const zipFile = await openZipFile(archivePath);
-	const normalizedExtractDir = normalize(extractDir);
-	const extractDirPrefix = normalizedExtractDir.endsWith(sep) ? normalizedExtractDir : `${normalizedExtractDir}${sep}`;
-
-	try {
-		while (true) {
-			const entry = await readNextZipEntry(zipFile);
-			if (!entry) {
-				break;
-			}
-
-			const fileNameError = yauzl.validateFileName(entry.fileName);
-			if (fileNameError) {
-				throw new Error(`Invalid zip entry path ${entry.fileName}: ${fileNameError}`);
-			}
-
-			const destinationPath = normalize(join(normalizedExtractDir, ...entry.fileName.split("/")));
-			if (destinationPath !== normalizedExtractDir && !destinationPath.startsWith(extractDirPrefix)) {
-				throw new Error(`Zip entry escaped extraction directory: ${entry.fileName}`);
-			}
-
-			if (entry.fileName.endsWith("/")) {
-				mkdirSync(destinationPath, { recursive: true });
-				continue;
-			}
-
-			mkdirSync(dirname(destinationPath), { recursive: true });
-			const readStream = await openZipReadStream(zipFile, entry);
-			await pipeline(readStream, createWriteStream(destinationPath));
-		}
-	} finally {
-		if (zipFile.isOpen) {
-			zipFile.close();
-		}
-	}
-}
-
 // Download and install a tool
 async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 	const config = TOOLS[tool];
@@ -274,8 +166,7 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 
 	const downloadUrl = `https://github.com/${config.repo}/releases/download/${config.tagPrefix}${version}/${assetName}`;
 	const archivePath = join(TOOLS_DIR, assetName);
-	const binaryExt = plat === "win32" ? ".exe" : "";
-	const binaryPath = join(TOOLS_DIR, config.binaryName + binaryExt);
+	const binaryPath = join(TOOLS_DIR, config.binaryName);
 
 	// Download
 	await downloadFile(downloadUrl, archivePath);
@@ -289,22 +180,16 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 	mkdirSync(extractDir, { recursive: true });
 
 	try {
-		if (assetName.endsWith(".tar.gz")) {
-			const extractResult = spawnSync("tar", ["xzf", archivePath, "-C", extractDir], { stdio: "pipe" });
-			if (extractResult.error || extractResult.status !== 0) {
-				const errMsg = extractResult.error?.message ?? extractResult.stderr?.toString().trim() ?? "unknown error";
-				throw new Error(`Failed to extract ${assetName}: ${errMsg}`);
-			}
-		} else if (assetName.endsWith(".zip")) {
-			await extractZipArchive(archivePath, extractDir);
-		} else {
-			throw new Error(`Unsupported archive format: ${assetName}`);
+		const extractResult = spawnSync("tar", ["xzf", archivePath, "-C", extractDir], { stdio: "pipe" });
+		if (extractResult.error || extractResult.status !== 0) {
+			const errMsg = extractResult.error?.message ?? extractResult.stderr?.toString().trim() ?? "unknown error";
+			throw new Error(`Failed to extract ${assetName}: ${errMsg}`);
 		}
 
 		// Find the binary in extracted files. Some archives contain files directly
 		// at root, others nest under a versioned subdirectory.
-		const binaryFileName = config.binaryName + binaryExt;
-		const extractedDir = join(extractDir, assetName.replace(/\.(tar\.gz|zip)$/, ""));
+		const binaryFileName = config.binaryName;
+		const extractedDir = join(extractDir, assetName.replace(/\.tar\.gz$/, ""));
 		const extractedBinaryCandidates = [join(extractedDir, binaryFileName), join(extractDir, binaryFileName)];
 		let extractedBinary = extractedBinaryCandidates.find((candidate) => existsSync(candidate));
 
@@ -318,10 +203,8 @@ async function downloadTool(tool: "fd" | "rg"): Promise<string> {
 			throw new Error(`Binary not found in archive: expected ${binaryFileName} under ${extractDir}`);
 		}
 
-		// Make executable (Unix only)
-		if (plat !== "win32") {
-			chmodSync(binaryPath, 0o755);
-		}
+		// Make executable
+		chmodSync(binaryPath, 0o755);
 	} finally {
 		// Cleanup
 		rmSync(archivePath, { force: true });
