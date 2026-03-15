@@ -383,7 +383,6 @@ export async function loadExtensions(paths: string[], cwd: string, eventBus?: Ev
 
 interface PiManifest {
 	extensions?: string[];
-	themes?: string[];
 	skills?: string[];
 	prompts?: string[];
 }
