@@ -30,13 +30,11 @@ export interface Args {
 	extensions?: string[];
 	noExtensions?: boolean;
 	print?: boolean;
-	export?: string;
 	noSkills?: boolean;
 	skills?: string[];
 	promptTemplates?: string[];
 	noPromptTemplates?: boolean;
-	themes?: string[];
-	noThemes?: boolean;
+
 	listModels?: string | true;
 	offline?: boolean;
 	verbose?: boolean;
@@ -121,8 +119,6 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 			}
 		} else if (arg === "--print" || arg === "-p") {
 			result.print = true;
-		} else if (arg === "--export" && i + 1 < args.length) {
-			result.export = args[++i];
 		} else if ((arg === "--extension" || arg === "-e") && i + 1 < args.length) {
 			result.extensions = result.extensions ?? [];
 			result.extensions.push(args[++i]);
@@ -134,15 +130,10 @@ export function parseArgs(args: string[], extensionFlags?: Map<string, { type: "
 		} else if (arg === "--prompt-template" && i + 1 < args.length) {
 			result.promptTemplates = result.promptTemplates ?? [];
 			result.promptTemplates.push(args[++i]);
-		} else if (arg === "--theme" && i + 1 < args.length) {
-			result.themes = result.themes ?? [];
-			result.themes.push(args[++i]);
 		} else if (arg === "--no-skills" || arg === "-ns") {
 			result.noSkills = true;
 		} else if (arg === "--no-prompt-templates" || arg === "-np") {
 			result.noPromptTemplates = true;
-		} else if (arg === "--no-themes") {
-			result.noThemes = true;
 		} else if (arg === "--list-models") {
 			// Check if next arg is a search pattern (not a flag or file arg)
 			if (i + 1 < args.length && !args[i + 1].startsWith("-") && !args[i + 1].startsWith("@")) {
@@ -215,9 +206,6 @@ ${chalk.bold("Options:")}
   --no-skills, -ns               Disable skills discovery and loading
   --prompt-template <path>       Load a prompt template file or directory (can be used multiple times)
   --no-prompt-templates, -np     Disable prompt template discovery and loading
-  --theme <path>                 Load a theme file or directory (can be used multiple times)
-  --no-themes                    Disable theme discovery and loading
-  --export <file>                Export session file to HTML and exit
   --list-models [search]         List available models (with optional fuzzy search)
   --verbose                      Force verbose startup (overrides quietStartup setting)
   --offline                      Disable startup network operations (same as PI_OFFLINE=1)
@@ -265,9 +253,7 @@ ${chalk.bold("Examples:")}
   # Read-only mode (no file modifications possible)
   ${APP_NAME} --tools read,grep,find,ls -p "Review the code in src/"
 
-  # Export a session file to HTML
-  ${APP_NAME} --export ~/${CONFIG_DIR_NAME}/agent/sessions/--path--/session.jsonl
-  ${APP_NAME} --export session.jsonl output.html
+
 
 ${chalk.bold("Environment Variables:")}
   OPENAI_API_KEY                   - OpenAI GPT API key

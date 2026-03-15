@@ -32,6 +32,7 @@ import type { BashResult } from "../bash-executor.js";
 import type { CompactionPreparation, CompactionResult } from "../compaction/index.js";
 import type { EventBus } from "../event-bus.js";
 import type { ExecOptions, ExecResult } from "../exec.js";
+import type { Theme } from "../headless-theme.js";
 import type { KeyId } from "../key-input.js";
 import type { CustomMessage } from "../messages.js";
 import type { ModelRegistry } from "../model-registry.js";
@@ -43,7 +44,6 @@ import type {
 	SessionManager,
 } from "../session-manager.js";
 import type { SlashCommandInfo } from "../slash-commands.js";
-import type { Theme } from "../theme/theme.js";
 import type { BashOperations } from "../tools/bash.js";
 import type { EditToolDetails } from "../tools/edit.js";
 import type {

@@ -40,8 +40,6 @@ import {
 	shouldCompact,
 } from "./compaction/index.js";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.js";
-import { exportSessionToHtml, type ToolHtmlRenderer } from "./export-html/index.js";
-import { createToolHtmlRenderer } from "./export-html/tool-renderer.js";
 import {
 	type ContextUsage,
 	type ExtensionCommandContextActions,
@@ -101,7 +99,7 @@ import {
 	TASK_RESULT_CONTEXT_CUSTOM_TYPE,
 	TASK_RESULT_CUSTOM_TYPE,
 } from "./task-contract.js";
-import { getThemeByName } from "./theme/theme.js";
+
 import type { BashOperations } from "./tools/bash.js";
 import { createAllTools } from "./tools/index.js";
 
@@ -2103,19 +2101,15 @@ export class AgentSession {
 			return;
 		}
 
-		const { skillPaths, promptPaths, themePaths } = await this._extensionRunner.emitResourcesDiscover(
-			this._cwd,
-			reason,
-		);
+		const { skillPaths, promptPaths } = await this._extensionRunner.emitResourcesDiscover(this._cwd, reason);
 
-		if (skillPaths.length === 0 && promptPaths.length === 0 && themePaths.length === 0) {
+		if (skillPaths.length === 0 && promptPaths.length === 0) {
 			return;
 		}
 
 		const extensionPaths: ResourceExtensionPaths = {
 			skillPaths: this.buildExtensionResourcePaths(skillPaths),
 			promptPaths: this.buildExtensionResourcePaths(promptPaths),
-			themePaths: this.buildExtensionResourcePaths(themePaths),
 		};
 
 		this._resourceLoader.extendResources(extensionPaths);
@@ -3342,31 +3336,10 @@ export class AgentSession {
 	}
 
 	/**
-	 * Export session to HTML.
-	 * @param outputPath Optional output path (defaults to session directory)
-	 * @returns Path to exported file
+	 * Export session to HTML (not supported in Bindery).
 	 */
-	async exportToHtml(outputPath?: string): Promise<string> {
-		const themeName = this.settingsManager.getTheme();
-		let exportTheme = getThemeByName("dark");
-		if (themeName) {
-			exportTheme = getThemeByName(themeName) ?? exportTheme;
-		}
-
-		// Create tool renderer if we have an extension runner (for custom tool HTML rendering)
-		let toolRenderer: ToolHtmlRenderer | undefined;
-		if (this._extensionRunner && exportTheme) {
-			toolRenderer = createToolHtmlRenderer({
-				getToolDefinition: (name) => this._extensionRunner!.getToolDefinition(name),
-				theme: exportTheme,
-			});
-		}
-
-		return await exportSessionToHtml(this.sessionManager, this.state, {
-			outputPath,
-			themeName,
-			toolRenderer,
-		});
+	async exportToHtml(_outputPath?: string): Promise<string> {
+		throw new Error("HTML export is not supported. Use the Bindery web UI instead.");
 	}
 
 	// =========================================================================

@@ -5,12 +5,12 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent, Model } from "@mariozechner/pi-ai";
 import type { ResourceDiagnostic } from "../diagnostics.js";
-import { headlessTheme } from "../headless-theme.js";
+import { headlessTheme, type Theme } from "../headless-theme.js";
 import type { KeyId } from "../key-input.js";
 import type { KeyAction, KeybindingsConfig } from "../keybindings.js";
 import type { ModelRegistry } from "../model-registry.js";
 import type { SessionManager } from "../session-manager.js";
-import type { Theme } from "../theme/theme.js";
+
 import type {
 	BeforeAgentStartEvent,
 	BeforeAgentStartEventResult,

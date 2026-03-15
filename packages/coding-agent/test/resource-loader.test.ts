@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -34,7 +34,6 @@ describe("DefaultResourceLoader", () => {
 			expect(loader.getExtensions().extensions).toEqual([]);
 			expect(loader.getSkills().skills).toEqual([]);
 			expect(loader.getPrompts().prompts).toEqual([]);
-			expect(loader.getThemes().themes).toEqual([]);
 		});
 
 		it("should discover skills from agentDir", async () => {
@@ -128,20 +127,6 @@ description: project
 Project skill`,
 			);
 
-			const baseTheme = JSON.parse(
-				readFileSync(join(process.cwd(), "src", "modes", "interactive", "theme", "dark.json"), "utf-8"),
-			) as { name: string; vars?: Record<string, string> };
-			baseTheme.name = "collision-theme";
-			const userThemePath = join(agentDir, "themes", "collision.json");
-			const projectThemePath = join(cwd, ".pi", "themes", "collision.json");
-			mkdirSync(join(agentDir, "themes"), { recursive: true });
-			mkdirSync(join(cwd, ".pi", "themes"), { recursive: true });
-			writeFileSync(userThemePath, JSON.stringify(baseTheme, null, 2));
-			if (baseTheme.vars) {
-				baseTheme.vars.accent = "#ff00ff";
-			}
-			writeFileSync(projectThemePath, JSON.stringify(baseTheme, null, 2));
-
 			const loader = new DefaultResourceLoader({ cwd, agentDir });
 			await loader.reload();
 
@@ -150,9 +135,6 @@ Project skill`,
 
 			const skill = loader.getSkills().skills.find((s) => s.name === "collision-skill");
 			expect(skill?.filePath).toBe(projectSkillPath);
-
-			const theme = loader.getThemes().themes.find((t) => t.name === "collision-theme");
-			expect(theme?.sourcePath).toBe(projectThemePath);
 		});
 
 		it("should keep both extensions loaded when command names collide", async () => {
@@ -220,7 +202,6 @@ Project skill`,
 			settingsManager.setExtensionPaths(["-extensions/disabled.ts"]);
 			settingsManager.setSkillPaths(["-skills/skip-skill"]);
 			settingsManager.setPromptTemplatePaths(["-prompts/skip.md"]);
-			settingsManager.setThemePaths(["-themes/skip.json"]);
 
 			const extensionsDir = join(agentDir, "extensions");
 			mkdirSync(extensionsDir, { recursive: true });
@@ -251,12 +232,10 @@ Content`,
 			const { extensions } = loader.getExtensions();
 			const { skills } = loader.getSkills();
 			const { prompts } = loader.getPrompts();
-			const { themes } = loader.getThemes();
 
 			expect(extensions.some((e) => e.path.endsWith("disabled.ts"))).toBe(false);
 			expect(skills.some((s) => s.name === "skip-skill")).toBe(false);
 			expect(prompts.some((p) => p.name === "skip")).toBe(false);
-			expect(themes.some((t) => t.sourcePath?.endsWith("skip.json"))).toBe(false);
 		});
 
 		it("should discover AGENTS.md context files", async () => {

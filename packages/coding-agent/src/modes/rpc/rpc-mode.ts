@@ -18,8 +18,7 @@ import type {
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
 } from "../../core/extensions/index.js";
-import { headlessTheme } from "../../core/headless-theme.js";
-import type { Theme } from "../../core/theme/theme.js";
+import { headlessTheme, type Theme } from "../../core/headless-theme.js";
 import { resizeImage } from "../../utils/image-resize.js";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.js";
 import type {

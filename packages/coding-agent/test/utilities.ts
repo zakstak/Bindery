@@ -180,7 +180,7 @@ export function createTestResourceLoader(): ResourceLoader {
 		getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
 		getSkills: () => ({ skills: [], diagnostics: [] }),
 		getPrompts: () => ({ prompts: [], diagnostics: [] }),
-		getThemes: () => ({ themes: [], diagnostics: [] }),
+
 		getAgentsFiles: () => ({ agentsFiles: [] }),
 		getSystemPrompt: () => undefined,
 		getProjectSystemPrompt: () => ({ path: join(process.cwd(), ".pi", "SYSTEM.md"), content: "" }),

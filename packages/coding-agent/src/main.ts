@@ -13,7 +13,7 @@ import { processFileArguments } from "./cli/file-processor.js";
 import { listModels } from "./cli/list-models.js";
 import { APP_NAME, CONFIG_DIR_NAME, getAgentDir, getModelsPath, getSettingsPath, VERSION } from "./config.js";
 import { AuthStorage } from "./core/auth-storage.js";
-import { exportFromFile } from "./core/export-html/index.js";
+
 import type { LoadExtensionsResult } from "./core/extensions/index.js";
 import { ModelRegistry } from "./core/model-registry.js";
 import { resolveCliModel, resolveModelScope, type ScopedModel } from "./core/model-resolver.js";
@@ -623,11 +623,9 @@ export async function main(args: string[]) {
 		additionalExtensionPaths: firstPass.extensions,
 		additionalSkillPaths: firstPass.skills,
 		additionalPromptTemplatePaths: firstPass.promptTemplates,
-		additionalThemePaths: firstPass.themes,
 		noExtensions: firstPass.noExtensions,
 		noSkills: firstPass.noSkills,
 		noPromptTemplates: firstPass.noPromptTemplates,
-		noThemes: firstPass.noThemes,
 		systemPrompt: firstPass.systemPrompt,
 		appendSystemPrompt: firstPass.appendSystemPrompt,
 	});
@@ -686,20 +684,6 @@ export async function main(args: string[]) {
 			// Prepend stdin content to messages
 			parsed.messages.unshift(stdinContent);
 		}
-	}
-
-	if (parsed.export) {
-		let result: string;
-		try {
-			const outputPath = parsed.messages.length > 0 ? parsed.messages[0] : undefined;
-			result = await exportFromFile(parsed.export, outputPath);
-		} catch (error: unknown) {
-			const message = error instanceof Error ? error.message : "Failed to export session";
-			console.error(chalk.red(`Error: ${message}`));
-			process.exit(1);
-		}
-		console.log(`Exported to: ${result}`);
-		process.exit(0);
 	}
 
 	if (parsed.mode === "rpc" && parsed.fileArgs.length > 0) {

@@ -54,7 +54,7 @@ This is a test skill.
 			getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
 			getSkills: () => ({ skills: [], diagnostics: [] }),
 			getPrompts: () => ({ prompts: [], diagnostics: [] }),
-			getThemes: () => ({ themes: [], diagnostics: [] }),
+
 			getAgentsFiles: () => ({ agentsFiles: [] }),
 			getSystemPrompt: () => undefined,
 			getProjectSystemPrompt: () => ({ path: join(tempDir, ".pi", "SYSTEM.md"), content: "" }),
@@ -90,7 +90,7 @@ This is a test skill.
 			getExtensions: () => ({ extensions: [], errors: [], runtime: createExtensionRuntime() }),
 			getSkills: () => ({ skills: [customSkill], diagnostics: [] }),
 			getPrompts: () => ({ prompts: [], diagnostics: [] }),
-			getThemes: () => ({ themes: [], diagnostics: [] }),
+
 			getAgentsFiles: () => ({ agentsFiles: [] }),
 			getSystemPrompt: () => undefined,
 			getProjectSystemPrompt: () => ({ path: join(tempDir, ".pi", "SYSTEM.md"), content: "" }),

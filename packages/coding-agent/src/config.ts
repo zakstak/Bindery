@@ -102,37 +102,6 @@ export function getPackageDir(): string {
 	return __dirname;
 }
 
-/**
- * Get path to built-in themes directory (shipped with package)
- * - For Bun binary: theme/ next to executable
- * - For Node.js (dist/): dist/core/theme/
- * - For tsx (src/): src/core/theme/
- */
-export function getThemesDir(): string {
-	if (isBunBinary) {
-		return join(dirname(process.execPath), "theme");
-	}
-	// Theme assets live in core/theme/ relative to src/ or dist/
-	const packageDir = getPackageDir();
-	const srcOrDist = existsSync(join(packageDir, "src")) ? "src" : "dist";
-	return join(packageDir, srcOrDist, "core", "theme");
-}
-
-/**
- * Get path to HTML export template directory (shipped with package)
- * - For Bun binary: export-html/ next to executable
- * - For Node.js (dist/): dist/core/export-html/
- * - For tsx (src/): src/core/export-html/
- */
-export function getExportTemplateDir(): string {
-	if (isBunBinary) {
-		return join(dirname(process.execPath), "export-html");
-	}
-	const packageDir = getPackageDir();
-	const srcOrDist = existsSync(join(packageDir, "src")) ? "src" : "dist";
-	return join(packageDir, srcOrDist, "core", "export-html");
-}
-
 /** Get path to package.json */
 export function getPackageJsonPath(): string {
 	return join(getPackageDir(), "package.json");
@@ -193,11 +162,6 @@ export function getAgentDir(): string {
 		return envDir;
 	}
 	return join(homedir(), CONFIG_DIR_NAME, "agent");
-}
-
-/** Get path to user's custom themes directory */
-export function getCustomThemesDir(): string {
-	return join(getAgentDir(), "themes");
 }
 
 /** Get path to models.json */
