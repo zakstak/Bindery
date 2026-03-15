@@ -23,7 +23,6 @@ import { SessionManager } from "./core/session-manager.js";
 import { SettingsManager } from "./core/settings-manager.js";
 import { time } from "./core/timings.js";
 import { allTools } from "./core/tools/index.js";
-import { runMigrations } from "./migrations.js";
 import { runPrintMode, runRpcMode } from "./modes/index.js";
 
 /**
@@ -600,9 +599,6 @@ export async function main(args: string[]) {
 	if (await handleConfigCommand(args)) {
 		return;
 	}
-
-	// Run migrations (pass cwd for project-local migrations)
-	runMigrations(process.cwd());
 
 	// First pass: parse args to get --extension paths
 	const firstPass = parseArgs(args);
