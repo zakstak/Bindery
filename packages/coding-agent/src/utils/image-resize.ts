@@ -1,8 +1,25 @@
+import { createRequire } from "node:module";
 import type { ImageContent } from "@mariozechner/pi-ai";
-// @ts-expect-error CJS interop: bindery-tools uses module.exports but tsx resolves it as default at runtime
-import binderyTools from "bindery-tools";
 
-const { resizeImage: napiResize } = binderyTools;
+const require = createRequire(import.meta.url);
+const { resizeImage: napiResize } = require("bindery-tools") as {
+	resizeImage: (opts: {
+		data: string;
+		mimeType: string;
+		maxWidth: number;
+		maxHeight: number;
+		maxBytes: number;
+		jpegQuality: number;
+	}) => {
+		data: string;
+		mimeType: string;
+		originalWidth: number;
+		originalHeight: number;
+		width: number;
+		height: number;
+		wasResized: boolean;
+	};
+};
 
 export interface ImageResizeOptions {
 	maxWidth?: number; // Default: 2000
