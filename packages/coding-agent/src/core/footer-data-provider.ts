@@ -1,5 +1,5 @@
-import { existsSync, type FSWatcher, readFileSync, statSync, watch } from "fs";
-import { dirname, join, resolve } from "path";
+import { existsSync, type FSWatcher, readFileSync, statSync, watch } from "node:fs";
+import { dirname, join, resolve } from "node:path";
 
 /**
  * Find the git HEAD path by walking up from cwd.

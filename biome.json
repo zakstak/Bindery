@@ -7,12 +7,11 @@
 			"style": {
 				"noNonNullAssertion": "off",
 				"useConst": "error",
-				"useNodejsImportProtocol": "off"
+				"useNodejsImportProtocol": "error"
 			},
 			"suspicious": {
-				"noExplicitAny": "off",
-				"noControlCharactersInRegex": "off",
-				"noEmptyInterface": "off"
+				"noExplicitAny": "info",
+				"noControlCharactersInRegex": "off"
 			}
 		}
 	},
@@ -24,13 +23,6 @@
 		"lineWidth": 120
 	},
 	"files": {
-		"includes": [
-			"packages/*/src/**/*.ts",
-			"packages/*/test/**/*.ts",
-			"!**/node_modules/**/*",
-			"!**/test-sessions.ts",
-			"!**/models.generated.ts",
-			"!!**/node_modules"
-		]
+		"includes": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "!**/node_modules/**/*"]
 	}
 }

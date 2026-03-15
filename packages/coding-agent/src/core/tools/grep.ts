@@ -1,6 +1,6 @@
+import { readFileSync, statSync } from "node:fs";
 import { createRequire } from "node:module";
-import { readFileSync, statSync } from "fs";
-import path from "path";
+import path from "node:path";
 
 const require = createRequire(import.meta.url);
 const { rgSearch } = require("bindery-tools") as {

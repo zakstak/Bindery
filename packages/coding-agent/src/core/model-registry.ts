@@ -2,6 +2,8 @@
  * Model registry - manages built-in and custom models, provides API key resolution.
  */
 
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	type Api,
 	type AssistantMessageEventStream,
@@ -20,8 +22,6 @@ import {
 import { registerOAuthProvider, resetOAuthProviders } from "@mariozechner/pi-ai/oauth";
 import { type Static, Type } from "@sinclair/typebox";
 import AjvModule from "ajv";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
 import { getAgentDir } from "../config.js";
 import type { AuthStorage } from "./auth-storage.js";
 import { clearConfigValueCache, resolveConfigValue, resolveHeaders } from "./resolve-config-value.js";

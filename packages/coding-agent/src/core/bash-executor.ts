@@ -6,11 +6,11 @@
  * - Direct calls from modes that need bash execution
  */
 
+import { type ChildProcess, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createWriteStream, type WriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type ChildProcess, spawn } from "child_process";
 import stripAnsi from "strip-ansi";
 import { getShellConfig, getShellEnv, killProcessTree, sanitizeBinaryOutput } from "../utils/shell.js";
 import type { BashOperations } from "./tools/bash.js";

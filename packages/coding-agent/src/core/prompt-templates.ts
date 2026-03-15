@@ -1,6 +1,6 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
-import { homedir } from "os";
-import { basename, isAbsolute, join, resolve, sep } from "path";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, isAbsolute, join, resolve, sep } from "node:path";
 import { CONFIG_DIR_NAME, getPromptsDir } from "../config.js";
 import { parseFrontmatter } from "../utils/frontmatter.js";
 

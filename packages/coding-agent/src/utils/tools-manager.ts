@@ -1,9 +1,9 @@
-import { spawnSync } from "child_process";
-import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "fs";
-import { arch, platform } from "os";
-import { dirname, join, normalize, sep } from "path";
-import { Readable } from "stream";
-import { finished, pipeline } from "stream/promises";
+import { spawnSync } from "node:child_process";
+import { chmodSync, createWriteStream, existsSync, mkdirSync, readdirSync, renameSync, rmSync } from "node:fs";
+import { arch, platform } from "node:os";
+import { dirname, join, normalize, sep } from "node:path";
+import { Readable } from "node:stream";
+import { finished, pipeline } from "node:stream/promises";
 import * as yauzl from "yauzl";
 import { APP_NAME, getBinDir } from "../config.js";
 
