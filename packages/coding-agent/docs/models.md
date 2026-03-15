@@ -143,29 +143,31 @@ Current behavior:
 
 ## Overriding Built-in Providers
 
-Route a built-in provider through a proxy without redefining models:
+In this Bindery fork, built-in override-by-name only applies to the shipped provider families: OpenAI, Google, and ZAI. If you use a removed upstream provider name such as `anthropic` or `openrouter`, a `baseUrl`-only entry does not materialize models; define `models` explicitly instead.
+
+Route a shipped built-in provider through a proxy without redefining models:
 
 ```json
 {
   "providers": {
-    "anthropic": {
+    "openai": {
       "baseUrl": "https://my-proxy.example.com/v1"
     }
   }
 }
 ```
 
-All built-in Anthropic models remain available. Existing OAuth or API key auth continues to work.
+All built-in OpenAI models remain available. Existing OAuth or API key auth continues to work.
 
 To merge custom models into a built-in provider, include the `models` array:
 
 ```json
 {
   "providers": {
-    "anthropic": {
+    "openai": {
       "baseUrl": "https://my-proxy.example.com/v1",
-      "apiKey": "ANTHROPIC_API_KEY",
-      "api": "anthropic-messages",
+      "apiKey": "OPENAI_API_KEY",
+      "api": "openai-responses",
       "models": [...]
     }
   }
@@ -180,19 +182,17 @@ Merge semantics:
 
 ## Per-model Overrides
 
-Use `modelOverrides` to customize specific built-in models without replacing the provider's full model list.
+Use `modelOverrides` to customize specific shipped built-in models without replacing the provider's full model list.
 
 ```json
 {
   "providers": {
-    "openrouter": {
+    "openai": {
       "modelOverrides": {
-        "anthropic/claude-sonnet-4": {
-          "name": "Claude Sonnet 4 (Bedrock Route)",
-          "compat": {
-            "openRouterRouting": {
-              "only": ["amazon-bedrock"]
-            }
+        "gpt-5.4": {
+          "name": "GPT-5.4 (Proxy Route)",
+          "headers": {
+            "x-org-id": "OPENAI_ORG_ID"
           }
         }
       }
@@ -204,7 +204,7 @@ Use `modelOverrides` to customize specific built-in models without replacing the
 `modelOverrides` supports these fields per model: `name`, `reasoning`, `input`, `cost` (partial), `contextWindow`, `maxTokens`, `headers`, `compat`.
 
 Behavior notes:
-- `modelOverrides` are applied to built-in provider models.
+- `modelOverrides` are applied only to the built-in provider models that ship in this fork.
 - Unknown model IDs are ignored.
 - You can combine provider-level `baseUrl`/`headers` with `modelOverrides`.
 - If `models` is also defined for a provider, custom models are merged after built-in overrides. A custom model with the same `id` replaces the overridden built-in model entry.

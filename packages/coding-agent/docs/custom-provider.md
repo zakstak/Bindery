@@ -35,7 +35,7 @@ import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 
 export default function (pi: ExtensionAPI) {
   // Override baseUrl for existing provider
-  pi.registerProvider("anthropic", {
+  pi.registerProvider("openai", {
     baseUrl: "https://proxy.example.com"
   });
 
@@ -61,11 +61,11 @@ export default function (pi: ExtensionAPI) {
 
 ## Override Existing Provider
 
-The simplest use case: redirect an existing provider through a proxy.
+The simplest use case: redirect a provider that is already loaded in the registry through a proxy. In this Bindery fork that means the shipped built-ins (OpenAI, Google, ZAI) or a provider your extension already registered with `models`.
 
 ```typescript
-// All Anthropic requests now go through your proxy
-pi.registerProvider("anthropic", {
+// All OpenAI requests now go through your proxy
+pi.registerProvider("openai", {
   baseUrl: "https://proxy.example.com"
 });
 
@@ -86,6 +86,8 @@ pi.registerProvider("google", {
 ```
 
 When only `baseUrl` and/or `headers` are provided (no `models`), all existing models for that provider are preserved with the new endpoint.
+
+If the provider is not already loaded, this override-only form is a no-op. For removed upstream built-ins like `anthropic` or `openrouter`, register a full custom provider with `models` instead of assuming a built-in catalog still exists.
 
 ## Register New Provider
 

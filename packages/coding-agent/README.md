@@ -64,33 +64,16 @@ Headless mode respects the same resource discovery as your web workspace: config
 Bindery keeps named providers and tool-capable models cataloged for you. Select them from the web UI or with CLI flags when you dispatch headless commands.
 
 **Subscriptions:**
-- Anthropic Claude Pro/Max
 - OpenAI ChatGPT Plus/Pro (Codex)
-- GitHub Copilot
 - Google Gemini CLI
 - Google Antigravity
 
 **API keys:**
-- Anthropic
 - OpenAI
-- Azure OpenAI
 - Google Gemini
-- Google Vertex
-- Amazon Bedrock
-- Mistral
-- Groq
-- Cerebras
-- xAI
-- OpenRouter
-- Vercel AI Gateway
 - ZAI
-- OpenCode Zen
-- OpenCode Go
-- Hugging Face
-- Kimi For Coding
-- MiniMax
 
-See [docs/providers.md](docs/providers.md) for setup instructions. Add custom providers via `~/.pi/agent/models.json` when they speak OpenAI, Anthropic, or Google APIs. Dual-transport models and OAuth flows are still surfaced through [extensions](#extensions) when needed.
+See [docs/providers.md](docs/providers.md) for setup instructions. This Bindery fork only ships built-in auth handling for OpenAI, Google, and ZAI. Add custom providers via `~/.pi/agent/models.json` when they speak OpenAI, Anthropic, or Google APIs. Dual-transport models and OAuth flows are still surfaced through [extensions](#extensions) when needed.
 
 ---
 
@@ -260,7 +243,7 @@ pi config                   # prints a deprecation reminder and exits (no config
 
 | Option | Description |
 |--------|-------------|
-| `--provider <name>` | Select a provider (anthropic, openai, google, etc.) |
+| `--provider <name>` | Select a provider (openai, google, zai, or a custom provider from `models.json`) |
 | `--model <pattern>` | Model pattern or ID (`provider/id` with optional `:<thinking>`) |
 | `--api-key <key>` | Override environment credentials |
 | `--thinking <level>` | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
@@ -345,7 +328,7 @@ pi --thinking high "Solve this complex problem"
 | `PI_CODING_AGENT_DIR` | Override the config directory (default: `~/.pi/agent`) |
 | `PI_PACKAGE_DIR` | Override the package directory (handy for Nix/Guix) |
 | `PI_SKIP_VERSION_CHECK` | Skip the update check at startup |
-| `PI_CACHE_RETENTION` | Set to `long` for extended prompt caching (anthropic 1h, OpenAI 24h) |
+| `PI_CACHE_RETENTION` | Set to `long` for extended prompt caching (OpenAI 24h) |
 | `VISUAL`, `EDITOR` | External editor used when the agent opens files |
 
 ---
