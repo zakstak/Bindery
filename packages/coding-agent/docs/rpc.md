@@ -940,7 +940,7 @@ There are two categories of extension UI methods:
 If a dialog method includes a `timeout` field, the agent-side will auto-resolve with a default value when the timeout expires. The client does not need to track timeouts.
 
 Some `ExtensionUIContext` methods are unsupported in RPC mode because they require direct interactive runtime access and throw `ERR_EXTENSION_UI_UNSUPPORTED`:
-- `onTerminalInput()`, `setWorkingMessage()`, `setFooter()`, `setHeader()`, `custom()`, `setEditorComponent()`, `setToolsExpanded()`
+- `onTerminalInput()`, `setWorkingMessage()`, `setFooter()`, `setHeader()`, `setToolsExpanded()`
 - `getEditorText()`, `getToolsExpanded()`, `getAllThemes()`, `getTheme()`, `setTheme()`
 - `pasteToEditor()` delegates to `setEditorText()` (no paste/collapse handling)
 

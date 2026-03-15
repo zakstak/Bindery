@@ -1,7 +1,7 @@
 /**
  * Tool HTML renderer for custom tools in HTML export.
  *
- * Renders custom tool calls and results to HTML by invoking their TUI renderers
+ * Renders custom tool calls and results to HTML by invoking their component renderers
  * and converting the ANSI output to HTML.
  */
 
@@ -35,7 +35,7 @@ export interface ToolHtmlRenderer {
  * Create a tool HTML renderer.
  *
  * The renderer looks up tool definitions and invokes their renderCall/renderResult
- * methods, converting the resulting TUI Component output (ANSI) to HTML.
+ * methods, converting the resulting component output (ANSI) to HTML.
  */
 export function createToolHtmlRenderer(deps: ToolHtmlRendererDeps): ToolHtmlRenderer {
 	const { getToolDefinition, theme, width = 100 } = deps;

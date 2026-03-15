@@ -271,19 +271,13 @@ describe("RPC operator contract", () => {
 		expect(capturedUI).toBeDefined();
 		const ui = capturedUI as {
 			setFooter: (factory: unknown) => void;
-			setEditorComponent: (factory: unknown) => void;
 			setWidget: (key: string, content: unknown) => void;
-			custom: () => Promise<unknown>;
 		};
 
 		expect(() => ui.setFooter(undefined)).toThrowError('Extension UI method "setFooter" is unsupported in rpc mode.');
-		expect(() => ui.setEditorComponent(undefined)).toThrowError(
-			'Extension UI method "setEditorComponent" is unsupported in rpc mode.',
-		);
 		expect(() => ui.setWidget("widget", () => "component")).toThrowError(
 			'Extension UI method "setWidget" is unsupported in rpc mode.',
 		);
-		await expect(ui.custom()).rejects.toThrowError('Extension UI method "custom" is unsupported in rpc mode.');
 	});
 });
 

@@ -144,16 +144,6 @@ export interface ExtensionUIContext {
 	/** Set the terminal window/tab title. */
 	setTitle(title: string): void;
 
-	/** Show a custom component with keyboard focus. */
-	custom<T>(
-		factory: unknown,
-		options?: {
-			overlay?: boolean;
-			overlayOptions?: unknown;
-			onHandle?: (handle: unknown) => void;
-		},
-	): Promise<T>;
-
 	/** Paste text into the editor, triggering paste handling (collapse for large content). */
 	pasteToEditor(text: string): void;
 
@@ -165,41 +155,6 @@ export interface ExtensionUIContext {
 
 	/** Show a multi-line editor for text editing. */
 	editor(title: string, prefill?: string): Promise<string | undefined>;
-
-	/**
-	 * Set a custom editor component via factory function.
-	 * Pass undefined to restore the default editor.
-	 *
-	 * The factory receives:
-	 * - `theme`: EditorTheme for styling borders and autocomplete
-	 * - `keybindings`: KeybindingsManager for app-level keybindings
-	 *
-	 * For full app keybinding support (escape, ctrl+d, model switching, etc.),
-	 * extend `CustomEditor` from `@mariozechner/pi-coding-agent` and call
-	 * `super.handleInput(data)` for keys you don't handle.
-	 *
-	 * @example
-	 * ```ts
-	 * import { CustomEditor } from "@mariozechner/pi-coding-agent";
-	 *
-	 * class VimEditor extends CustomEditor {
-	 *   private mode: "normal" | "insert" = "insert";
-	 *
-	 *   handleInput(data: string): void {
-	 *     if (this.mode === "normal") {
-	 *       // Handle vim normal mode keys...
-	 *       if (data === "i") { this.mode = "insert"; return; }
-	 *     }
-	 *     super.handleInput(data);  // App keybindings + text editing
-	 *   }
-	 * }
-	 *
-	 * ctx.ui.setEditorComponent((tui, theme, keybindings) =>
-	 *   new VimEditor(tui, theme, keybindings)
-	 * );
-	 * ```
-	 */
-	setEditorComponent(factory: unknown | undefined): void;
 
 	/** Get the current theme for styling. */
 	readonly theme: Theme;

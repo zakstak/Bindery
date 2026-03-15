@@ -111,7 +111,7 @@ pi -e ./my-extension.ts
 
 Extensions load in the headless CLI/SDK by default and can also surface UI through Bindery web (or any client that speaks the extension UI sub-protocol). When you run `pi` with `--print`, `--mode json`, `--mode rpc`, or from another headless host, there is no interactive surface. In those cases `ctx.hasUI` is `false`, and any call to `ctx.ui` helpers rejects immediately with `ERR_EXTENSION_UI_UNSUPPORTED`. Guard UI calls with `ctx.hasUI` or skip them entirely.
 
-Bindery web is the canonical interactive surface. It renders the conversation stream, tool results, widgets, and dialogs that extensions request through the UI sub-protocol. Nothing in the CLI (without a linked web client) can render custom components, footers, or editors, so extensions that rely on those hooks should either detect the host or move those flows into Bindery web.
+Bindery web is the canonical interactive surface. It renders the conversation stream, tool results, widgets, and dialogs that extensions request through the UI sub-protocol. Nothing in the CLI (without a linked web client) can render host-owned UI affordances like footers or alternate editors, so extensions that rely on those hooks should either detect the host or move those flows into Bindery web.
 
 ```typescript
 if (!ctx.hasUI) {
@@ -1559,7 +1559,7 @@ The `renderCall`/`renderResult` hooks and `pi.registerMessageRenderer` powered t
 
 ## Custom UI
 
-User interaction is now hosted by Bindery web (or another UI client that implements the extension UI protocol). The CLI/SDK surfaces are headless, so any `ctx.ui` call requires the client to participate. When `ctx.hasUI` is `false`, the runtime throws `ERR_EXTENSION_UI_UNSUPPORTED` for every method on `ctx.ui`, including `select`, `confirm`, `input`, `editor`, `notify`, `setStatus`, `setWidget`, `setFooter`, `setEditorText`, `setEditorComponent`, `setTheme`, `setTitle`, and the deprecated `ctx.ui.custom`. Guard with `ctx.hasUI` before calling these helpers.
+User interaction is now hosted by Bindery web (or another UI client that implements the extension UI protocol). The CLI/SDK surfaces are headless, so any `ctx.ui` call requires the client to participate. When `ctx.hasUI` is `false`, the runtime throws `ERR_EXTENSION_UI_UNSUPPORTED` for every method on `ctx.ui`, including `select`, `confirm`, `input`, `editor`, `notify`, `setStatus`, `setWidget`, `setFooter`, `setEditorText`, `setTheme`, and `setTitle`. Guard with `ctx.hasUI` before calling these helpers.
 
 ```typescript
 if (!ctx.hasUI) {
@@ -1577,7 +1577,7 @@ Bindery web renders dialogs, notifications, widgets, and status text whenever an
 - `notify` emits non-blocking notifications.
 - `setStatus`, `setWidget`, `setFooter`, `setTitle`, `setEditorText`, `setToolsExpanded`, and `setTheme` control pieces of the web UI once it is connected.
 
-Avoid trying to draw terminal-only components. Hooks such as `ctx.ui.custom`, `ctx.ui.setEditorComponent`, `pi.registerMessageRenderer`, and `renderCall`/`renderResult` are not supported and will throw `ERR_EXTENSION_UI_UNSUPPORTED` except when Bindery web (or a compatible host) implements an alternative. Build the UI you need by returning structured `content`/`details` from tools, sending messages via `pi.sendMessage()`, and letting the host render cards, charts, or overlays.
+Avoid trying to draw terminal-only components. Hooks such as `pi.registerMessageRenderer` and `renderCall`/`renderResult` are not supported and will throw `ERR_EXTENSION_UI_UNSUPPORTED` except when Bindery web (or a compatible host) implements an alternative. Build the UI you need by returning structured `content`/`details` from tools, sending messages via `pi.sendMessage()`, and letting the host render cards, charts, or overlays.
 
 ## Error Handling
 
@@ -1605,16 +1605,16 @@ All examples in [examples/extensions/](../examples/extensions/).
 | **Tools** |||
 | `hello.ts` | Minimal tool registration | `registerTool` |
 | `question.ts` | Tool with user interaction (Bindery web only) | `registerTool`, `ui.select` |
-| `questionnaire.ts` | Multi-step wizard tool (Bindery web only) | `registerTool`, `ui.custom` |
+| `questionnaire.ts` | Multi-step wizard tool (Bindery web only) | `registerTool`, `ui.editor` |
 | `todo.ts` | Stateful tool with persistence | `registerTool`, `appendEntry`, structured `details`, session events |
 | `dynamic-tools.ts` | Register tools after startup and during commands | `registerTool`, `session_start`, `registerCommand` |
 | `truncated-tool.ts` | Output truncation example | `registerTool`, `truncateHead` |
 | `tool-override.ts` | Override built-in read tool | `registerTool` (same name as built-in) |
 | **Commands** |||
 | `pirate.ts` | Modify system prompt per-turn | `registerCommand`, `before_agent_start` |
-| `summarize.ts` | Conversation summary command (Bindery web only) | `registerCommand`, `ui.custom` |
-| `handoff.ts` | Cross-provider model handoff (Bindery web only) | `registerCommand`, `ui.editor`, `ui.custom` |
-| `qna.ts` | Q&A with custom UI (Bindery web only) | `registerCommand`, `ui.custom`, `setEditorText` |
+| `summarize.ts` | Conversation summary command (Bindery web only) | `registerCommand`, `ui.editor` |
+| `handoff.ts` | Cross-provider model handoff (Bindery web only) | `registerCommand`, `ui.editor`, `setEditorText` |
+| `qna.ts` | Q&A with custom UI (Bindery web only) | `registerCommand`, `ui.editor`, `setEditorText` |
 | `send-user-message.ts` | Inject user messages | `registerCommand`, `sendUserMessage` |
 | `reload-runtime.ts` | Reload command and LLM tool handoff | `registerCommand`, `ctx.reload()`, `sendUserMessage` |
 | `shutdown-command.ts` | Graceful shutdown command | `registerCommand`, `shutdown()` |
@@ -1638,11 +1638,11 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `status-line.ts` | Footer status indicator (Bindery web only) | `setStatus`, session events |
 | `custom-footer.ts` | Replace footer entirely (Bindery web only) | `registerCommand`, `setFooter` |
 | `custom-header.ts` | Replace startup header (Bindery web only) | `on("session_start")`, `setHeader` |
-| `modal-editor.ts` | Vim-style modal editor (Bindery web only) | `setEditorComponent`, `CustomEditor` |
-| `rainbow-editor.ts` | Custom editor styling (Bindery web only) | `setEditorComponent` |
+| `modal-editor.ts` | Vim-style modal editor (Bindery web only) | `ui.editor`, `setEditorText` |
+| `rainbow-editor.ts` | Custom editor styling (Bindery web only) | `ui.editor`, `setEditorText` |
 | `widget-placement.ts` | Widget above/below editor (Bindery web only) | `setWidget` |
-| `overlay-test.ts` | Overlay components (Bindery web only) | `ui.custom` with overlay options |
-| `overlay-qa-tests.ts` | Comprehensive overlay tests (Bindery web only) | `ui.custom`, all overlay options |
+| `overlay-test.ts` | Overlay-focused host UI example (Bindery web only) | `ui.notify`, `setWidget` |
+| `overlay-qa-tests.ts` | Overlay-focused host UI QA example (Bindery web only) | `ui.notify`, `setWidget` |
 | `notify.ts` | Simple notifications (Bindery web only) | `ui.notify` |
 | `timed-confirm.ts` | Dialogs with timeout (Bindery web only) | `ui.confirm` with timeout/signal |
 | `mac-system-theme.ts` | Auto-switch theme (Bindery web only) | `setTheme`, `exec` |
@@ -1656,9 +1656,9 @@ All examples in [examples/extensions/](../examples/extensions/).
 | `sandbox/` | Sandboxed tool execution | Tool operations |
 | `subagent/` | Spawn sub-agents | `registerTool`, `exec` |
 | **Games** |||
-| `snake.ts` | Snake game | `registerCommand`, `ui.custom`, keyboard handling |
-| `space-invaders.ts` | Space Invaders game | `registerCommand`, `ui.custom` |
-| `doom-overlay/` | Doom in overlay | `ui.custom` with overlay |
+| `snake.ts` | Snake game | `registerCommand`, `ui.editor`, `setWidget` |
+| `space-invaders.ts` | Space Invaders game | `registerCommand`, `ui.editor`, `setWidget` |
+| `doom-overlay/` | Doom-style overlay host demo | `ui.notify`, `setWidget` |
 | **Providers** |||
 | `custom-provider-anthropic/` | Custom Anthropic proxy | `registerProvider` |
 | `custom-provider-gitlab-duo/` | GitLab Duo integration | `registerProvider` with OAuth |

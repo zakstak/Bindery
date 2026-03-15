@@ -267,10 +267,6 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 			} as RpcExtensionUIRequest);
 		},
 
-		async custom() {
-			return throwUnsupportedExtensionUIMethod("custom");
-		},
-
 		pasteToEditor(text: string): void {
 			// Paste handling not supported in RPC mode - falls back to setEditorText
 			this.setEditorText(text);
@@ -307,10 +303,6 @@ export async function runRpcMode(session: AgentSession): Promise<never> {
 				});
 				output({ type: "extension_ui_request", id, method: "editor", title, prefill } as RpcExtensionUIRequest);
 			});
-		},
-
-		setEditorComponent(): void {
-			throwUnsupportedExtensionUIMethod("setEditorComponent");
 		},
 
 		get theme() {

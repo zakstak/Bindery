@@ -191,12 +191,10 @@ const noOpUIContext: ExtensionUIContext = {
 	setFooter: () => throwUnsupportedExtensionUIMethod("setFooter", "headless"),
 	setHeader: () => throwUnsupportedExtensionUIMethod("setHeader", "headless"),
 	setTitle: () => throwUnsupportedExtensionUIMethod("setTitle", "headless"),
-	custom: async () => throwUnsupportedExtensionUIMethod("custom", "headless"),
 	pasteToEditor: () => throwUnsupportedExtensionUIMethod("pasteToEditor", "headless"),
 	setEditorText: () => throwUnsupportedExtensionUIMethod("setEditorText", "headless"),
 	getEditorText: () => throwUnsupportedExtensionUIMethod("getEditorText", "headless"),
 	editor: async () => throwUnsupportedExtensionUIMethod("editor", "headless"),
-	setEditorComponent: () => throwUnsupportedExtensionUIMethod("setEditorComponent", "headless"),
 	get theme() {
 		return headlessTheme;
 	},

@@ -175,7 +175,7 @@ function generateHtml(sessionData: SessionData, themeName?: string): string {
 const BUILTIN_TOOLS = new Set(["bash", "read", "write", "edit", "ls", "find", "grep"]);
 
 /**
- * Pre-render custom tools to HTML using their TUI renderers.
+ * Pre-render custom tools to HTML using their component renderers.
  */
 function preRenderCustomTools(
 	entries: SessionEntry[],
@@ -222,7 +222,7 @@ function preRenderCustomTools(
 
 /**
  * Export session to HTML using SessionManager and AgentState.
- * Used by TUI's /export command.
+ * Used by the CLI /export command.
  */
 export async function exportSessionToHtml(
 	sm: SessionManager,
