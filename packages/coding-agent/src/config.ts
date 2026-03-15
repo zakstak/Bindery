@@ -72,7 +72,7 @@ export function getUpdateInstruction(packageName: string): string {
 // =============================================================================
 
 /**
- * Get the base directory for resolving package assets (themes, package.json, README.md, CHANGELOG.md).
+ * Get the base directory for resolving package assets (package.json, README.md).
  * - For Bun binary: returns the directory containing the executable
  * - For Node.js (dist/): returns __dirname (the dist/ directory)
  * - For tsx (src/): returns parent directory (the package root)

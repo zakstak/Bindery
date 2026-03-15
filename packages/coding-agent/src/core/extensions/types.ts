@@ -251,7 +251,7 @@ export interface ExtensionCommandContext extends ExtensionContext {
 	/** Switch to a different session file. */
 	switchSession(sessionPath: string): Promise<{ cancelled: boolean }>;
 
-	/** Reload extensions, skills, prompts, and themes. */
+	/** Reload extensions, skills, and prompts. */
 	reload(): Promise<void>;
 }
 
