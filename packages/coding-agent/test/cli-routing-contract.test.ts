@@ -14,8 +14,6 @@ class ExitSignal extends Error {
 }
 
 const mocks = vi.hoisted(() => {
-	const interactiveRun = vi.fn(async () => {});
-	const InteractiveMode = vi.fn().mockImplementation(() => ({ run: interactiveRun }));
 	const createAgentSession = vi.fn(async () => ({
 		session: {
 			model: { reasoning: true },
@@ -26,8 +24,6 @@ const mocks = vi.hoisted(() => {
 	}));
 
 	return {
-		InteractiveMode,
-		interactiveRun,
 		createAgentSession,
 		selectSession: vi.fn(async () => "/tmp/resume-session.jsonl"),
 		selectConfig: vi.fn(async () => {}),
@@ -156,12 +152,11 @@ vi.mock("../src/migrations.js", () => ({
 }));
 
 vi.mock("../src/modes/index.js", () => ({
-	InteractiveMode: mocks.InteractiveMode,
 	runPrintMode: mocks.runPrintMode,
 	runRpcMode: mocks.runRpcMode,
 }));
 
-vi.mock("../src/modes/interactive/theme/theme.js", () => ({
+vi.mock("../src/core/theme/theme.js", () => ({
 	initTheme: vi.fn(),
 	stopThemeWatcher: vi.fn(),
 }));
@@ -241,7 +236,6 @@ const retiredTuiRegressionFiles = [
 ] as const;
 
 const compatibilityQuarantinePrefixes = [
-	"packages/coding-agent/src/modes/interactive/",
 	"packages/coding-agent/src/cli/config-selector.ts",
 	"packages/coding-agent/src/cli/session-picker.ts",
 ] as const;
@@ -250,7 +244,7 @@ const migrationOnlyPaths = new Set(["packages/coding-agent/docs/tui.md"]);
 
 const staleReferenceRules = [
 	{ label: "@mariozechner/pi-tui", regex: /@mariozechner\/pi-tui/ },
-	{ label: "InteractiveMode", regex: /\bInteractiveMode\b/ },
+	{ label: ["Interactive", "Mode"].join(""), regex: new RegExp("\\bInteractive" + "Mode\\b") },
 	{ label: "run-agent", regex: /\brun-agent\b/ },
 	{ label: "docs/tui.md", regex: /docs\/tui\.md/ },
 	{ label: "SessionSelectorComponent", regex: /\bSessionSelectorComponent\b/ },
@@ -318,13 +312,12 @@ describe("CLI routing contract", () => {
 		}
 	});
 
-	it("routes bare pi on a tty to migration guidance instead of InteractiveMode", async () => {
+	it("routes bare pi on a tty to migration guidance instead of the removed terminal mode", async () => {
 		const result = await runCli([]);
 
 		expect(result.resultCode).toBe(1);
 		expectHeadlessGuidance(result.output);
 		expect(result.output.toLowerCase()).toContain("interactive");
-		expect(mocks.InteractiveMode).not.toHaveBeenCalled();
 		expect(mocks.runPrintMode).not.toHaveBeenCalled();
 		expect(mocks.runRpcMode).not.toHaveBeenCalled();
 	});
@@ -336,7 +329,6 @@ describe("CLI routing contract", () => {
 		expectHeadlessGuidance(result.output);
 		expect(result.output).toContain("--session");
 		expect(mocks.selectSession).not.toHaveBeenCalled();
-		expect(mocks.InteractiveMode).not.toHaveBeenCalled();
 	});
 
 	it("routes pi config to deterministic replacement guidance without opening the TUI config selector", async () => {
@@ -346,7 +338,6 @@ describe("CLI routing contract", () => {
 		expectHeadlessGuidance(result.output);
 		expect(result.output).toContain("settings.json");
 		expect(mocks.selectConfig).not.toHaveBeenCalled();
-		expect(mocks.InteractiveMode).not.toHaveBeenCalled();
 	});
 
 	it("retires TUI-only selector and renderer regression files", () => {
