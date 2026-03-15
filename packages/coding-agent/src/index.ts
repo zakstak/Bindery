@@ -278,8 +278,6 @@ export {
 	runPrintMode,
 	runRpcMode,
 } from "./modes/index.js";
-// Clipboard utilities
-export { copyToClipboard } from "./utils/clipboard.js";
 export { parseFrontmatter, stripFrontmatter } from "./utils/frontmatter.js";
 // Shell utilities
 export { getShellConfig } from "./utils/shell.js";

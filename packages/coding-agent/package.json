@@ -64,9 +64,6 @@
 			"rimraf": "6.1.2"
 		}
 	},
-	"optionalDependencies": {
-		"@mariozechner/clipboard": "^0.3.2"
-	},
 	"devDependencies": {
 		"@types/diff": "^7.0.2",
 		"@types/hosted-git-info": "^3.0.5",
