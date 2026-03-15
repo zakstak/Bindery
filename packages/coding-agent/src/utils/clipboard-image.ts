@@ -1,7 +1,6 @@
+import { convertToPng as napiConvertToPng } from "bindery-tools";
 import { spawnSync } from "child_process";
-
 import { clipboard } from "./clipboard-native.js";
-import { loadPhoton } from "./photon.js";
 
 export type ClipboardImage = {
 	bytes: Uint8Array;
@@ -60,22 +59,13 @@ function isSupportedImageMimeType(mimeType: string): boolean {
 }
 
 /**
- * Convert unsupported image formats to PNG using Photon.
- * Returns null if conversion is unavailable or fails.
+ * Convert unsupported image formats to PNG using bindery-tools native module.
+ * Returns null if conversion fails.
  */
 async function convertToPng(bytes: Uint8Array): Promise<Uint8Array | null> {
-	const photon = await loadPhoton();
-	if (!photon) {
-		return null;
-	}
-
 	try {
-		const image = photon.PhotonImage.new_from_byteslice(bytes);
-		try {
-			return image.get_bytes();
-		} finally {
-			image.free();
-		}
+		const result = napiConvertToPng(Buffer.from(bytes).toString("base64"));
+		return new Uint8Array(Buffer.from(result.data, "base64"));
 	} catch {
 		return null;
 	}

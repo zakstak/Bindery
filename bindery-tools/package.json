@@ -1,0 +1,19 @@
+{
+	"name": "bindery-tools",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"napi": {
+		"name": "bindery-tools",
+		"triples": {}
+	},
+	"scripts": {
+		"build": "napi build --release --js index.js --dts index.d.ts",
+		"build:debug": "napi build --js index.js --dts index.d.ts"
+	},
+	"devDependencies": {
+		"@napi-rs/cli": "^2.18.4"
+	}
+}

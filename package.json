@@ -3,7 +3,8 @@
 	"private": true,
 	"type": "module",
 	"workspaces": [
-		"packages/coding-agent"
+		"packages/coding-agent",
+		"bindery-tools"
 	],
 	"scripts": {
 		"clean": "npm run clean --workspaces",
