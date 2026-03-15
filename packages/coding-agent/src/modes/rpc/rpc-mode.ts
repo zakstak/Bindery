@@ -19,8 +19,8 @@ import type {
 	ExtensionWidgetOptions,
 } from "../../core/extensions/index.js";
 import { headlessTheme } from "../../core/headless-theme.js";
+import type { Theme } from "../../core/theme/theme.js";
 import { resizeImage } from "../../utils/image-resize.js";
-import type { Theme } from "../interactive/theme/theme.js";
 import { attachJsonlLineReader, serializeJsonLine } from "./jsonl.js";
 import type {
 	RpcCommand,

@@ -1,4 +1,4 @@
-import type { Theme } from "../modes/interactive/theme/theme.js";
+import type { Theme } from "./theme/theme.js";
 
 const passthrough = (text: string): string => text;
 
