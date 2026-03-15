@@ -2,7 +2,7 @@
 
 # Themes
 
-Themes are JSON files that define colors for the TUI.
+Themes are JSON files that define Pi's shared color palette for headless runs, HTML export, and Bindery-backed surfaces that consume theme metadata.
 
 ## Table of Contents
 
@@ -29,7 +29,7 @@ Disable discovery with `--no-themes`.
 
 ## Selecting a Theme
 
-Select a theme via `/settings` or in `settings.json`:
+Select a theme in Bindery web or set it directly in `settings.json`:
 
 ```json
 {
@@ -37,7 +37,7 @@ Select a theme via `/settings` or in `settings.json`:
 }
 ```
 
-On first run, pi detects your terminal background and defaults to `dark` or `light`.
+When no explicit theme is configured, pi defaults to `dark` or `light` based on the terminal background for headless runs.
 
 ## Creating a Custom Theme
 
@@ -52,7 +52,7 @@ vim ~/.pi/agent/themes/my-theme.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
+  "$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/core/theme/theme-schema.json",
   "name": "my-theme",
   "vars": {
     "primary": "#00aaff",
@@ -114,7 +114,7 @@ vim ~/.pi/agent/themes/my-theme.json
 }
 ```
 
-3. Select the theme via `/settings`.
+3. Set `"theme": "my-theme"` in `settings.json` or choose the theme in Bindery web.
 
 **Hot reload:** When you edit the currently active custom theme file, pi reloads it automatically for immediate visual feedback.
 
@@ -122,7 +122,7 @@ vim ~/.pi/agent/themes/my-theme.json
 
 ```json
 {
-  "$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/modes/interactive/theme/theme-schema.json",
+  "$schema": "https://raw.githubusercontent.com/badlogic/pi-mono/main/packages/coding-agent/src/core/theme/theme-schema.json",
   "name": "my-theme",
   "vars": {
     "blue": "#0066cc",
@@ -291,5 +291,5 @@ echo $COLORTERM  # Should output "truecolor" or "24bit"
 ## Examples
 
 See the built-in themes:
-- [dark.json](../src/modes/interactive/theme/dark.json)
-- [light.json](../src/modes/interactive/theme/light.json)
+- [dark.json](../src/core/theme/dark.json)
+- [light.json](../src/core/theme/light.json)
