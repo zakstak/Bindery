@@ -16,17 +16,35 @@ fn message_preview(event: &Value) -> Option<String> {
     let message = event.get("message")?.as_object()?;
     let content = message.get("content")?.as_array()?;
     let mut parts = Vec::new();
+    let mut image_count = 0;
     for block in content {
         if let Some(text) = block.get("text").and_then(Value::as_str) {
             if !text.trim().is_empty() {
                 parts.push(text.trim().to_string());
             }
+        } else if block.get("type").and_then(Value::as_str) == Some("input_text") {
+            if let Some(text) = block.get("text").and_then(Value::as_str) {
+                if !text.trim().is_empty() {
+                    parts.push(text.trim().to_string());
+                }
+            }
+        } else if matches!(
+            block.get("type").and_then(Value::as_str),
+            Some("image") | Some("input_image")
+        ) || block.get("image").is_some()
+        {
+            image_count += 1;
         }
     }
-    if parts.is_empty() {
-        None
-    } else {
+    if !parts.is_empty() {
         Some(parts.join(" "))
+    } else if image_count > 0 {
+        Some(format!(
+            "{image_count} image attachment{}",
+            if image_count == 1 { "" } else { "s" }
+        ))
+    } else {
+        None
     }
 }
 

@@ -33,43 +33,56 @@
 }
 </style>
 <style>
-  ::-webkit-scrollbar{width:4px}
+  :root { color-scheme: dark; }
+  ::-webkit-scrollbar{width:5px}
   ::-webkit-scrollbar-track{background:transparent}
-  ::-webkit-scrollbar-thumb{background:#33334a;border-radius:99px}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  ::-webkit-scrollbar-thumb{background:#312d45;border-radius:99px}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}
   .animate-pulse-dot{animation:pulse 1.2s infinite}
   .animate-fi{animation:fadeIn .2s ease}
-  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 8% 5%,rgba(139,92,246,.12),transparent 28%),radial-gradient(circle at 90% 85%,rgba(56,189,248,.06),transparent 34%);z-index:-1}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;background:radial-gradient(circle at 15% 0%,rgba(56,189,248,.08),transparent 38%),radial-gradient(circle at 95% 78%,rgba(139,92,246,.1),transparent 34%);z-index:-1}
   .panel-kicker{font-size:9px;line-height:1;text-transform:uppercase;letter-spacing:.12em;color:#5c5878;font-weight:600}
-  #conn-pill{display:flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid rgba(52,47,78,.75);border-radius:99px;background:rgba(30,27,42,.75);font-family:'Fira Code',monospace;font-size:10px;color:#908ca5}
-  #conn-pill[data-state="open"]{border-color:rgba(52,211,153,.35);color:#34d399}
-  #conn-pill[data-state="connecting"]{border-color:rgba(251,191,36,.4);color:#fbbf24}
-  #conn-pill[data-state="closed"]{border-color:rgba(251,113,133,.38);color:#fb7185}
-  .status-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
-  .status-item{padding:7px 8px;border:1px solid rgba(52,47,78,.68);border-radius:6px;background:rgba(22,20,31,.52)}
-  .status-item.wide{grid-column:1/-1}
-  .status-label{font-size:8px;line-height:1;text-transform:uppercase;letter-spacing:.1em;color:#5c5878;font-family:'Fira Code',monospace;margin-bottom:5px}
-  .status-badge{font-family:'Fira Code',monospace;font-size:9px;line-height:1;padding:3px 7px;border-radius:99px;border:1px solid rgba(52,47,78,.8);text-transform:uppercase;letter-spacing:.08em}
+  .app-main{position:relative}
+  #conn-pill{display:flex;align-items:center;gap:6px;padding:2px 8px;border:1px solid rgba(52,47,78,.8);border-radius:99px;background:rgba(22,20,31,.85);font-family:'Fira Code',monospace;font-size:10px;color:#908ca5}
+  #conn-pill[data-state="open"]{border-color:rgba(52,211,153,.34);color:#6ee7b7}
+  #conn-pill[data-state="connecting"]{border-color:rgba(251,191,36,.42);color:#fbbf24}
+  #conn-pill[data-state="closed"]{border-color:rgba(251,113,133,.4);color:#fb7185}
+  .shell-btn{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;border:1px solid rgba(52,47,78,.82);border-radius:8px;background:rgba(30,27,42,.7);color:#908ca5;font-family:'Fira Code',monospace;font-size:10px;cursor:pointer;transition:color .12s,border-color .12s,background .12s}
+  .shell-btn:hover{color:#e0dced;border-color:rgba(139,92,246,.55);background:rgba(30,27,42,.95)}
+  .status-strip{display:flex;align-items:stretch;justify-content:space-between;gap:10px;padding:8px 12px;border-bottom:1px solid rgba(52,47,78,.62);background:linear-gradient(180deg,rgba(22,20,31,.88),rgba(17,15,25,.94))}
+  .status-inline{display:flex;align-items:stretch;gap:8px;min-width:0;flex-wrap:wrap}
+  .status-pair{display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid rgba(52,47,78,.7);border-radius:8px;background:rgba(12,10,18,.55);min-height:30px}
+  .status-pair.wide{max-width:250px}
+  .status-inline-label{font-family:'Fira Code',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#6e6a85;white-space:nowrap}
+  .status-inline-value{font-family:'Fira Code',monospace;font-size:10px;color:#d3cee4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .status-badge{font-family:'Fira Code',monospace;font-size:9px;line-height:1;padding:5px 9px;border-radius:999px;border:1px solid rgba(52,47,78,.82);text-transform:uppercase;letter-spacing:.08em;display:inline-flex;align-items:center}
   .status-badge.idle{color:#908ca5;background:rgba(30,27,42,.75)}
   .status-badge.running{color:#fbbf24;background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.28)}
-  .status-meter{height:4px;background:#1e1b2a;border-radius:999px;overflow:hidden}
+  .status-meter{height:5px;background:#1e1b2a;border-radius:999px;overflow:hidden;width:90px;min-width:90px}
   .status-meter-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#8b5cf6,#e879f9);transition:width .25s,background .25s}
-  .stream-shell{background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,0) 180px)}
-  .stream-row{position:relative;display:grid;grid-template-columns:56px 12px minmax(0,1fr);align-items:start;padding:6px 12px 7px;border-bottom:1px solid rgba(52,47,78,.32);border-left:2px solid transparent;transition:background .12s,border-color .12s,box-shadow .12s}
-  .stream-row:hover{background:rgba(30,27,42,.45)}
-  .stream-row[data-kind="assistant"]{background:linear-gradient(90deg,rgba(139,92,246,.08),transparent 54%);border-left-color:rgba(139,92,246,.58)}
-  .stream-row[data-kind="user"]{background:linear-gradient(90deg,rgba(56,189,248,.08),transparent 54%);border-left-color:rgba(56,189,248,.58)}
-  .stream-row[data-kind="agent"]{background:linear-gradient(90deg,rgba(163,230,53,.08),transparent 54%);border-left-color:rgba(163,230,53,.58)}
-  .stream-row[data-kind="tool"]{background:linear-gradient(90deg,rgba(251,191,36,.08),transparent 54%);border-left-color:rgba(251,191,36,.58)}
-  .stream-row[data-kind="response"]{background:linear-gradient(90deg,rgba(52,211,153,.08),transparent 54%);border-left-color:rgba(52,211,153,.58)}
-  .stream-row[data-kind="ui"]{background:linear-gradient(90deg,rgba(56,189,248,.09),transparent 54%);border-left-color:rgba(56,189,248,.58)}
-  .stream-row[data-kind="event"]{background:linear-gradient(90deg,rgba(144,140,165,.07),transparent 54%);border-left-color:rgba(144,140,165,.45)}
-  .stream-ts{font-family:'Fira Code',monospace;font-size:9px;color:#5c5878;text-align:right;padding-right:10px;padding-top:2px;user-select:none}
-  .stream-rail{position:relative;display:flex;justify-content:center;padding-top:5px}
-  .stream-rail::after{content:"";position:absolute;top:11px;bottom:-6px;width:1px;background:rgba(52,47,78,.6)}
-  .stream-dot{width:5px;height:5px;border-radius:999px;background:#8b5cf6;box-shadow:0 0 0 1px rgba(139,92,246,.2)}
-  .stream-main{min-width:0}
+  .feed-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(52,47,78,.45);background:rgba(17,15,25,.75)}
+  .filter-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:999px;border:1px solid rgba(52,47,78,.82);background:rgba(22,20,31,.7);color:#7c7893;font-family:'Fira Code',monospace;font-size:10px;cursor:pointer;transition:all .12s}
+  .filter-chip:hover{color:#c9c3de;border-color:rgba(144,140,165,.5)}
+  .filter-chip.active{color:#e0dced;background:rgba(56,189,248,.14);border-color:rgba(56,189,248,.45)}
+  .stream-shell{background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(255,255,255,0) 120px)}
+  .stream-row{position:relative;display:grid;grid-template-columns:56px 12px minmax(0,1fr);align-items:start;padding:8px 12px;border-bottom:1px solid rgba(52,47,78,.3);border-left:2px solid transparent;transition:background .12s,border-color .12s,box-shadow .12s;--indent:0px}
+  .stream-row:hover{background:rgba(30,27,42,.34)}
+  .stream-row[data-depth="1"],.stream-row[data-depth="2"],.stream-row[data-depth="3"],.stream-row[data-depth="4"]{box-shadow:inset 12px 0 0 rgba(56,189,248,.05)}
+  .stream-row[data-kind="assistant"],.stream-row[data-kind="user"]{padding-top:10px;padding-bottom:10px}
+  .stream-row[data-kind="assistant"]{background:linear-gradient(90deg,rgba(139,92,246,.08),transparent 58%);border-left-color:rgba(139,92,246,.62)}
+  .stream-row[data-kind="user"]{background:linear-gradient(90deg,rgba(56,189,248,.09),transparent 58%);border-left-color:rgba(56,189,248,.62)}
+  .stream-row[data-kind="agent"]{background:linear-gradient(90deg,rgba(163,230,53,.08),transparent 56%);border-left-color:rgba(163,230,53,.55)}
+  .stream-row[data-kind="tool"]{background:linear-gradient(90deg,rgba(251,191,36,.09),transparent 56%);border-left-color:rgba(251,191,36,.52)}
+  .stream-row[data-kind="response"]{background:linear-gradient(90deg,rgba(52,211,153,.09),transparent 56%);border-left-color:rgba(52,211,153,.54)}
+  .stream-row[data-kind="ui"]{background:linear-gradient(90deg,rgba(56,189,248,.09),transparent 56%);border-left-color:rgba(56,189,248,.54)}
+  .stream-row[data-kind="event"]{background:linear-gradient(90deg,rgba(144,140,165,.07),transparent 56%);border-left-color:rgba(144,140,165,.46)}
+  .stream-row.is-filtered{display:none}
+  .stream-ts{font-family:'Fira Code',monospace;font-size:9px;color:#5c5878;text-align:right;padding-right:10px;padding-top:3px;user-select:none}
+  .stream-rail{position:relative;display:flex;justify-content:center;padding-top:6px}
+  .stream-rail::after{content:"";position:absolute;top:12px;bottom:-8px;width:1px;background:rgba(52,47,78,.58)}
+  .stream-dot{width:6px;height:6px;border-radius:999px;background:#8b5cf6;box-shadow:0 0 0 1px rgba(139,92,246,.22)}
+  .stream-main{min-width:0;padding-left:var(--indent)}
   .stream-head{display:flex;align-items:center;gap:7px;min-width:0}
   .stream-role{font-size:9px;line-height:1;padding:3px 7px;border-radius:999px;font-family:'Fira Code',monospace;text-transform:uppercase;letter-spacing:.08em;border:1px solid transparent}
   .stream-role.assistant{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.35);color:#c4b5fd}
@@ -78,20 +91,27 @@
   .stream-role.tool{background:rgba(251,191,36,.11);border-color:rgba(251,191,36,.28);color:#fbbf24}
   .stream-role.response{background:rgba(52,211,153,.11);border-color:rgba(52,211,153,.33);color:#6ee7b7}
   .stream-role.ui{background:rgba(56,189,248,.1);border-color:rgba(56,189,248,.28);color:#38bdf8}
-  .stream-role.event{background:rgba(251,191,36,.11);border-color:rgba(251,191,36,.28);color:#fbbf24}
+  .stream-role.event{background:rgba(144,140,165,.16);border-color:rgba(144,140,165,.35);color:#b3afc6}
   .stream-etype{font-family:'Fira Code',monospace;font-size:9px;color:#7c7893;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .stream-row[data-kind="agent"] .stream-dot{background:#a3e635;box-shadow:0 0 0 1px rgba(163,230,53,.25)}
   .stream-row[data-kind="tool"] .stream-dot{background:#fbbf24;box-shadow:0 0 0 1px rgba(251,191,36,.22)}
   .stream-row[data-kind="response"] .stream-dot{background:#34d399;box-shadow:0 0 0 1px rgba(52,211,153,.25)}
   .stream-row[data-kind="ui"] .stream-dot{background:#38bdf8;box-shadow:0 0 0 1px rgba(56,189,248,.25)}
   .stream-title{margin-top:2px;font-size:11px;line-height:1.3;color:#e0dced;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stream-row[data-kind="assistant"] .stream-title,.stream-row[data-kind="user"] .stream-title{font-size:12px;font-weight:600}
   .stream-preview{margin-top:3px;font-family:'Fira Code',monospace;font-size:10px;line-height:1.35;color:#908ca5;white-space:pre-wrap;word-break:break-word}
-  .stream-body{margin-top:4px;white-space:pre-wrap;word-break:break-word;font-size:11px;line-height:1.45;color:#ddd8eb;border:1px solid rgba(52,47,78,.5);border-radius:7px;background:rgba(22,20,31,.55);padding:7px}
+  .stream-body{margin-top:5px;white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;color:#ddd8eb;border:1px solid rgba(52,47,78,.46);border-radius:9px;background:rgba(22,20,31,.52);padding:8px 9px}
   .stream-body:empty,.stream-preview:empty{display:none}
-  .stream-row[data-kind="assistant"] .stream-title,.stream-row[data-kind="user"] .stream-title{font-weight:500}
-  .agent-selected{background:rgba(139,92,246,.11)!important;border-bottom-color:rgba(139,92,246,.5)!important;box-shadow:inset 2px 0 0 rgba(139,92,246,.8)}
+  .agent-selected{background:rgba(139,92,246,.12)!important;border-bottom-color:rgba(139,92,246,.52)!important;box-shadow:inset 2px 0 0 rgba(139,92,246,.86)}
+  .inspector-backdrop{position:fixed;inset:0;background:rgba(5,4,10,.55);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:opacity .16s ease;z-index:40}
+  .inspector-drawer{position:fixed;top:41px;right:0;bottom:0;width:360px;max-width:92vw;background:rgba(12,10,18,.98);border-left:1px solid rgba(52,47,78,.92);display:flex;flex-direction:column;transform:translateX(106%);transition:transform .18s ease;z-index:50;box-shadow:-16px 0 36px rgba(0,0,0,.35)}
+  body.inspector-open .inspector-backdrop{opacity:1;pointer-events:auto}
+  body.inspector-open .inspector-drawer{transform:translateX(0)}
+  .inspector-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border-bottom:1px solid rgba(52,47,78,.7)}
+  .inspector-close{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;border:1px solid rgba(52,47,78,.9);background:rgba(30,27,42,.8);color:#908ca5;cursor:pointer;font-family:'Fira Code',monospace;line-height:1}
+  .inspector-close:hover{color:#e0dced;border-color:rgba(139,92,246,.5)}
   .inspector-shell{display:flex;flex-direction:column;gap:9px}
-  .inspector-empty{font-size:11px;color:#7c7893;font-style:italic;line-height:1.45;padding:10px;border:1px dashed rgba(52,47,78,.85);border-radius:8px;background:rgba(22,20,31,.3)}
+  .inspector-empty{font-size:11px;color:#7c7893;font-style:italic;line-height:1.45;padding:10px;border:1px dashed rgba(52,47,78,.82);border-radius:8px;background:rgba(22,20,31,.32)}
   .inspector-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:6px;border-bottom:1px solid rgba(52,47,78,.55)}
   .inspector-head-main{display:flex;flex-direction:column;gap:5px;min-width:0}
   .inspector-kind-row{display:flex;align-items:center;gap:6px;min-width:0}
@@ -122,48 +142,89 @@
   #log-entries>div[data-kind="error"] .log-kind,#log-entries>div[data-kind="parse"] .log-kind{color:#fb7185}
   #log-entries>div[data-kind="socket"] .log-kind{color:#fbbf24}
   #log-entries>div[data-kind="response"] .log-kind{color:#34d399}
-  .flame-bar{position:absolute;height:20px;border-radius:4px;display:flex;align-items:center;padding:0 8px;gap:6px;cursor:pointer;font-size:10px;font-family:'Fira Code',monospace;transition:filter .15s,outline-color .15s,box-shadow .15s;outline:1px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
-  .flame-bar:hover{filter:brightness(1.2);outline-color:rgba(255,255,255,.17)}
+  .flame-bar{position:absolute;height:14px;border-radius:3px;display:flex;align-items:center;padding:0 5px;gap:4px;cursor:pointer;font-size:9px;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;transition:filter .15s,outline-color .15s,box-shadow .15s;outline:1px solid transparent;box-shadow:0 0 0 1px rgba(0,0,0,.2) inset}
+  .flame-bar:hover{filter:brightness(1.15);outline-color:rgba(255,255,255,.17)}
   .flame-bar.selected{outline-color:rgba(139,92,246,.72);box-shadow:0 0 0 1px rgba(139,92,246,.38),0 0 12px rgba(139,92,246,.24)}
   .preset-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;border:1px solid rgba(52,47,78,.85);background:rgba(22,20,31,.7);font-family:'Fira Code',monospace;font-size:10px;color:#b3afc6;cursor:pointer;transition:background .12s,border-color .12s,color .12s,transform .12s}
   .preset-chip:hover{background:rgba(30,27,42,.95);border-color:rgba(139,92,246,.45);color:#e0dced;transform:translateY(-1px)}
   .preset-chip .dot{width:6px;height:6px;border-radius:999px;background:#8b5cf6;box-shadow:0 0 0 1px rgba(139,92,246,.25)}
   .preset-chip .label{white-space:nowrap}
+  .composer-form{display:flex;flex-direction:column;gap:8px;max-width:none}
+  .composer-row{display:flex;gap:9px;align-items:flex-end}
+  .composer-input-wrap{flex:1 1 auto;position:relative}
+  .composer-form.is-dragover .composer-input-wrap::after{content:"drop image to attach";position:absolute;inset:2px;border-radius:9px;border:1px dashed rgba(56,189,248,.55);background:rgba(56,189,248,.08);display:flex;align-items:center;justify-content:center;font-family:'Fira Code',monospace;font-size:10px;letter-spacing:.02em;color:#7dd3fc;pointer-events:none;z-index:4}
+  .composer-attach{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:40px;min-width:40px;padding:0 11px;border:1px solid rgba(52,47,78,.9);border-radius:9px;background:rgba(30,27,42,.78);color:#b3afc6;font-family:'Fira Code',monospace;font-size:11px;cursor:pointer;transition:color .12s,border-color .12s,background .12s,transform .12s;white-space:nowrap}
+  .composer-attach:hover{color:#e0dced;border-color:rgba(56,189,248,.55);background:rgba(30,27,42,.96);transform:translateY(-1px)}
+  .composer-actions{display:flex;align-items:center;gap:9px;flex-shrink:0}
+  .composer-attachments{display:flex;flex-direction:column;gap:7px;min-height:30px;padding:7px 9px;border:1px solid rgba(52,47,78,.62);border-radius:9px;background:rgba(12,10,18,.5)}
+  .composer-attachments-empty{font-family:'Fira Code',monospace;font-size:10px;color:#7c7893;line-height:1.4}
+  .composer-attachments[data-empty="false"] .composer-attachments-empty{display:none}
+  .composer-attachment-list{display:none;flex-wrap:wrap;gap:7px}
+  .composer-attachments[data-empty="false"] .composer-attachment-list{display:flex}
+  .composer-attachment-chip{display:flex;align-items:flex-start;gap:9px;min-width:0;max-width:100%;padding:6px;border:1px solid rgba(52,47,78,.78);border-radius:8px;background:rgba(22,20,31,.72)}
+  .composer-attachment-preview{position:relative;width:82px;height:58px;flex-shrink:0;border-radius:6px;padding:3px;border:1px solid rgba(52,47,78,.78);background:linear-gradient(180deg,rgba(30,27,42,.95),rgba(12,10,18,.95));box-shadow:inset 0 0 0 1px rgba(255,255,255,.03);overflow:hidden}
+  .composer-attachment-preview::before{content:"";position:absolute;inset:3px;border-radius:4px;background:repeating-linear-gradient(180deg,rgba(144,140,165,.11) 0 1px,transparent 1px 5px);pointer-events:none}
+  .composer-attachment-thumb{position:relative;display:block;width:100%;height:100%;border-radius:4px;object-fit:contain;object-position:center top;background:#0c0a12}
+  .composer-attachment-kind{position:absolute;right:6px;bottom:6px;padding:2px 5px;border-radius:999px;border:1px solid rgba(56,189,248,.45);background:rgba(12,10,18,.86);font-family:'Fira Code',monospace;font-size:8px;line-height:1;text-transform:uppercase;letter-spacing:.08em;color:#7dd3fc;pointer-events:none}
+  .composer-attachment-meta{display:flex;flex-direction:column;min-width:0;gap:3px;padding-top:1px}
+  .composer-attachment-name{font-size:11px;color:#ddd8eb;line-height:1.25;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .composer-attachment-info{font-family:'Fira Code',monospace;font-size:9px;color:#7c7893;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .composer-attachment-remove{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:1px solid rgba(52,47,78,.9);background:rgba(30,27,42,.85);color:#908ca5;cursor:pointer;line-height:1;font-size:14px;flex-shrink:0;transition:color .12s,border-color .12s,background .12s}
+  .composer-attachment-remove:hover{color:#fda4af;border-color:rgba(251,113,133,.45);background:rgba(251,113,133,.1)}
+  .stream-media{display:none;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
+  .stream-media-card{display:flex;flex-direction:column;gap:6px;padding:6px;border:1px solid rgba(52,47,78,.58);border-radius:8px;background:rgba(12,10,18,.45)}
+  .stream-media-link{display:flex;align-items:flex-start;justify-content:center;padding:5px;border-radius:6px;border:1px solid rgba(52,47,78,.62);background:linear-gradient(180deg,rgba(30,27,42,.7),rgba(12,10,18,.65));cursor:zoom-in;transition:border-color .12s,background .12s}
+  .stream-media-link:hover{border-color:rgba(56,189,248,.45);background:linear-gradient(180deg,rgba(30,27,42,.88),rgba(12,10,18,.8))}
+  .stream-media-image{display:block;width:100%;height:auto;max-height:min(43vh,320px);border-radius:4px;object-fit:contain;object-position:center top;background:rgba(12,10,18,.7)}
+  .stream-media-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+  .stream-media-label{font-family:'Fira Code',monospace;font-size:9px;color:#7c7893;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stream-media-open{font-family:'Fira Code',monospace;font-size:9px;line-height:1;color:#7dd3fc;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
   @media (max-width: 980px){
-    #session-name{max-width:140px}
-    aside{width:300px!important;min-width:300px!important}
+    #session-name{max-width:180px}
+    .status-pair.wide{max-width:180px}
+    .inspector-drawer{width:330px}
   }
   @media (max-width: 760px){
     header{padding-left:8px;padding-right:8px;gap:6px}
-    #session-name{max-width:72px}
+    #session-name{max-width:128px}
     #model-tag{display:none}
-    #conn-pill{padding:2px 6px}
-    body>main{flex-direction:column!important}
-    body>main>div:first-child{min-height:40vh}
-    body>main>aside{width:100%!important;min-width:0!important;max-height:45vh;border-left:none;border-top:1px solid rgba(40,36,58,.95)}
-    #stream{padding-bottom:14px}
-    .stream-row{grid-template-columns:42px 10px minmax(0,1fr);padding-left:8px;padding-right:8px}
+    .status-strip{padding:7px 8px;gap:6px;flex-wrap:wrap}
+    .status-inline{gap:6px}
+    .status-pair{padding:4px 7px;min-height:28px}
+    .status-pair.wide{max-width:none;flex:1 1 100%}
+    .status-meter{width:72px;min-width:72px}
+    .feed-controls{padding:6px 8px}
+    .stream-row{grid-template-columns:42px 10px minmax(0,1fr);padding:7px 8px}
     .stream-ts{font-size:8px;padding-right:6px}
+    .stream-main{padding-left:calc(var(--indent) * .6)}
+    .inspector-drawer{top:auto;left:0;right:0;bottom:0;width:100%;max-width:100%;height:min(74vh,560px);border-left:none;border-top:1px solid rgba(52,47,78,.95);border-radius:14px 14px 0 0;transform:translateY(105%)}
+    .inspector-drawer-head{padding:8px 10px}
     #log-entries>div{grid-template-columns:44px 56px minmax(0,1fr);gap:5px;padding:4px}
+    .composer-row{gap:7px;align-items:flex-start;flex-wrap:wrap}
+    .composer-input-wrap{flex:1 1 calc(100% - 48px)}
+    .composer-actions{margin-left:auto;gap:7px}
+    .composer-attachments{padding:6px 7px}
+    .composer-attachment-chip{max-width:100%}
+    .composer-attachment-preview{width:72px;height:52px}
+    .composer-attachment-name{max-width:132px}
+    .stream-media{grid-template-columns:repeat(1,minmax(0,1fr));gap:7px}
+    .stream-media-image{max-height:min(44vh,280px)}
   }
 </style>
 </head>
 
 <body class="h-full bg-bg text-txt font-sans text-sm overflow-hidden flex flex-col">
 
+<div id="inspector-backdrop" class="inspector-backdrop"></div>
+
 <!-- ══ TOP BAR ═══════════════════════════════════════════════════════════ -->
-<header class="h-[36px] min-h-[36px] bg-bg1 border-b border-bdr flex items-center gap-2 px-3 shrink-0 select-none">
-  <span class="text-[11px] font-semibold tracking-[0.18em] uppercase text-txt3">Bindery</span>
+<header class="h-[40px] min-h-[40px] bg-bg1/95 border-b border-bdr flex items-center gap-2 px-3 shrink-0 select-none">
+  <span class="text-[11px] font-semibold tracking-[0.2em] uppercase text-txt3">Bindery</span>
   <span class="h-4 w-px bg-bdr2/80"></span>
-  <span id="session-name" class="text-[11px] text-txt2 truncate max-w-[260px]">Awaiting session</span>
+  <span id="session-name" class="text-[11px] text-txt2 truncate max-w-[320px]">Awaiting session</span>
   <span class="flex-1"></span>
 
-  <button id="btn-timeline"
-          class="px-2.5 py-0.5 rounded text-[10px] border border-bdr2 bg-bg3 text-txt2 hover:border-purple/50 hover:text-txt transition cursor-pointer font-mono">
-    ▾ timeline
-  </button>
-
-  <span id="model-tag" class="text-[10px] text-txt2 font-mono bg-bg3 border border-bdr px-2 py-0.5 rounded-full">
+  <span id="model-tag" class="text-[10px] text-txt2 font-mono bg-bg3 border border-bdr px-2 py-0.5 rounded-full max-w-[260px] truncate">
     not set
   </span>
 
@@ -171,21 +232,45 @@
     <div id="gdot" class="w-[6px] h-[6px] rounded-full bg-txt3 shrink-0"></div>
     <span id="conn-text">offline</span>
   </div>
+
+  <button id="btn-inspector" class="shell-btn" type="button" aria-expanded="false">
+    Inspector
+  </button>
 </header>
 
 <!-- ══ MAIN CONTENT ═════════════════════════════════════════════════════ -->
-<main class="flex-1 flex min-h-0">
-
-  <!-- LEFT: flame chart + stream -->
-  <div class="flex-1 flex flex-col min-w-0">
-
-    <!-- Flame chart -->
-    <section id="flame-section" class="bg-bg1 border-b border-bdr shrink-0">
-      <!-- Flame bars container -->
-      <div id="flame-bars" class="relative min-h-[50px] px-3 pt-2 pb-1 overflow-x-auto overflow-y-hidden">
-        <!-- Mock bars injected here via OOB -->
+<main class="app-main flex-1 min-h-0">
+  <div class="h-full flex flex-col min-w-0">
+    <div class="status-strip">
+      <div class="status-inline">
+        <div class="status-pair wide">
+          <span class="status-inline-label">model</span>
+          <span id="status-model" class="status-inline-value text-purple">not set</span>
+        </div>
+        <div class="status-pair">
+          <span class="status-inline-label">context</span>
+          <div class="status-meter">
+            <div id="status-ctx-bar" class="status-meter-fill" style="width:0%"></div>
+          </div>
+          <span id="status-ctx-pct" class="status-inline-value">0%</span>
+        </div>
+        <div class="status-pair">
+          <span class="status-inline-label">tokens</span>
+          <span id="status-tokens" class="status-inline-value">0 in / 0 out</span>
+        </div>
+        <div class="status-pair">
+          <span class="status-inline-label">tools</span>
+          <span id="status-tools" class="status-inline-value">0</span>
+        </div>
       </div>
-      <!-- Time axis -->
+      <div class="flex items-center gap-2">
+        <span id="streaming-badge" class="status-badge idle">idle</span>
+        <button id="btn-timeline" class="shell-btn" type="button">▾ timeline</button>
+      </div>
+    </div>
+
+    <section id="flame-section" class="bg-bg1 border-b border-bdr shrink-0">
+      <div id="flame-bars" class="relative min-h-[34px] px-3 pt-1 pb-1 overflow-x-auto overflow-y-hidden"></div>
       <div id="flame-axis" class="flex items-center gap-0 px-3 pb-1 text-[10px] font-mono text-txt3 border-t border-bdr/30">
         <span class="flex-1">0s</span>
         <span class="flex-1 text-center">10s</span>
@@ -195,70 +280,45 @@
       </div>
     </section>
 
-    <!-- Stream -->
-    <div id="stream-scroll" class="stream-shell flex-1 overflow-y-auto">
-      <div class="sticky top-0 z-10 px-3 py-1.5 border-b border-bdr/55 bg-bg/80 backdrop-blur-[2px] panel-kicker">Event Stream</div>
-      <div id="stream" class="font-mono text-[11px] leading-relaxed pb-5">
-        <!-- Events appended here via WS OOB -->
+    <div class="feed-controls">
+      <div id="feed-filters" class="flex items-center gap-2 flex-wrap">
+        <button type="button" class="filter-chip active" data-filter="all">All</button>
+        <button type="button" class="filter-chip" data-filter="messages">Messages</button>
+        <button type="button" class="filter-chip" data-filter="tools">Tools</button>
+        <button type="button" class="filter-chip" data-filter="agent">Agent</button>
+        <button type="button" class="filter-chip" data-filter="ui">UI</button>
       </div>
+      <div class="text-[10px] text-txt3 font-mono"><span id="stream-count">0</span> visible</div>
     </div>
 
+    <div id="stream-scroll" class="stream-shell flex-1 overflow-y-auto">
+      <div class="sticky top-0 z-10 px-3 py-1.5 border-b border-bdr/55 bg-bg/80 backdrop-blur-[2px] flex items-center justify-between gap-2">
+        <span class="panel-kicker">Transcript feed</span>
+        <span class="text-[9px] font-mono text-txt3 uppercase tracking-[0.08em]">message-first + grouped events</span>
+      </div>
+      <div id="stream" class="font-mono text-[11px] leading-relaxed pb-5"></div>
+    </div>
+  </div>
+</main>
+
+<aside id="inspector-drawer" class="inspector-drawer text-xs" aria-hidden="true">
+  <div class="inspector-drawer-head">
+    <div>
+      <div class="panel-kicker">Inspector</div>
+      <div class="text-[10px] text-txt3 font-mono mt-1">Selected event details and raw payload</div>
+    </div>
+    <button id="btn-inspector-close" class="inspector-close" type="button" aria-label="Close inspector">×</button>
   </div>
 
-  <!-- RIGHT: status + inspector + log -->
-  <aside class="w-[332px] min-w-[332px] bg-bg1 border-l border-bdr flex flex-col overflow-y-auto text-xs">
+  <div id="inspector" class="flex-1 p-3 overflow-y-auto border-b border-bdr">
+    <div class="inspector-empty">Click an event in the stream or timeline to inspect live details.</div>
+  </div>
 
-    <!-- Status -->
-    <div id="status" class="p-3 border-b border-bdr">
-      <div class="flex items-center justify-between mb-2">
-        <div class="panel-kicker">Status</div>
-        <span id="streaming-badge" class="status-badge idle">idle</span>
-      </div>
-      <div class="status-grid">
-        <div class="status-item wide">
-          <div class="status-label">Model</div>
-          <div id="status-model" class="text-purple font-mono text-[11px]">not set</div>
-        </div>
-        <div class="status-item wide">
-          <div class="status-label">Context</div>
-          <div class="flex items-center gap-2">
-            <div class="status-meter flex-1">
-              <div id="status-ctx-bar" class="status-meter-fill" style="width:0%"></div>
-            </div>
-            <span id="status-ctx-pct" class="text-txt2 font-mono text-[10px]">0%</span>
-          </div>
-        </div>
-        <div class="status-item">
-          <div class="status-label">Tokens</div>
-          <div id="status-tokens" class="text-txt2 font-mono text-[10px]">0 in / 0 out</div>
-        </div>
-        <div class="status-item">
-          <div class="status-label">Tools</div>
-          <div id="status-tools" class="text-txt2 font-mono text-[11px]">0</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="px-3 pt-2.5 pb-2 border-b border-bdr/70 bg-bg1/80">
-      <div class="panel-kicker">Inspector</div>
-      <div class="text-[10px] text-txt3 font-mono mt-1">Selected event details</div>
-    </div>
-
-    <!-- Inspector (populated on click) -->
-    <div id="inspector" class="flex-1 p-3 border-b border-bdr">
-      <div class="inspector-empty">Click an event in the stream or timeline to inspect live details.</div>
-    </div>
-
-    <!-- Log -->
-    <div id="log" class="p-3 max-h-[230px] overflow-y-auto">
-      <div class="panel-kicker mb-2">Event Log</div>
-      <div id="log-entries" class="text-[10px] font-mono text-txt3 leading-tight">
-      </div>
-    </div>
-
-  </aside>
-
-</main>
+  <div id="log" class="p-3 max-h-[230px] overflow-y-auto">
+    <div class="panel-kicker mb-2">Event Log</div>
+    <div id="log-entries" class="text-[10px] font-mono text-txt3 leading-tight"></div>
+  </div>
+</aside>
 
 <div id="mock-presets" class="hidden border-t border-bdr bg-bg1 px-4 py-2 shrink-0">
   <div class="flex items-center justify-between gap-3 flex-wrap">
@@ -272,18 +332,34 @@
 
 <!-- ══ INPUT BAR ════════════════════════════════════════════════════════ -->
 <div class="border-t border-bdr bg-bg1 px-4 py-3 shrink-0">
-  <form id="prompt-form" class="flex gap-3 items-end max-w-none">
-    <textarea id="prompt-input" name="message"
-              class="flex-1 bg-bg3 border border-bdr2 rounded-lg text-txt px-3 py-2 text-sm font-sans outline-none resize-none min-h-[40px] max-h-[160px] leading-normal focus:border-purple transition"
-              placeholder="Write something…" rows="1"></textarea>
-    <button type="submit" id="btn-send"
-            class="bg-purple border-none rounded-lg text-white px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:brightness-110 transition">
-      Send
-    </button>
-    <button type="button" id="btn-abort" style="display:none"
-            class="bg-red/20 border border-red/40 rounded-lg text-red px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:bg-red/30 transition">
-      Abort
-    </button>
+  <form id="prompt-form" class="composer-form">
+    <input id="prompt-image-input" type="file" accept="image/*" multiple class="hidden">
+
+    <div id="composer-attachments" class="composer-attachments" data-empty="true">
+      <div class="composer-attachments-empty">No images attached. Use Attach, drop files here, or paste into the editor.</div>
+      <div id="composer-attachment-list" class="composer-attachment-list"></div>
+    </div>
+
+    <div class="composer-row">
+      <button type="button" id="btn-attach" class="composer-attach" aria-label="Attach images">+ Attach</button>
+
+      <div class="composer-input-wrap">
+        <textarea id="prompt-input" name="message"
+                  class="flex-1 w-full bg-bg3 border border-bdr2 rounded-lg text-txt px-3 py-2 text-sm font-sans outline-none resize-none min-h-[40px] max-h-[160px] leading-normal focus:border-purple transition"
+                  placeholder="Write something…" rows="1"></textarea>
+      </div>
+
+      <div class="composer-actions">
+        <button type="submit" id="btn-send"
+                class="bg-purple border-none rounded-lg text-white px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:brightness-110 transition">
+          Send
+        </button>
+        <button type="button" id="btn-abort" style="display:none"
+                class="bg-red/20 border border-red/40 rounded-lg text-red px-4 py-2 text-[13px] font-medium cursor-pointer shrink-0 hover:bg-red/30 transition">
+          Abort
+        </button>
+      </div>
+    </div>
   </form>
 </div>
 
@@ -291,10 +367,15 @@
 <script>
 const MAX_LOG_ENTRIES = 240;
 const MAX_TIMELINE_ITEMS = 140;
-const BAR_ROW_HEIGHT = 26;
+const BAR_ROW_HEIGHT = 18;
+const MAX_COMPOSER_IMAGES = 10;
 
 const ta = document.getElementById('prompt-input');
 const promptForm = document.getElementById('prompt-form');
+const attachBtn = document.getElementById('btn-attach');
+const imageInput = document.getElementById('prompt-image-input');
+const composerAttachments = document.getElementById('composer-attachments');
+const composerAttachmentList = document.getElementById('composer-attachment-list');
 const sendBtn = document.getElementById('btn-send');
 const abortBtn = document.getElementById('btn-abort');
 const stream = document.getElementById('stream');
@@ -316,6 +397,14 @@ const sessionName = document.getElementById('session-name');
 const gdot = document.getElementById('gdot');
 const mockPresets = document.getElementById('mock-presets');
 const mockPresetButtons = document.getElementById('mock-preset-buttons');
+const feedFilters = document.getElementById('feed-filters');
+const streamCount = document.getElementById('stream-count');
+const timelineBtn = document.getElementById('btn-timeline');
+const flameSection = document.getElementById('flame-section');
+const inspectorBtn = document.getElementById('btn-inspector');
+const inspectorCloseBtn = document.getElementById('btn-inspector-close');
+const inspectorDrawer = document.getElementById('inspector-drawer');
+const inspectorBackdrop = document.getElementById('inspector-backdrop');
 
 const IS_MOCK_ROUTE = location.pathname === '/mock' || location.pathname.startsWith('/mock/');
 const SOCKET_PATH = IS_MOCK_ROUTE ? '/ws/mock' : '/ws';
@@ -347,6 +436,11 @@ const state = {
   openByKey: new Map(),
   streamRowsByMessageId: new Map(),
   activeAssistantRowId: null,
+  activeFilter: 'all',
+  inspectorOpen: false,
+  composerAttachments: [],
+  composerAttachmentCounter: 0,
+  composerDragDepth: 0,
 };
 
 function nowMs() {
@@ -392,10 +486,292 @@ function summarizeText(value, max = 240) {
   return trimmed.length > max ? `${trimmed.slice(0, max - 1)}...` : trimmed;
 }
 
+function formatBytes(size) {
+  if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) return '--';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDimensions(width, height) {
+  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return '';
+  return `${Math.round(width)}x${Math.round(height)}`;
+}
+
+function classifyAttachmentKind(width, height) {
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    const ratio = width / height;
+    if (width >= 1000 && ratio >= 1.25) return 'screenshot';
+    if (height >= width * 1.25) return 'scan';
+  }
+  return 'image';
+}
+
+function attachmentNameFromMime(mimeType, fallbackIndex) {
+  const mime = typeof mimeType === 'string' && mimeType.includes('/') ? mimeType : 'image/png';
+  const extRaw = mime.split('/')[1] || 'png';
+  const ext = extRaw.split('+')[0].split(';')[0] || 'png';
+  return `image-${fallbackIndex}.${ext}`;
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('file read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function readImageDimensions(dataUrl) {
+  return new Promise((resolve) => {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:')) {
+      resolve({ width: 0, height: 0 });
+      return;
+    }
+    const image = new Image();
+    image.onload = () => {
+      resolve({
+        width: Number.isFinite(image.naturalWidth) ? image.naturalWidth : 0,
+        height: Number.isFinite(image.naturalHeight) ? image.naturalHeight : 0,
+      });
+    };
+    image.onerror = () => resolve({ width: 0, height: 0 });
+    image.src = dataUrl;
+  });
+}
+
+async function fileToComposerAttachment(file) {
+  if (!(file instanceof File)) return null;
+  const fileType = typeof file.type === 'string' ? file.type : '';
+  if (!fileType.startsWith('image/')) return null;
+
+  const dataUrl = await fileToDataUrl(file);
+  if (!dataUrl.startsWith('data:') || !dataUrl.includes(',')) return null;
+  const dimensions = await readImageDimensions(dataUrl);
+
+  const commaIndex = dataUrl.indexOf(',');
+  const header = dataUrl.slice(0, commaIndex);
+  const body = dataUrl.slice(commaIndex + 1);
+  const mimeMatch = /^data:([^;]+);base64$/i.exec(header);
+  const mimeType = fileType || (mimeMatch ? mimeMatch[1] : 'image/png');
+
+  state.composerAttachmentCounter += 1;
+  const fallbackIndex = state.composerAttachmentCounter;
+  const name = typeof file.name === 'string' && file.name.trim()
+    ? file.name.trim()
+    : attachmentNameFromMime(mimeType, fallbackIndex);
+
+  return {
+    id: `img-${Date.now()}-${fallbackIndex}`,
+    name,
+    mimeType,
+    size: typeof file.size === 'number' && Number.isFinite(file.size) ? file.size : 0,
+    width: dimensions.width,
+    height: dimensions.height,
+    kindLabel: classifyAttachmentKind(dimensions.width, dimensions.height),
+    data: body,
+    previewUrl: dataUrl,
+  };
+}
+
+function renderComposerAttachments() {
+  if (!composerAttachments || !composerAttachmentList) return;
+  const attachments = state.composerAttachments;
+  const hasItems = attachments.length > 0;
+  composerAttachments.dataset.empty = hasItems ? 'false' : 'true';
+  composerAttachmentList.innerHTML = '';
+
+  if (!hasItems) return;
+
+  for (const attachment of attachments) {
+    const chip = document.createElement('div');
+    chip.className = 'composer-attachment-chip animate-fi';
+    chip.dataset.attachmentId = attachment.id;
+
+    const preview = document.createElement('div');
+    preview.className = 'composer-attachment-preview';
+
+    const img = document.createElement('img');
+    img.className = 'composer-attachment-thumb';
+    img.src = attachment.previewUrl;
+    img.alt = attachment.name;
+    img.loading = 'lazy';
+
+    const kind = document.createElement('div');
+    kind.className = 'composer-attachment-kind';
+    kind.textContent = attachment.kindLabel || 'image';
+
+    preview.appendChild(img);
+    preview.appendChild(kind);
+
+    const meta = document.createElement('div');
+    meta.className = 'composer-attachment-meta';
+
+    const name = document.createElement('div');
+    name.className = 'composer-attachment-name';
+    name.textContent = attachment.name;
+
+    const info = document.createElement('div');
+    info.className = 'composer-attachment-info';
+    const dimensions = formatDimensions(attachment.width, attachment.height);
+    info.textContent = `${attachment.mimeType}${dimensions ? ` · ${dimensions}` : ''} · ${formatBytes(attachment.size)}`;
+
+    meta.appendChild(name);
+    meta.appendChild(info);
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'composer-attachment-remove';
+    remove.dataset.removeAttachment = attachment.id;
+    remove.setAttribute('aria-label', `Remove ${attachment.name}`);
+    remove.textContent = '×';
+
+    chip.appendChild(preview);
+    chip.appendChild(meta);
+    chip.appendChild(remove);
+    composerAttachmentList.appendChild(chip);
+  }
+}
+
+function removeComposerAttachment(attachmentId) {
+  state.composerAttachments = state.composerAttachments.filter((item) => item.id !== attachmentId);
+  renderComposerAttachments();
+}
+
+function clearComposerAttachments() {
+  state.composerAttachments = [];
+  renderComposerAttachments();
+}
+
+function serializeComposerAttachments() {
+  return state.composerAttachments.map((item) => ({
+    type: 'image',
+    data: item.data,
+    mimeType: item.mimeType,
+  }));
+}
+
+function hasImageTransferData(dataTransfer) {
+  if (!dataTransfer) return false;
+  const types = Array.from(dataTransfer.types || []);
+  const items = Array.from(dataTransfer.items || []);
+  if (items.some((item) => item.kind === 'file' && typeof item.type === 'string' && item.type.startsWith('image/'))) {
+    return true;
+  }
+  const files = Array.from(dataTransfer.files || []);
+  if (files.some((file) => file && typeof file.type === 'string' && file.type.startsWith('image/'))) {
+    return true;
+  }
+  return types.includes('Files');
+}
+
+function setComposerDragState(active) {
+  if (!promptForm) return;
+  promptForm.classList.toggle('is-dragover', Boolean(active));
+}
+
+async function addComposerFiles(fileList, source = 'attach') {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+
+  const currentCount = state.composerAttachments.length;
+  const remainingSlots = Math.max(0, MAX_COMPOSER_IMAGES - currentCount);
+  if (!remainingSlots) {
+    appendLog('attach', `limit reached (${MAX_COMPOSER_IMAGES} images)`);
+    return;
+  }
+
+  const imageFiles = files.filter((file) => file && typeof file.type === 'string' && file.type.startsWith('image/'));
+  const ignoredCount = files.length - imageFiles.length;
+  if (ignoredCount > 0) {
+    appendLog('attach', `${source}: ignored ${ignoredCount} non-image file${ignoredCount === 1 ? '' : 's'}`);
+  }
+  if (!imageFiles.length) return;
+
+  const added = [];
+  for (const file of imageFiles.slice(0, remainingSlots)) {
+    try {
+      const attachment = await fileToComposerAttachment(file);
+      if (attachment) added.push(attachment);
+    } catch {
+      appendLog('error', `${source}: failed to read image`);
+    }
+  }
+
+  const overflowCount = imageFiles.length - remainingSlots;
+  if (overflowCount > 0) {
+    appendLog('attach', `${source}: skipped ${overflowCount} image${overflowCount === 1 ? '' : 's'} (limit ${MAX_COMPOSER_IMAGES})`);
+  }
+
+  if (!added.length) return;
+  state.composerAttachments.push(...added);
+  renderComposerAttachments();
+  appendLog('attach', `${source}: added ${added.length} image${added.length === 1 ? '' : 's'}`);
+}
+
 function normalizeStreamKind(kind) {
   return ['assistant', 'user', 'agent', 'tool', 'response', 'ui', 'event'].includes(kind)
     ? kind
     : 'event';
+}
+
+function isMessageKind(kind) {
+  return kind === 'assistant' || kind === 'user' || kind === 'response';
+}
+
+function rowMatchesFilter(rowKind, filter) {
+  if (filter === 'messages') return isMessageKind(rowKind);
+  if (filter === 'tools') return rowKind === 'tool';
+  if (filter === 'agent') return rowKind === 'agent' || rowKind === 'event';
+  if (filter === 'ui') return rowKind === 'ui';
+  return true;
+}
+
+function updateVisibleStreamCount() {
+  if (!streamCount) return;
+  const visible = stream.querySelectorAll('[data-item-id]:not(.is-filtered)').length;
+  streamCount.textContent = String(visible);
+}
+
+function applyRowFilter(row) {
+  if (!row) return;
+  const rowKind = normalizeStreamKind(row.dataset.kind || 'event');
+  const show = rowMatchesFilter(rowKind, state.activeFilter);
+  row.classList.toggle('is-filtered', !show);
+}
+
+function refreshStreamFilter() {
+  document.querySelectorAll('#stream [data-item-id]').forEach((row) => {
+    applyRowFilter(row);
+  });
+  if (feedFilters) {
+    feedFilters.querySelectorAll('[data-filter]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.filter === state.activeFilter);
+    });
+  }
+  updateVisibleStreamCount();
+}
+
+function setActiveFilter(filter) {
+  state.activeFilter = typeof filter === 'string' && filter ? filter : 'all';
+  refreshStreamFilter();
+}
+
+function activeTurnDepth() {
+  let depth = 0;
+  for (const key of state.openByKey.keys()) {
+    if (key.startsWith('turn-')) depth += 1;
+  }
+  return Math.max(0, Math.min(4, depth));
+}
+
+function setInspectorOpen(open) {
+  const isOpen = Boolean(open);
+  state.inspectorOpen = isOpen;
+  document.body.classList.toggle('inspector-open', isOpen);
+  if (inspectorDrawer) inspectorDrawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  if (inspectorBtn) inspectorBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
 }
 
 function binderyMeta(payload) {
@@ -450,6 +826,61 @@ function applyStreamRowText(row, kind, bodyText) {
   }
 }
 
+function applyStreamRowImages(row, images) {
+  if (!row) return;
+  const mediaEl = row.querySelector('.stream-media');
+  if (!mediaEl) return;
+
+  mediaEl.innerHTML = '';
+  if (!Array.isArray(images) || images.length === 0) {
+    mediaEl.style.display = 'none';
+    return;
+  }
+
+  for (const image of images) {
+    if (!image || typeof image.src !== 'string' || !image.src) continue;
+    const card = document.createElement('div');
+    card.className = 'stream-media-card';
+
+    const link = document.createElement('a');
+    link.className = 'stream-media-link';
+    link.href = image.src;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.title = 'Open image in a new tab';
+
+    const img = document.createElement('img');
+    img.className = 'stream-media-image';
+    img.src = image.src;
+    img.alt = image.alt || 'Attached image';
+    img.loading = 'lazy';
+    img.decoding = 'async';
+
+    const meta = document.createElement('div');
+    meta.className = 'stream-media-meta';
+    const label = document.createElement('span');
+    label.className = 'stream-media-label';
+    label.textContent = image.label || 'image';
+    const open = document.createElement('span');
+    open.className = 'stream-media-open';
+    open.textContent = 'open';
+    meta.appendChild(label);
+    meta.appendChild(open);
+
+    link.appendChild(img);
+    card.appendChild(link);
+    card.appendChild(meta);
+    mediaEl.appendChild(card);
+  }
+
+  mediaEl.style.display = mediaEl.childElementCount > 0 ? 'grid' : 'none';
+}
+
+function applyStreamRowContent(row, kind, bodyText, images = []) {
+  applyStreamRowText(row, kind, bodyText);
+  applyStreamRowImages(row, images);
+}
+
 function streamKindForType(type, payload) {
   const meta = binderyMeta(payload);
   if (meta && typeof meta.kind === 'string') {
@@ -495,6 +926,10 @@ function inspectorPreview(item) {
   if (payload.message && typeof payload.message === 'object') {
     const text = messageText(payload.message);
     if (text) return summarizeText(text, 320);
+    const images = messageImages(payload.message, payload);
+    if (images.length > 0) {
+      return `${images.length} image attachment${images.length === 1 ? '' : 's'}`;
+    }
   }
 
   if (typeof payload.error === 'string' && payload.error.trim()) {
@@ -626,7 +1061,7 @@ function messageText(message) {
   const parts = [];
   for (const block of content) {
     if (!block || typeof block !== 'object') continue;
-    if (block.type === 'text' && typeof block.text === 'string') {
+    if ((block.type === 'text' || block.type === 'input_text') && typeof block.text === 'string') {
       parts.push(block.text);
     } else if (block.type === 'toolCall') {
       const name = typeof block.name === 'string' ? block.name : 'tool';
@@ -635,6 +1070,109 @@ function messageText(message) {
   }
 
   return parts.join('\n').trim();
+}
+
+function normalizeImageBlock(block, index) {
+  if (!block || typeof block !== 'object') return null;
+  let imageLike = null;
+  if (block.type === 'image' || block.type === 'input_image') {
+    imageLike = block;
+  } else if (block.image && typeof block.image === 'object') {
+    imageLike = block.image;
+  } else {
+    return null;
+  }
+
+  const mimeType = typeof imageLike.mimeType === 'string' && imageLike.mimeType.trim()
+    ? imageLike.mimeType.trim()
+    : (typeof imageLike.mime_type === 'string' && imageLike.mime_type.trim()
+      ? imageLike.mime_type.trim()
+      : (typeof block.mimeType === 'string' && block.mimeType.trim()
+        ? block.mimeType.trim()
+        : 'image/png'));
+
+  let src = '';
+  if (typeof imageLike.data === 'string' && imageLike.data.trim()) {
+    const data = imageLike.data.trim();
+    src = data.startsWith('data:') ? data : `data:${mimeType};base64,${data}`;
+  } else if (typeof imageLike.base64 === 'string' && imageLike.base64.trim()) {
+    src = `data:${mimeType};base64,${imageLike.base64.trim()}`;
+  } else if (typeof imageLike.url === 'string' && imageLike.url.trim()) {
+    src = imageLike.url.trim();
+  } else if (typeof imageLike.imageUrl === 'string' && imageLike.imageUrl.trim()) {
+    src = imageLike.imageUrl.trim();
+  } else if (typeof imageLike.image_url === 'string' && imageLike.image_url.trim()) {
+    src = imageLike.image_url.trim();
+  } else if (typeof block.url === 'string' && block.url.trim()) {
+    src = block.url.trim();
+  }
+  if (!src) return null;
+
+  const name = typeof imageLike.name === 'string' && imageLike.name.trim()
+    ? imageLike.name.trim()
+    : (typeof imageLike.alt === 'string' && imageLike.alt.trim()
+      ? imageLike.alt.trim()
+      : (typeof block.name === 'string' && block.name.trim()
+        ? block.name.trim()
+        : attachmentNameFromMime(mimeType, index + 1)));
+
+  const width = Number.parseInt(imageLike.width ?? imageLike.naturalWidth ?? block.width ?? 0, 10);
+  const height = Number.parseInt(imageLike.height ?? imageLike.naturalHeight ?? block.height ?? 0, 10);
+  const dimensions = formatDimensions(width, height);
+
+  return {
+    src,
+    alt: name,
+    label: `${mimeType}${dimensions ? ` · ${dimensions}` : ''}`,
+  };
+}
+
+function appendNormalizedImages(images, seenSrc, blocks) {
+  if (!Array.isArray(blocks)) return;
+
+  for (const block of blocks) {
+    const normalized = normalizeImageBlock(block, images.length);
+    if (!normalized || !normalized.src) continue;
+    if (seenSrc.has(normalized.src)) continue;
+    seenSrc.add(normalized.src);
+    images.push(normalized);
+  }
+}
+
+function messageImages(message, payload = null) {
+  if ((!message || typeof message !== 'object') && (!payload || typeof payload !== 'object')) return [];
+
+  const images = [];
+  const seenSrc = new Set();
+  const content = message && typeof message === 'object' ? message.content : null;
+
+  if (Array.isArray(content)) {
+    appendNormalizedImages(images, seenSrc, content);
+  }
+
+  const messageImagesArray = message && typeof message === 'object' && Array.isArray(message.images)
+    ? message.images
+    : [];
+  appendNormalizedImages(images, seenSrc, messageImagesArray);
+
+  const payloadImagesArray = payload && typeof payload === 'object' && Array.isArray(payload.images)
+    ? payload.images
+    : [];
+  appendNormalizedImages(images, seenSrc, payloadImagesArray);
+
+  return images;
+}
+
+function streamImagesFromPayload(payload) {
+  if (!payload || typeof payload !== 'object') return [];
+  if (payload.message && typeof payload.message === 'object') {
+    return messageImages(payload.message, payload);
+  }
+
+  const images = [];
+  const seenSrc = new Set();
+  appendNormalizedImages(images, seenSrc, Array.isArray(payload.images) ? payload.images : []);
+  return images;
 }
 
 function setConnectionDot(status) {
@@ -713,7 +1251,7 @@ function resetLiveView(reason = 'fresh') {
   state.activeAssistantRowId = null;
   stream.innerHTML = '';
   flameBars.innerHTML = '';
-  flameBars.style.minHeight = '50px';
+  flameBars.style.minHeight = '34px';
   logEntries.innerHTML = '';
   sessionName.textContent = reason === 'reconnect'
     ? (IS_MOCK_ROUTE ? 'Reconnected mock session' : 'Reconnected session')
@@ -724,6 +1262,9 @@ function resetLiveView(reason = 'fresh') {
   setContextPct(0);
   updateStatusPanel();
   updateInspector(null);
+  setInspectorOpen(false);
+  refreshStreamFilter();
+  updateTimelineButtonLabel();
 }
 
 function timelineColor(type) {
@@ -803,30 +1344,45 @@ function renderFlameChart() {
   }
 
   const rows = Math.max(1, items.reduce((acc, item) => Math.max(acc, item.row + 1), 1));
-  flameBars.style.minHeight = `${rows * BAR_ROW_HEIGHT + 12}px`;
+  flameBars.style.minHeight = `${rows * BAR_ROW_HEIGHT + 8}px`;
   flameBars.innerHTML = '';
 
-  for (const item of items) {
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
     const end = item.endMs === null ? now : item.endMs;
     const left = (item.startMs / maxEnd) * 100;
     const width = Math.max(1.5, ((Math.max(end, item.startMs + 100) - item.startMs) / maxEnd) * 100);
     const div = document.createElement('div');
     div.className = 'flame-bar';
-    if (state.selectedItemId === item.id) div.classList.add('selected');
+    const isSelected = state.selectedItemId === item.id;
+    if (isSelected) div.classList.add('selected');
     div.dataset.itemId = item.id;
-    div.style.cssText = `${item.color};left:${left}%;width:${width}%;top:${item.row * BAR_ROW_HEIGHT + 6}px`;
+    const zIndex = isSelected ? 3000 : 10 + index;
+    div.style.cssText = `${item.color};left:${left}%;width:${width}%;top:${item.row * BAR_ROW_HEIGHT + 4}px;z-index:${zIndex}`;
     div.textContent = item.label;
     flameBars.appendChild(div);
   }
+
+  updateTimelineButtonLabel();
 }
 
-function makeStreamRow(role, title, body, itemId, startMs, kind = 'event', eventType = 'event') {
+function updateTimelineButtonLabel() {
+  if (!timelineBtn || !flameSection) return;
+  const hidden = flameSection.classList.contains('hidden');
+  const icon = hidden ? '▸' : '▾';
+  timelineBtn.textContent = `${icon} timeline (${state.timelineItems.length})`;
+}
+
+function makeStreamRow(role, title, body, itemId, startMs, kind = 'event', eventType = 'event', depth = 0, images = []) {
   const row = document.createElement('div');
   row.className = 'stream-row animate-fi';
   row.dataset.itemId = itemId;
   const rowKind = normalizeStreamKind(kind);
   row.dataset.kind = rowKind;
   row.dataset.eventType = eventType;
+  const rowDepth = Math.max(0, Math.min(4, depth));
+  row.dataset.depth = String(rowDepth);
+  row.style.setProperty('--indent', `${rowDepth * 10}px`);
 
   if (state.selectedItemId === itemId) {
     row.classList.add('agent-selected');
@@ -843,12 +1399,15 @@ function makeStreamRow(role, title, body, itemId, startMs, kind = 'event', event
       </div>
       <div class="stream-title">${escapeHtml(title)}</div>
       <div class="stream-preview"></div>
+      <div class="stream-media"></div>
       <div class="stream-body"></div>
     </div>
   `;
-  applyStreamRowText(row, rowKind, body || '');
+  applyStreamRowContent(row, rowKind, body || '', images);
 
   stream.appendChild(row);
+  applyRowFilter(row);
+  updateVisibleStreamCount();
   streamScroll.scrollTop = streamScroll.scrollHeight;
   return row;
 }
@@ -892,8 +1451,9 @@ function updateInspector(item) {
   `;
 }
 
-function selectItem(itemId) {
+function selectItem(itemId, options = {}) {
   if (!itemId) return;
+  const shouldOpenInspector = options.openInspector !== false;
   state.selectedItemId = itemId;
 
   document.querySelectorAll('.flame-bar').forEach((bar) => {
@@ -904,6 +1464,9 @@ function selectItem(itemId) {
   });
 
   updateInspector(state.timelineById.get(itemId) || null);
+  if (shouldOpenInspector) {
+    setInspectorOpen(true);
+  }
 }
 
 function attachStreamRow(item, row) {
@@ -911,9 +1474,9 @@ function attachStreamRow(item, row) {
   item.streamRow = row;
 }
 
-function appendEventRow(item, kind, title, body) {
+function appendEventRow(item, kind, title, body, depth = activeTurnDepth()) {
   if (!item) return;
-  const row = makeStreamRow(kind, title, body, item.id, item.startMs, kind, item.type);
+  const row = makeStreamRow(kind, title, body, item.id, item.startMs, kind, item.type, depth);
   attachStreamRow(item, row);
 }
 
@@ -953,13 +1516,14 @@ function renderMessageEvent(kind, payload) {
   if (kind === 'message_start') {
     const item = createTimelineItem(kind, `${role} start`, payload, `msg-${msgId}`);
     const text = messageText(message);
+    const images = messageImages(message, payload);
     const rowKind = normalizeStreamKind(role);
     const fallbackTitle = role === 'assistant'
       ? 'assistant response'
       : (role === 'user' ? 'user request' : `${role} message`);
     const rowTitle = metaTitle(payload, fallbackTitle);
     item.label = rowTitle;
-    const row = makeStreamRow(role, rowTitle, metaPreview(payload) || text, item.id, item.startMs, rowKind, kind);
+    const row = makeStreamRow(role, rowTitle, metaPreview(payload) || text, item.id, item.startMs, rowKind, kind, activeTurnDepth(), images);
     attachStreamRow(item, row);
     if (role === 'assistant') {
       state.activeAssistantRowId = item.id;
@@ -975,7 +1539,7 @@ function renderMessageEvent(kind, payload) {
     if (row) {
       const rowKind = row.dataset.kind || 'event';
       const text = messageText(message);
-      if (text) applyStreamRowText(row, rowKind, text);
+      applyStreamRowContent(row, rowKind, text, messageImages(message, payload));
       row.classList.add('animate-fi');
     }
     const openItem = openId ? state.timelineById.get(openId) : null;
@@ -993,7 +1557,7 @@ function renderMessageEvent(kind, payload) {
     if (row) {
       const rowKind = row.dataset.kind || 'event';
       const text = messageText(message);
-      if (text) applyStreamRowText(row, rowKind, text);
+      applyStreamRowContent(row, rowKind, text, messageImages(message, payload));
     }
     if (role === 'assistant') {
       state.activeAssistantRowId = null;
@@ -1035,6 +1599,9 @@ function handleResponse(message) {
     ? eventBodyPreview(message.data && typeof message.data === 'object' ? message.data : message)
     : (typeof message.error === 'string' ? message.error : 'unknown error');
   appendEventRow(item, 'response', rowTitle, responseBody);
+  if (item.streamRow) {
+    applyStreamRowImages(item.streamRow, streamImagesFromPayload(message.data && typeof message.data === 'object' ? message.data : message));
+  }
   renderFlameChart();
 
   if (!ok) {
@@ -1080,7 +1647,7 @@ function handleResponse(message) {
   }
 
   if (!state.selectedItemId) {
-    selectItem(item.id);
+    selectItem(item.id, { openInspector: false });
   }
 }
 
@@ -1119,7 +1686,7 @@ function handleExtensionUiRequest(message) {
   }
 
   if (!message.id) {
-    if (!state.selectedItemId) selectItem(item.id);
+    if (!state.selectedItemId) selectItem(item.id, { openInspector: false });
     return;
   }
 
@@ -1148,7 +1715,7 @@ function handleExtensionUiRequest(message) {
   }
 
   if (!state.selectedItemId) {
-    selectItem(item.id);
+    selectItem(item.id, { openInspector: false });
   }
 }
 
@@ -1181,10 +1748,11 @@ function handleAgentEvent(message) {
     renderFlameChart();
   } else if (type === 'turn_end') {
     const turnIndex = message.turnIndex ?? 'x';
+    const depth = activeTurnDepth();
     closeTimelineKey(`turn-${turnIndex}`);
     const rowTitle = metaTitle(message, `turn ${turnIndex} end`);
     const item = createTimelineItem(type, rowTitle, message, null);
-    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message));
+    appendEventRow(item, 'agent', rowTitle, eventBodyPreview(message), depth);
     renderFlameChart();
   } else if (type === 'tool_execution_start' || type === 'tool_execution_end') {
     const command = typeof message.command === 'string'
@@ -1258,7 +1826,7 @@ function sendCommand(command) {
   return true;
 }
 
-function buildCommandFromInput(message) {
+function buildCommandFromInput(message, images = []) {
   const trimmed = message.trim();
 
   if (trimmed === '/task' || trimmed.startsWith('/task ')) {
@@ -1290,7 +1858,8 @@ function buildCommandFromInput(message) {
   return {
     id: `prompt-${Date.now()}`,
     type: 'prompt',
-    message,
+    message: trimmed,
+    ...(Array.isArray(images) && images.length > 0 ? { images } : {}),
   };
 }
 
@@ -1336,9 +1905,76 @@ function connectSocket() {
   });
 }
 
+if (composerAttachmentList) {
+  composerAttachmentList.addEventListener('click', (event) => {
+    const removeButton = event.target.closest('[data-remove-attachment]');
+    if (!removeButton) return;
+    removeComposerAttachment(removeButton.dataset.removeAttachment);
+  });
+}
+
+if (attachBtn && imageInput) {
+  attachBtn.addEventListener('click', () => {
+    imageInput.click();
+  });
+}
+
+if (imageInput) {
+  imageInput.addEventListener('change', async () => {
+    await addComposerFiles(imageInput.files, 'attach');
+    imageInput.value = '';
+    ta.focus();
+  });
+}
+
+if (promptForm) {
+  promptForm.addEventListener('dragenter', (event) => {
+    if (!hasImageTransferData(event.dataTransfer)) return;
+    event.preventDefault();
+    state.composerDragDepth += 1;
+    setComposerDragState(true);
+  });
+
+  promptForm.addEventListener('dragover', (event) => {
+    if (!hasImageTransferData(event.dataTransfer)) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+    setComposerDragState(true);
+  });
+
+  promptForm.addEventListener('dragleave', (event) => {
+    if (!promptForm.classList.contains('is-dragover')) return;
+    event.preventDefault();
+    state.composerDragDepth = Math.max(0, state.composerDragDepth - 1);
+    if (state.composerDragDepth === 0) setComposerDragState(false);
+  });
+
+  promptForm.addEventListener('drop', async (event) => {
+    if (!hasImageTransferData(event.dataTransfer)) return;
+    event.preventDefault();
+    state.composerDragDepth = 0;
+    setComposerDragState(false);
+    await addComposerFiles(event.dataTransfer ? event.dataTransfer.files : [], 'drop');
+    ta.focus();
+  });
+}
+
 ta.addEventListener('input', () => {
   ta.style.height = 'auto';
   ta.style.height = `${Math.min(ta.scrollHeight, 160)}px`;
+});
+
+ta.addEventListener('paste', async (event) => {
+  const clipboard = event.clipboardData;
+  if (!clipboard || !clipboard.items) return;
+  const imageFiles = [];
+  for (const item of clipboard.items) {
+    if (item.kind !== 'file' || typeof item.type !== 'string' || !item.type.startsWith('image/')) continue;
+    const file = item.getAsFile();
+    if (file) imageFiles.push(file);
+  }
+  if (!imageFiles.length) return;
+  await addComposerFiles(imageFiles, 'paste');
 });
 
 ta.addEventListener('keydown', (event) => {
@@ -1350,16 +1986,24 @@ ta.addEventListener('keydown', (event) => {
 
 promptForm.addEventListener('submit', (event) => {
   event.preventDefault();
-  const message = ta.value.trim();
-  if (!message) return;
+  const message = ta.value;
+  const trimmed = message.trim();
+  const images = serializeComposerAttachments();
+  if (!trimmed && images.length === 0) return;
 
-  const command = buildCommandFromInput(message);
+  const command = buildCommandFromInput(message, images);
   if (!command) return;
 
   if (sendCommand(command)) {
+    const imageCount = images.length;
+    const promptPreview = trimmed || '[image prompt]';
+    const suffix = imageCount > 0 ? ` (+${imageCount} image${imageCount === 1 ? '' : 's'})` : '';
     ta.value = '';
     ta.style.height = 'auto';
-    appendLog('send', message);
+    if (command.type === 'prompt') {
+      clearComposerAttachments();
+    }
+    appendLog('send', `${promptPreview}${suffix}`);
   }
 });
 
@@ -1367,11 +2011,43 @@ abortBtn.addEventListener('click', () => {
   sendCommand({ id: `abort-${Date.now()}`, type: 'abort' });
 });
 
-const timelineBtn = document.getElementById('btn-timeline');
-const flameSection = document.getElementById('flame-section');
-timelineBtn.addEventListener('click', () => {
-  const hidden = flameSection.classList.toggle('hidden');
-  timelineBtn.textContent = hidden ? '▸ timeline' : '▾ timeline';
+if (timelineBtn && flameSection) {
+  timelineBtn.addEventListener('click', () => {
+    flameSection.classList.toggle('hidden');
+    updateTimelineButtonLabel();
+  });
+}
+
+if (feedFilters) {
+  feedFilters.addEventListener('click', (event) => {
+    const target = event.target.closest('[data-filter]');
+    if (!target) return;
+    setActiveFilter(target.dataset.filter || 'all');
+  });
+}
+
+if (inspectorBtn) {
+  inspectorBtn.addEventListener('click', () => {
+    setInspectorOpen(!state.inspectorOpen);
+  });
+}
+
+if (inspectorCloseBtn) {
+  inspectorCloseBtn.addEventListener('click', () => {
+    setInspectorOpen(false);
+  });
+}
+
+if (inspectorBackdrop) {
+  inspectorBackdrop.addEventListener('click', () => {
+    setInspectorOpen(false);
+  });
+}
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && state.inspectorOpen) {
+    setInspectorOpen(false);
+  }
 });
 
 document.addEventListener('click', (event) => {
@@ -1387,7 +2063,11 @@ setContextPct(0);
 sessionName.textContent = DEFAULT_SESSION_NAME;
 updateStatusPanel();
 updateInspector(null);
+setActiveFilter('all');
+setInspectorOpen(false);
+updateTimelineButtonLabel();
 renderMockPresets();
+renderComposerAttachments();
 connectSocket();
 </script>
 
