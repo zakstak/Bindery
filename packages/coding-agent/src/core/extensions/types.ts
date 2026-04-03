@@ -33,7 +33,6 @@ import type { CompactionPreparation, CompactionResult } from "../compaction/inde
 import type { EventBus } from "../event-bus.js";
 import type { ExecOptions, ExecResult } from "../exec.js";
 import type { Theme } from "../headless-theme.js";
-import type { KeyId } from "../key-input.js";
 import type { CustomMessage } from "../messages.js";
 import type { ModelRegistry } from "../model-registry.js";
 import type {
@@ -63,7 +62,6 @@ import type {
 
 export type { ExecOptions, ExecResult } from "../exec.js";
 export type { AgentToolResult, AgentToolUpdateCallback };
-export type { AppAction, KeybindingsManager } from "../keybindings.js";
 
 export interface AutocompleteItem {
 	value: string;
@@ -944,15 +942,6 @@ export interface ExtensionAPI {
 	/** Register a custom command. */
 	registerCommand(name: string, options: Omit<RegisteredCommand, "name">): void;
 
-	/** Register a keyboard shortcut. */
-	registerShortcut(
-		shortcut: KeyId,
-		options: {
-			description?: string;
-			handler: (ctx: ExtensionContext) => Promise<void> | void;
-		},
-	): void;
-
 	/** Register a CLI flag. */
 	registerFlag(
 		name: string,
@@ -1192,13 +1181,6 @@ export interface ExtensionFlag {
 	extensionPath: string;
 }
 
-export interface ExtensionShortcut {
-	shortcut: KeyId;
-	description?: string;
-	handler: (ctx: ExtensionContext) => Promise<void> | void;
-	extensionPath: string;
-}
-
 type HandlerFn = (...args: unknown[]) => Promise<unknown>;
 
 export type SendMessageHandler = <T = unknown>(
@@ -1326,7 +1308,6 @@ export interface Extension {
 	messageRenderers: Map<string, MessageRenderer>;
 	commands: Map<string, RegisteredCommand>;
 	flags: Map<string, ExtensionFlag>;
-	shortcuts: Map<KeyId, ExtensionShortcut>;
 }
 
 /** Result of loading extensions. */

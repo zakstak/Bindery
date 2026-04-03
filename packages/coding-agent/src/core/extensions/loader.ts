@@ -10,7 +10,6 @@ import { getAgentDir } from "../../config.js";
 import { createEventBus, type EventBus } from "../event-bus.js";
 import type { ExecOptions } from "../exec.js";
 import { execCommand } from "../exec.js";
-import type { KeyId } from "../key-input.js";
 import type {
 	Extension,
 	ExtensionAPI,
@@ -119,16 +118,6 @@ function createExtensionAPI(
 
 		registerCommand(name: string, options: Omit<RegisteredCommand, "name">): void {
 			extension.commands.set(name, { name, ...options });
-		},
-
-		registerShortcut(
-			shortcut: KeyId,
-			options: {
-				description?: string;
-				handler: (ctx: import("./types.js").ExtensionContext) => Promise<void> | void;
-			},
-		): void {
-			extension.shortcuts.set(shortcut, { shortcut, extensionPath: extension.path, ...options });
 		},
 
 		registerFlag(
@@ -248,7 +237,6 @@ function createExtension(extensionPath: string, resolvedPath: string): Extension
 		messageRenderers: new Map(),
 		commands: new Map(),
 		flags: new Map(),
-		shortcuts: new Map(),
 	};
 }
 

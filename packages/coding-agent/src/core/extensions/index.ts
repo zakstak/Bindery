@@ -24,8 +24,6 @@ export type {
 	// Re-exports
 	AgentToolResult,
 	AgentToolUpdateCallback,
-	// App keybindings (for custom editors)
-	AppAction,
 	AppendEntryHandler,
 	// Events - Tool (ToolCallEvent types)
 	BashToolCallEvent,
@@ -63,7 +61,6 @@ export type {
 	ExtensionHandler,
 	// Runtime
 	ExtensionRuntime,
-	ExtensionShortcut,
 	ExtensionUIContext,
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
@@ -79,7 +76,6 @@ export type {
 	InputEvent,
 	InputEventResult,
 	InputSource,
-	KeybindingsManager,
 	LoadExtensionsResult,
 	LsToolCallEvent,
 	LsToolResultEvent,

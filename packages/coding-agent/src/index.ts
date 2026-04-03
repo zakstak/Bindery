@@ -53,7 +53,6 @@ export type {
 	AgentStartEvent,
 	AgentToolResult,
 	AgentToolUpdateCallback,
-	AppAction,
 	BashToolCallEvent,
 	BeforeAgentStartEvent,
 	BeforeProviderRequestEvent,
@@ -78,7 +77,6 @@ export type {
 	ExtensionFlag,
 	ExtensionHandler,
 	ExtensionRuntime,
-	ExtensionShortcut,
 	ExtensionUIContext,
 	ExtensionUIDialogOptions,
 	ExtensionWidgetOptions,
@@ -87,7 +85,6 @@ export type {
 	InputEvent,
 	InputEventResult,
 	InputSource,
-	KeybindingsManager,
 	LoadExtensionsResult,
 	LsToolCallEvent,
 	MessageRenderer,
@@ -144,15 +141,7 @@ export {
 export type { ReadonlyFooterDataProvider } from "./core/footer-data-provider.js";
 export { convertToLlm } from "./core/messages.js";
 export { ModelRegistry } from "./core/model-registry.js";
-export type {
-	PackageManager,
-	PathMetadata,
-	ProgressCallback,
-	ProgressEvent,
-	ResolvedPaths,
-	ResolvedResource,
-} from "./core/package-manager.js";
-export { DefaultPackageManager } from "./core/package-manager.js";
+
 export type { ResourceCollision, ResourceDiagnostic, ResourceLoader } from "./core/resource-loader.js";
 export { DefaultResourceLoader } from "./core/resource-loader.js";
 // SDK for programmatic usage

@@ -6,8 +6,6 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { ImageContent, Model } from "@mariozechner/pi-ai";
 import type { ResourceDiagnostic } from "../diagnostics.js";
 import { headlessTheme, type Theme } from "../headless-theme.js";
-import type { KeyId } from "../key-input.js";
-import type { KeyAction, KeybindingsConfig } from "../keybindings.js";
 import type { ModelRegistry } from "../model-registry.js";
 import type { SessionManager } from "../session-manager.js";
 
@@ -29,7 +27,6 @@ import type {
 	ExtensionEvent,
 	ExtensionFlag,
 	ExtensionRuntime,
-	ExtensionShortcut,
 	ExtensionUIContext,
 	InputEvent,
 	InputEventResult,
@@ -50,46 +47,6 @@ import type {
 	UserBashEvent,
 	UserBashEventResult,
 } from "./types.js";
-
-// Keybindings for these actions cannot be overridden by extensions
-const RESERVED_ACTIONS_FOR_EXTENSION_CONFLICTS: ReadonlyArray<KeyAction> = [
-	"interrupt",
-	"clear",
-	"exit",
-	"suspend",
-	"cycleThinkingLevel",
-	"cycleModelForward",
-	"cycleModelBackward",
-	"selectModel",
-	"expandTools",
-	"toggleThinking",
-	"externalEditor",
-	"followUp",
-	"submit",
-	"selectConfirm",
-	"selectCancel",
-	"copy",
-	"deleteToLineEnd",
-];
-
-type BuiltInKeyBindings = Partial<Record<KeyId, { action: KeyAction; restrictOverride: boolean }>>;
-
-const buildBuiltinKeybindings = (effectiveKeybindings: Required<KeybindingsConfig>): BuiltInKeyBindings => {
-	const builtinKeybindings = {} as BuiltInKeyBindings;
-	for (const [action, keys] of Object.entries(effectiveKeybindings)) {
-		const keyAction = action as KeyAction;
-		const keyList = Array.isArray(keys) ? keys : [keys];
-		const restrictOverride = RESERVED_ACTIONS_FOR_EXTENSION_CONFLICTS.includes(keyAction);
-		for (const key of keyList) {
-			const normalizedKey = key.toLowerCase() as KeyId;
-			builtinKeybindings[normalizedKey] = {
-				action: keyAction,
-				restrictOverride: restrictOverride,
-			};
-		}
-	}
-	return builtinKeybindings;
-};
 
 /** Combined result from all before_agent_start handlers */
 interface BeforeAgentStartCombinedResult {
@@ -227,7 +184,6 @@ export class ExtensionRunner {
 	private switchSessionHandler: SwitchSessionHandler = async () => ({ cancelled: false });
 	private reloadHandler: ReloadHandler = async () => {};
 	private shutdownHandler: ShutdownHandler = () => {};
-	private shortcutDiagnostics: ResourceDiagnostic[] = [];
 	private commandDiagnostics: ResourceDiagnostic[] = [];
 
 	constructor(
@@ -361,55 +317,6 @@ export class ExtensionRunner {
 
 	getFlagValues(): Map<string, boolean | string> {
 		return new Map(this.runtime.flagValues);
-	}
-
-	getShortcuts(effectiveKeybindings: Required<KeybindingsConfig>): Map<KeyId, ExtensionShortcut> {
-		this.shortcutDiagnostics = [];
-		const builtinKeybindings = buildBuiltinKeybindings(effectiveKeybindings);
-		const extensionShortcuts = new Map<KeyId, ExtensionShortcut>();
-
-		const addDiagnostic = (message: string, extensionPath: string) => {
-			this.shortcutDiagnostics.push({ type: "warning", message, path: extensionPath });
-			if (!this.hasUI()) {
-				console.warn(message);
-			}
-		};
-
-		for (const ext of this.extensions) {
-			for (const [key, shortcut] of ext.shortcuts) {
-				const normalizedKey = key.toLowerCase() as KeyId;
-
-				const builtInKeybinding = builtinKeybindings[normalizedKey];
-				if (builtInKeybinding?.restrictOverride === true) {
-					addDiagnostic(
-						`Extension shortcut '${key}' from ${shortcut.extensionPath} conflicts with built-in shortcut. Skipping.`,
-						shortcut.extensionPath,
-					);
-					continue;
-				}
-
-				if (builtInKeybinding?.restrictOverride === false) {
-					addDiagnostic(
-						`Extension shortcut conflict: '${key}' is built-in shortcut for ${builtInKeybinding.action} and ${shortcut.extensionPath}. Using ${shortcut.extensionPath}.`,
-						shortcut.extensionPath,
-					);
-				}
-
-				const existingExtensionShortcut = extensionShortcuts.get(normalizedKey);
-				if (existingExtensionShortcut) {
-					addDiagnostic(
-						`Extension shortcut conflict: '${key}' registered by both ${existingExtensionShortcut.extensionPath} and ${shortcut.extensionPath}. Using ${shortcut.extensionPath}.`,
-						shortcut.extensionPath,
-					);
-				}
-				extensionShortcuts.set(normalizedKey, shortcut);
-			}
-		}
-		return extensionShortcuts;
-	}
-
-	getShortcutDiagnostics(): ResourceDiagnostic[] {
-		return this.shortcutDiagnostics;
 	}
 
 	onError(listener: ExtensionErrorListener): () => void {

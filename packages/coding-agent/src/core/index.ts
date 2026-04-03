@@ -36,7 +36,6 @@ export {
 	type ExtensionFlag,
 	type ExtensionHandler,
 	ExtensionRunner,
-	type ExtensionShortcut,
 	type ExtensionUIContext,
 	type LoadExtensionsResult,
 	type MessageRenderer,
