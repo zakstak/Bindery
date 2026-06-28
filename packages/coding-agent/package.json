@@ -40,14 +40,14 @@
     "@mariozechner/pi-ai": "^0.73.1",
     "bindery-tools": "*",
     "diff": "^9.0.0",
-    "file-type": "^22.0.1",
+    "file-type": "^21.3.2",
     "glob": "^13.0.6",
     "ignore": "^7.0.5",
     "minimatch": "^10.2.5",
     "proper-lockfile": "^4.1.2",
     "strip-ansi": "^7.2.0",
-    "undici": "^8.5.0",
     "tsx": "^4.22.4",
+    "undici": "^6.27.0",
     "yaml": "^2.9.0"
   },
   "overrides": {
