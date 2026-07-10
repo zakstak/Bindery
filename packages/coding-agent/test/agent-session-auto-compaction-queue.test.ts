@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent } from "@mariozechner/pi-agent-core";
-import { type AssistantMessage, getModel } from "@mariozechner/pi-ai";
+import { Agent } from "@earendil-works/pi-agent-core";
+import { type AssistantMessage, getModel } from "@earendil-works/pi-ai/compat";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
@@ -245,11 +245,11 @@ describe("AgentSession auto-compaction queue resume", () => {
 			provider: model.provider,
 			model: model.id,
 			usage: {
-				input: 180_000,
-				output: 10_000,
+				input: model.contextWindow,
+				output: 0,
 				cacheRead: 0,
 				cacheWrite: 0,
-				totalTokens: 190_000,
+				totalTokens: model.contextWindow,
 				cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 			},
 			stopReason: "stop",
@@ -277,12 +277,12 @@ describe("AgentSession auto-compaction queue resume", () => {
 		};
 
 		// Put both messages into agent state so estimateContextTokens can find the successful one
-		session.agent.replaceMessages([
+		session.agent.state.messages = [
 			{ role: "user", content: [{ type: "text", text: "hello" }], timestamp: Date.now() - 1000 },
 			successfulAssistant,
 			{ role: "user", content: [{ type: "text", text: "another prompt" }], timestamp: Date.now() + 500 },
 			errorAssistant,
-		]);
+		];
 
 		const runAutoCompactionSpy = vi
 			.spyOn(
@@ -327,10 +327,10 @@ describe("AgentSession auto-compaction queue resume", () => {
 			timestamp: Date.now(),
 		};
 
-		session.agent.replaceMessages([
+		session.agent.state.messages = [
 			{ role: "user", content: [{ type: "text", text: "hello" }], timestamp: Date.now() - 1000 },
 			errorAssistant,
-		]);
+		];
 
 		const runAutoCompactionSpy = vi
 			.spyOn(
@@ -406,12 +406,12 @@ describe("AgentSession auto-compaction queue resume", () => {
 		};
 
 		// Agent state has the kept assistant (pre-compaction) and the error (post-compaction)
-		session.agent.replaceMessages([
+		session.agent.state.messages = [
 			{ role: "user", content: [{ type: "text", text: "kept user msg" }], timestamp: preCompactionTimestamp - 1000 },
 			keptAssistant,
 			{ role: "user", content: [{ type: "text", text: "new prompt" }], timestamp: Date.now() - 500 },
 			errorAssistant,
-		]);
+		];
 
 		const runAutoCompactionSpy = vi
 			.spyOn(

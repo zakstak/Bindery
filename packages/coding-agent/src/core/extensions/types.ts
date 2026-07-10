@@ -13,7 +13,7 @@ import type {
 	AgentToolResult,
 	AgentToolUpdateCallback,
 	ThinkingLevel,
-} from "@mariozechner/pi-agent-core";
+} from "@earendil-works/pi-agent-core";
 import type {
 	Api,
 	AssistantMessageEvent,
@@ -26,8 +26,8 @@ import type {
 	SimpleStreamOptions,
 	TextContent,
 	ToolResultMessage,
-} from "@mariozechner/pi-ai";
-import type { Static, TSchema } from "@sinclair/typebox";
+} from "@earendil-works/pi-ai/compat";
+import type { Static, TSchema } from "typebox";
 import type { BashResult } from "../bash-executor.js";
 import type { CompactionPreparation, CompactionResult } from "../compaction/index.js";
 import type { EventBus } from "../event-bus.js";

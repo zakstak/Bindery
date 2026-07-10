@@ -1,5 +1,5 @@
-import { Agent, type ThinkingLevel } from "@mariozechner/pi-agent-core";
-import { getModel } from "@mariozechner/pi-ai";
+import { Agent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { getModel, type Model } from "@earendil-works/pi-ai/compat";
 import { describe, expect, it } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
@@ -9,7 +9,7 @@ import { SettingsManager } from "../src/core/settings-manager.js";
 import { createTestResourceLoader } from "./utilities.js";
 
 const reasoningModel = getModel("anthropic", "claude-sonnet-4-5")!;
-const nonReasoningModel = getModel("anthropic", "claude-3-5-haiku-latest")!;
+const nonReasoningModel = getModel("google", "gemini-2.0-flash")!;
 
 function createSession({
 	thinkingLevel = "high",
@@ -18,12 +18,13 @@ function createSession({
 }: {
 	thinkingLevel?: ThinkingLevel;
 	defaultThinkingLevel?: ThinkingLevel;
-	scopedModels?: Array<{ model: typeof reasoningModel; thinkingLevel?: ThinkingLevel }>;
+	scopedModels?: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>;
 } = {}) {
 	const settingsManager = SettingsManager.inMemory({ defaultThinkingLevel });
 	const sessionManager = SessionManager.inMemory();
 	const authStorage = AuthStorage.inMemory();
 	authStorage.setRuntimeApiKey("anthropic", "test-key");
+	authStorage.setRuntimeApiKey("google", "test-key");
 	const session = new AgentSession({
 		agent: new Agent({
 			getApiKey: () => "test-key",

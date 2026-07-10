@@ -1,8 +1,5 @@
 use anyhow::Result;
-use axum::{
-    routing::get,
-    Json, Router,
-};
+use axum::{routing::get, Json, Router};
 use serde::Serialize;
 
 use crate::AppConfig;

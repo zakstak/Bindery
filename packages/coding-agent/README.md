@@ -5,7 +5,7 @@
 </p>
 <p align="center">
   <a href="https://discord.com/invite/3cU7Bz4UPx"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white" /></a>
-  <a href="https://www.npmjs.com/package/@mariozechner/pi-coding-agent"><img alt="npm" src="https://img.shields.io/npm/v/@mariozechner/pi-coding-agent?style=flat-square" /></a>
+  <a href="https://www.npmjs.com/package/@earendil-works/pi-coding-agent"><img alt="npm" src="https://img.shields.io/npm/v/@earendil-works/pi-coding-agent?style=flat-square" /></a>
   <a href="https://github.com/badlogic/pi-mono/actions/workflows/ci.yml"><img alt="Build status" src="https://img.shields.io/github/actions/workflow/status/badlogic/pi-mono/ci.yml?style=flat-square&branch=main" /></a>
 </p>
 <p align="center">
@@ -45,7 +45,7 @@ Visit your Bindery web workspace (for example the hosted experience documented a
 Install the CLI for automation and tooling work:
 
 ```bash
-npm install -g @mariozechner/pi-coding-agent
+npm install -g @earendil-works/pi-coding-agent
 pi --print "Summarize the workspace architecture"
 pi --mode json "Extract the TODO items"
 pi --mode rpc   # pair with a client that speaks JSONL frames
@@ -186,7 +186,7 @@ Install packages globally or with `-l` for project scope (`.pi/git/`, `.pi/npm/`
 Use the SDK to embed the agent into your own UI or service:
 
 ```typescript
-import { AuthStorage, createAgentSession, ModelRegistry, SessionManager } from "@mariozechner/pi-coding-agent";
+import { AuthStorage, createAgentSession, ModelRegistry, SessionManager } from "@earendil-works/pi-coding-agent";
 
 const { session } = await createAgentSession({
   sessionManager: SessionManager.inMemory(),
@@ -353,5 +353,5 @@ MIT
 
 ## See Also
 
-- [@mariozechner/pi-ai](https://www.npmjs.com/package/@mariozechner/pi-ai): Core LLM toolkit
+- [@earendil-works/pi-ai](https://www.npmjs.com/package/@earendil-works/pi-ai): Core LLM toolkit
 - [@mariozechner/pi-agent](https://www.npmjs.com/package/@mariozechner/pi-agent): Agent framework

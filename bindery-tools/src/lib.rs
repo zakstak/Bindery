@@ -8,9 +8,7 @@ use grep_regex::RegexMatcherBuilder;
 use grep_searcher::{Searcher, SearcherBuilder, Sink, SinkMatch};
 use ignore::WalkBuilder;
 use image::{
-    codecs::jpeg::JpegEncoder,
-    imageops::FilterType,
-    DynamicImage, ImageFormat, ImageReader,
+    codecs::jpeg::JpegEncoder, imageops::FilterType, DynamicImage, ImageFormat, ImageReader,
 };
 use napi_derive::napi;
 
@@ -249,11 +247,7 @@ struct MatchSink {
 impl Sink for MatchSink {
     type Error = std::io::Error;
 
-    fn matched(
-        &mut self,
-        _searcher: &Searcher,
-        mat: &SinkMatch<'_>,
-    ) -> Result<bool, Self::Error> {
+    fn matched(&mut self, _searcher: &Searcher, mat: &SinkMatch<'_>) -> Result<bool, Self::Error> {
         if self.limit_reached.load(Ordering::Relaxed) {
             return Ok(false);
         }
@@ -329,9 +323,7 @@ pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
             walk_builder.overrides(built);
         }
 
-        let mut searcher = SearcherBuilder::new()
-            .line_number(true)
-            .build();
+        let mut searcher = SearcherBuilder::new().line_number(true).build();
 
         for entry in walk_builder.build() {
             if limit_reached.load(Ordering::Relaxed) {
@@ -367,9 +359,7 @@ pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
         }
     } else {
         // Single file search
-        let mut searcher = SearcherBuilder::new()
-            .line_number(true)
-            .build();
+        let mut searcher = SearcherBuilder::new().line_number(true).build();
 
         let file_path = path.to_string_lossy().to_string();
         let mut sink = MatchSink {
@@ -388,4 +378,3 @@ pub fn rg_search(options: GrepOptions) -> napi::Result<Vec<GrepMatch>> {
 
     Ok(all_matches)
 }
-

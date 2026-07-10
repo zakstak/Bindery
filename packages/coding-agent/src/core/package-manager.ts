@@ -41,11 +41,6 @@ interface PackageManagerOptions {
 
 type SourceScope = "user" | "project" | "temporary";
 
-type LocalSource = {
-	type: "local";
-	path: string;
-};
-
 interface PiManifest {
 	extensions?: string[];
 	skills?: string[];

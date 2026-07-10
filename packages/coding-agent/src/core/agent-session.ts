@@ -22,9 +22,14 @@ import type {
 	AgentState,
 	AgentTool,
 	ThinkingLevel,
-} from "@mariozechner/pi-agent-core";
-import type { AssistantMessage, ImageContent, Message, Model, TextContent } from "@mariozechner/pi-ai";
-import { isContextOverflow, modelsAreEqual, resetApiProviders, supportsXhigh } from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-agent-core";
+import type { AssistantMessage, ImageContent, Message, Model, TextContent } from "@earendil-works/pi-ai/compat";
+import {
+	getSupportedThinkingLevels,
+	isContextOverflow,
+	modelsAreEqual,
+	resetApiProviders,
+} from "@earendil-works/pi-ai/compat";
 import { getDocsPath } from "../config.js";
 import { stripFrontmatter } from "../utils/frontmatter.js";
 import { sleep } from "../utils/sleep.js";
@@ -225,8 +230,8 @@ export interface SessionStats {
 /** Standard thinking levels */
 const THINKING_LEVELS: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high"];
 
-/** Thinking levels including xhigh (for supported models) */
-const THINKING_LEVELS_WITH_XHIGH: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh"];
+/** Thinking levels including provider-specific extended levels. */
+const THINKING_LEVELS_WITH_XHIGH: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 // ============================================================================
 // AgentSession Class
@@ -695,11 +700,11 @@ export class AgentSession {
 				validToolNames.push(name);
 			}
 		}
-		this.agent.setTools(tools);
+		this.agent.state.tools = tools;
 
 		// Rebuild base system prompt with new tool set
 		this._baseSystemPrompt = this._rebuildSystemPrompt(validToolNames);
-		this.agent.setSystemPrompt(this._baseSystemPrompt);
+		this.agent.state.systemPrompt = this._baseSystemPrompt;
 		this._syncPromptSourceBaseVersion("tool-set change", true);
 	}
 
@@ -809,7 +814,7 @@ export class AgentSession {
 	private _reloadCanonicalPromptSource(reason: string): void {
 		this._resourceLoader.reloadPromptSources();
 		this._baseSystemPrompt = this._rebuildSystemPrompt(this.getActiveToolNames());
-		this.agent.setSystemPrompt(this._baseSystemPrompt);
+		this.agent.state.systemPrompt = this._baseSystemPrompt;
 		this._syncPromptSourceBaseVersion(reason, true);
 	}
 
@@ -851,12 +856,12 @@ export class AgentSession {
 
 	/** Current steering mode */
 	get steeringMode(): "all" | "one-at-a-time" {
-		return this.agent.getSteeringMode();
+		return this.agent.steeringMode;
 	}
 
 	/** Current follow-up mode */
 	get followUpMode(): "all" | "one-at-a-time" {
-		return this.agent.getFollowUpMode();
+		return this.agent.followUpMode;
 	}
 
 	/** Current session file path, or undefined if sessions are disabled */
@@ -1094,7 +1099,7 @@ export class AgentSession {
 			}
 
 			// Keep runtime on approved/base prompt until explicit approval exists.
-			this.agent.setSystemPrompt(this._baseSystemPrompt);
+			this.agent.state.systemPrompt = this._baseSystemPrompt;
 		}
 
 		await this.agent.prompt(messages);
@@ -1287,7 +1292,7 @@ export class AgentSession {
 		} else if (options?.triggerTurn) {
 			await this.agent.prompt(appMessage);
 		} else {
-			this.agent.appendMessage(appMessage);
+			this.agent.state.messages = [...this.agent.state.messages, appMessage];
 			this.sessionManager.appendCustomMessageEntry(
 				message.customType,
 				message.content,
@@ -1423,7 +1428,7 @@ export class AgentSession {
 			await options.setup(this.sessionManager);
 			// Sync agent state with session manager after setup
 			const sessionContext = this.sessionManager.buildSessionContext();
-			this.agent.replaceMessages(sessionContext.messages);
+			this.agent.state.messages = sessionContext.messages;
 		}
 
 		this._reconnectToAgent();
@@ -1474,7 +1479,7 @@ export class AgentSession {
 
 		const previousModel = this.model;
 		const thinkingLevel = this._getThinkingLevelForModelSwitch();
-		this.agent.setModel(model);
+		this.agent.state.model = model;
 		this.sessionManager.appendModelChange(model.provider, model.id);
 		this.settingsManager.setDefaultModelAndProvider(model.provider, model.id);
 
@@ -1534,7 +1539,7 @@ export class AgentSession {
 		const thinkingLevel = this._getThinkingLevelForModelSwitch(next.thinkingLevel);
 
 		// Apply model
-		this.agent.setModel(next.model);
+		this.agent.state.model = next.model;
 		this.sessionManager.appendModelChange(next.model.provider, next.model.id);
 		this.settingsManager.setDefaultModelAndProvider(next.model.provider, next.model.id);
 
@@ -1568,7 +1573,7 @@ export class AgentSession {
 		}
 
 		const thinkingLevel = this._getThinkingLevelForModelSwitch();
-		this.agent.setModel(nextModel);
+		this.agent.state.model = nextModel;
 		this.sessionManager.appendModelChange(nextModel.provider, nextModel.id);
 		this.settingsManager.setDefaultModelAndProvider(nextModel.provider, nextModel.id);
 
@@ -1597,7 +1602,7 @@ export class AgentSession {
 		// Only persist if actually changing
 		const isChanging = effectiveLevel !== this.agent.state.thinkingLevel;
 
-		this.agent.setThinkingLevel(effectiveLevel);
+		this.agent.state.thinkingLevel = effectiveLevel;
 
 		if (isChanging) {
 			this.sessionManager.appendThinkingLevelChange(effectiveLevel);
@@ -1636,7 +1641,7 @@ export class AgentSession {
 	 * Check if current model supports xhigh thinking level.
 	 */
 	supportsXhighThinking(): boolean {
-		return this.model ? supportsXhigh(this.model) : false;
+		return this.model ? getSupportedThinkingLevels(this.model).includes("xhigh") : false;
 	}
 
 	/**
@@ -1683,7 +1688,7 @@ export class AgentSession {
 	 * Saves to settings.
 	 */
 	setSteeringMode(mode: "all" | "one-at-a-time"): void {
-		this.agent.setSteeringMode(mode);
+		this.agent.steeringMode = mode;
 		this.settingsManager.setSteeringMode(mode);
 	}
 
@@ -1692,7 +1697,7 @@ export class AgentSession {
 	 * Saves to settings.
 	 */
 	setFollowUpMode(mode: "all" | "one-at-a-time"): void {
-		this.agent.setFollowUpMode(mode);
+		this.agent.followUpMode = mode;
 		this.settingsManager.setFollowUpMode(mode);
 	}
 
@@ -1788,7 +1793,7 @@ export class AgentSession {
 			this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details, fromExtension);
 			const newEntries = this.sessionManager.getEntries();
 			const sessionContext = this.sessionManager.buildSessionContext();
-			this.agent.replaceMessages(sessionContext.messages);
+			this.agent.state.messages = sessionContext.messages;
 
 			// Get the saved compaction entry for the extension event
 			const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary) as
@@ -1886,7 +1891,7 @@ export class AgentSession {
 			// but we don't want it in context for the retry)
 			const messages = this.agent.state.messages;
 			if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
-				this.agent.replaceMessages(messages.slice(0, -1));
+				this.agent.state.messages = messages.slice(0, -1);
 			}
 			await this._runAutoCompaction("overflow", true);
 			return;
@@ -2006,7 +2011,7 @@ export class AgentSession {
 			this.sessionManager.appendCompaction(summary, firstKeptEntryId, tokensBefore, details, fromExtension);
 			const newEntries = this.sessionManager.getEntries();
 			const sessionContext = this.sessionManager.buildSessionContext();
-			this.agent.replaceMessages(sessionContext.messages);
+			this.agent.state.messages = sessionContext.messages;
 
 			// Get the saved compaction entry for the extension event
 			const savedCompactionEntry = newEntries.find((e) => e.type === "compaction" && e.summary === summary) as
@@ -2033,7 +2038,7 @@ export class AgentSession {
 				const messages = this.agent.state.messages;
 				const lastMsg = messages[messages.length - 1];
 				if (lastMsg?.role === "assistant" && (lastMsg as AssistantMessage).stopReason === "error") {
-					this.agent.replaceMessages(messages.slice(0, -1));
+					this.agent.state.messages = messages.slice(0, -1);
 				}
 
 				setTimeout(() => {
@@ -2114,7 +2119,7 @@ export class AgentSession {
 
 		this._resourceLoader.extendResources(extensionPaths);
 		this._baseSystemPrompt = this._rebuildSystemPrompt(this.getActiveToolNames());
-		this.agent.setSystemPrompt(this._baseSystemPrompt);
+		this.agent.state.systemPrompt = this._baseSystemPrompt;
 	}
 
 	private buildExtensionResourcePaths(entries: Array<{ path: string; extensionPath: string }>): Array<{
@@ -2474,7 +2479,7 @@ export class AgentSession {
 		// Remove error message from agent state (keep in session for history)
 		const messages = this.agent.state.messages;
 		if (messages.length > 0 && messages[messages.length - 1].role === "assistant") {
-			this.agent.replaceMessages(messages.slice(0, -1));
+			this.agent.state.messages = messages.slice(0, -1);
 		}
 
 		// Wait with exponential backoff (abortable)
@@ -2607,7 +2612,7 @@ export class AgentSession {
 			this._pendingBashMessages.push(bashMessage);
 		} else {
 			// Add to agent state immediately
-			this.agent.appendMessage(bashMessage);
+			this.agent.state.messages = [...this.agent.state.messages, bashMessage];
 
 			// Save to session
 			this.sessionManager.appendMessage(bashMessage);
@@ -2640,7 +2645,7 @@ export class AgentSession {
 
 		for (const bashMessage of this._pendingBashMessages) {
 			// Add to agent state
-			this.agent.appendMessage(bashMessage);
+			this.agent.state.messages = [...this.agent.state.messages, bashMessage];
 
 			// Save to session
 			this.sessionManager.appendMessage(bashMessage);
@@ -2699,7 +2704,7 @@ export class AgentSession {
 
 		// Emit session event to custom tools
 
-		this.agent.replaceMessages(sessionContext.messages);
+		this.agent.state.messages = sessionContext.messages;
 
 		// Restore model if saved
 		if (sessionContext.model) {
@@ -2709,7 +2714,7 @@ export class AgentSession {
 				(m) => m.provider === sessionContext.model!.provider && m.id === sessionContext.model!.modelId,
 			);
 			if (match) {
-				this.agent.setModel(match);
+				this.agent.state.model = match;
 				await this._emitModelSelect(match, previousModel, "restore");
 			}
 		}
@@ -2725,7 +2730,7 @@ export class AgentSession {
 			const effectiveLevel = availableLevels.includes(defaultThinkingLevel)
 				? defaultThinkingLevel
 				: this._clampThinkingLevel(defaultThinkingLevel, availableLevels);
-			this.agent.setThinkingLevel(effectiveLevel);
+			this.agent.state.thinkingLevel = effectiveLevel;
 			this.sessionManager.appendThinkingLevelChange(effectiveLevel);
 		}
 
@@ -2963,7 +2968,7 @@ export class AgentSession {
 		const previousSessionFile = this.sessionFile;
 		const selectedEntry = this.sessionManager.getEntry(entryId);
 
-		if (!selectedEntry || selectedEntry.type !== "message" || selectedEntry.message.role !== "user") {
+		if (selectedEntry?.type !== "message" || selectedEntry.message.role !== "user") {
 			throw new Error("Invalid entry ID for forking");
 		}
 
@@ -3008,7 +3013,7 @@ export class AgentSession {
 		// Emit session event to custom tools (with reason "fork")
 
 		if (!skipConversationRestore) {
-			this.agent.replaceMessages(sessionContext.messages);
+			this.agent.state.messages = sessionContext.messages;
 		}
 
 		return { selectedText, cancelled: false };
@@ -3192,7 +3197,7 @@ export class AgentSession {
 
 		// Update agent state
 		const sessionContext = this.sessionManager.buildSessionContext();
-		this.agent.replaceMessages(sessionContext.messages);
+		this.agent.state.messages = sessionContext.messages;
 
 		// Emit session_tree event
 		if (this._extensionRunner) {

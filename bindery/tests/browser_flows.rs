@@ -44,7 +44,8 @@ async fn next_json(socket: &mut TestSocket) -> Result<Value> {
 
         match message {
             Message::Text(text) => {
-                return serde_json::from_str(text.as_ref()).context("failed to parse websocket json")
+                return serde_json::from_str(text.as_ref())
+                    .context("failed to parse websocket json")
             }
             Message::Ping(payload) => {
                 socket
@@ -132,44 +133,63 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
         .context("failed to connect to mock websocket")?;
 
     socket
-        .send(Message::Text(json!({ "type": "get_state" }).to_string().into()))
+        .send(Message::Text(
+            json!({ "type": "get_state" }).to_string().into(),
+        ))
         .await
         .context("failed to request state")?;
     let state_response = wait_for_response(&mut socket, "get_state").await?;
     assert_eq!(state_response["success"], Value::Bool(true));
-    assert_eq!(state_response["data"]["sessionName"], Value::String("Bindery demo session".to_string()));
-    assert_eq!(state_response["data"]["model"]["id"], Value::String("bindery-demo-orchestrator-v2".to_string()));
+    assert_eq!(
+        state_response["data"]["sessionName"],
+        Value::String("Bindery demo session".to_string())
+    );
+    assert_eq!(
+        state_response["data"]["model"]["id"],
+        Value::String("bindery-demo-orchestrator-v2".to_string())
+    );
 
     let boot_ui = wait_for_event(&mut socket, "extension_ui_request").await?;
     assert_eq!(boot_ui["method"], Value::String("setTitle".to_string()));
     let boot_message = wait_for_event(&mut socket, "message_end").await?;
-    assert_eq!(boot_message["message"]["role"], Value::String("assistant".to_string()));
+    assert_eq!(
+        boot_message["message"]["role"],
+        Value::String("assistant".to_string())
+    );
 
     socket
-        .send(Message::Text(json!({ "type": "get_available_models" }).to_string().into()))
+        .send(Message::Text(
+            json!({ "type": "get_available_models" }).to_string().into(),
+        ))
         .await
         .context("failed to request model list")?;
     let models_response = wait_for_response(&mut socket, "get_available_models").await?;
     assert_eq!(models_response["success"], Value::Bool(true));
-    assert_eq!(models_response["data"]["models"].as_array().map(|models| models.len()), Some(3));
+    assert_eq!(
+        models_response["data"]["models"]
+            .as_array()
+            .map(|models| models.len()),
+        Some(3)
+    );
 
     socket
-        .send(
-            Message::Text(
-                json!({
-                    "type": "set_model",
-                    "provider": "mock",
-                    "modelId": "bindery-demo-release-ops-v1"
-                })
-                .to_string()
-                .into(),
-            ),
-        )
+        .send(Message::Text(
+            json!({
+                "type": "set_model",
+                "provider": "mock",
+                "modelId": "bindery-demo-release-ops-v1"
+            })
+            .to_string()
+            .into(),
+        ))
         .await
         .context("failed to set model")?;
     let set_model_response = wait_for_response(&mut socket, "set_model").await?;
     assert_eq!(set_model_response["success"], Value::Bool(true));
-    assert_eq!(set_model_response["data"]["id"], Value::String("bindery-demo-release-ops-v1".to_string()));
+    assert_eq!(
+        set_model_response["data"]["id"],
+        Value::String("bindery-demo-release-ops-v1".to_string())
+    );
 
     socket
         .send(Message::Text(
@@ -186,14 +206,19 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
     let prompt_tool = wait_for_event(&mut socket, "tool_execution_start").await?;
     assert_eq!(prompt_tool["command"], Value::String("read".to_string()));
     let prompt_summary = wait_for_event(&mut socket, "message_end").await?;
-    assert_eq!(prompt_summary["message"]["role"], Value::String("assistant".to_string()));
+    assert_eq!(
+        prompt_summary["message"]["role"],
+        Value::String("assistant".to_string())
+    );
     assert!(prompt_summary["message"]["content"][0]["text"]
         .as_str()
         .unwrap_or_default()
         .contains("Launch brief ready"));
 
     socket
-        .send(Message::Text(json!({ "type": "get_fork_messages" }).to_string().into()))
+        .send(Message::Text(
+            json!({ "type": "get_fork_messages" }).to_string().into(),
+        ))
         .await
         .context("failed to request fork messages")?;
     let fork_messages_response = wait_for_response(&mut socket, "get_fork_messages").await?;
@@ -208,7 +233,9 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
 
     socket
         .send(Message::Text(
-            json!({ "type": "fork", "entryId": first_entry_id }).to_string().into(),
+            json!({ "type": "fork", "entryId": first_entry_id })
+                .to_string()
+                .into(),
         ))
         .await
         .context("failed to request fork")?;
@@ -230,7 +257,10 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
         .context("failed to start task session")?;
     let task_start_response = wait_for_response(&mut socket, "start_task_session").await?;
     assert_eq!(task_start_response["success"], Value::Bool(true));
-    assert_eq!(task_start_response["data"]["packet"]["goal"], Value::String("Stabilize onboarding".to_string()));
+    assert_eq!(
+        task_start_response["data"]["packet"]["goal"],
+        Value::String("Stabilize onboarding".to_string())
+    );
 
     socket
         .send(Message::Text(
@@ -245,7 +275,10 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
         .context("failed to complete task session")?;
     let task_complete_response = wait_for_response(&mut socket, "complete_task_session").await?;
     assert_eq!(task_complete_response["success"], Value::Bool(true));
-    assert_eq!(task_complete_response["data"]["resumedParent"], Value::Bool(true));
+    assert_eq!(
+        task_complete_response["data"]["resumedParent"],
+        Value::Bool(true)
+    );
 
     socket
         .send(Message::Text(
@@ -259,7 +292,10 @@ async fn mock_websocket_preserves_browser_operator_flows() -> Result<()> {
     assert_eq!(switch_response["success"], Value::Bool(true));
     assert_eq!(switch_response["data"]["cancelled"], Value::Bool(false));
 
-    socket.close(None).await.context("failed to close websocket")?;
+    socket
+        .close(None)
+        .await
+        .context("failed to close websocket")?;
     server.stop().await?;
 
     Ok(())

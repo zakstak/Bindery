@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import type { ImageContent } from "@mariozechner/pi-ai";
+import type { ImageContent } from "@earendil-works/pi-ai/compat";
 
 const require = createRequire(import.meta.url);
 const { resizeImage: napiResize } = require("bindery-tools") as {

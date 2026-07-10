@@ -3,8 +3,8 @@ import { randomBytes } from "node:crypto";
 import { createWriteStream, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
-import { type Static, Type } from "@sinclair/typebox";
+import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { type Static, Type } from "typebox";
 import { getShellConfig, getShellEnv, killProcessTree } from "../../utils/shell.js";
 import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, type TruncationResult, truncateTail } from "./truncate.js";
 

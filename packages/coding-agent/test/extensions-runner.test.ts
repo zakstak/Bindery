@@ -80,7 +80,7 @@ describe("ExtensionRunner", () => {
 	describe("tool collection", () => {
 		it("collects tools from multiple extensions", async () => {
 			const toolCode = (name: string) => `
-				import { Type } from "@sinclair/typebox";
+				import { Type } from "typebox";
 				export default function(pi) {
 					pi.registerTool({
 						name: "${name}",
@@ -104,7 +104,7 @@ describe("ExtensionRunner", () => {
 
 		it("keeps first tool when two extensions register the same name", async () => {
 			const first = `
-				import { Type } from "@sinclair/typebox";
+				import { Type } from "typebox";
 				export default function(pi) {
 					pi.registerTool({
 						name: "shared",
@@ -116,7 +116,7 @@ describe("ExtensionRunner", () => {
 				}
 			`;
 			const second = `
-				import { Type } from "@sinclair/typebox";
+				import { Type } from "typebox";
 				export default function(pi) {
 					pi.registerTool({
 						name: "shared",

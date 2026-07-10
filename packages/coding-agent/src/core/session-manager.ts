@@ -13,8 +13,8 @@ import {
 } from "node:fs";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { ImageContent, Message, TextContent } from "@mariozechner/pi-ai";
+import type { AgentMessage } from "@earendil-works/pi-agent-core";
+import type { ImageContent, Message, TextContent } from "@earendil-works/pi-ai/compat";
 import { getAgentDir as getDefaultAgentDir, getSessionsDir } from "../config.js";
 import {
 	type BashExecutionMessage,

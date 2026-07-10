@@ -4,7 +4,7 @@
 
 import { access, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ImageContent } from "@mariozechner/pi-ai";
+import type { ImageContent } from "@earendil-works/pi-ai/compat";
 import { resolveReadPath } from "../core/tools/path-utils.js";
 import { formatDimensionNote, resizeImage } from "../utils/image-resize.js";
 import { detectSupportedImageMimeTypeFromFile } from "../utils/mime.js";

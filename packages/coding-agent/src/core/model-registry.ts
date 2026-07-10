@@ -18,10 +18,10 @@ import {
 	registerApiProvider,
 	resetApiProviders,
 	type SimpleStreamOptions,
-} from "@mariozechner/pi-ai";
-import { registerOAuthProvider, resetOAuthProviders } from "@mariozechner/pi-ai/oauth";
-import { type Static, Type } from "@sinclair/typebox";
+} from "@earendil-works/pi-ai/compat";
+import { registerOAuthProvider, resetOAuthProviders } from "@earendil-works/pi-ai/oauth";
 import AjvModule from "ajv";
+import { type Static, Type } from "typebox";
 import { getAgentDir } from "../config.js";
 import type { AuthStorage } from "./auth-storage.js";
 import { clearConfigValueCache, resolveConfigValue, resolveHeaders } from "./resolve-config-value.js";

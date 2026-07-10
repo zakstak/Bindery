@@ -15,7 +15,9 @@ pub fn router(_config: AppConfig) -> Result<Router> {
 struct IndexTemplate;
 
 async fn index() -> Html<String> {
-    Html(IndexTemplate.render().unwrap_or_else(|e| {
-        format!("<pre>template error: {e}</pre>")
-    }))
+    Html(
+        IndexTemplate
+            .render()
+            .unwrap_or_else(|e| format!("<pre>template error: {e}</pre>")),
+    )
 }

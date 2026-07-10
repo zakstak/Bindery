@@ -6,7 +6,7 @@
  */
 
 import { createInterface } from "node:readline";
-import { type ImageContent, modelsAreEqual, supportsXhigh } from "@mariozechner/pi-ai";
+import { type ImageContent, modelsAreEqual } from "@earendil-works/pi-ai/compat";
 import { type Args, parseArgs, printHelp } from "./cli/args.js";
 import { processFileArguments } from "./cli/file-processor.js";
 import { listModels } from "./cli/list-models.js";
@@ -513,8 +513,6 @@ export async function main(args: string[]) {
 		let effectiveThinking = session.thinkingLevel;
 		if (!session.model.reasoning) {
 			effectiveThinking = "off";
-		} else if (effectiveThinking === "xhigh" && !supportsXhigh(session.model)) {
-			effectiveThinking = "high";
 		}
 		if (effectiveThinking !== session.thinkingLevel) {
 			session.setThinkingLevel(effectiveThinking);
