@@ -47,6 +47,20 @@ function createSession({
 }
 
 describe("AgentSession model switching", () => {
+	it("only exposes extended thinking levels declared by the selected model", () => {
+		const { session } = createSession();
+		try {
+			session.agent.state.model = {
+				...reasoningModel,
+				thinkingLevelMap: { xhigh: "xhigh", max: null },
+			};
+
+			expect(session.getAvailableThinkingLevels()).toEqual(["off", "minimal", "low", "medium", "high", "xhigh"]);
+		} finally {
+			session.dispose();
+		}
+	});
+
 	it("preserves the saved thinking preference through non-reasoning models", async () => {
 		const { session, sessionManager, settingsManager } = createSession({
 			scopedModels: [{ model: reasoningModel }, { model: nonReasoningModel }],

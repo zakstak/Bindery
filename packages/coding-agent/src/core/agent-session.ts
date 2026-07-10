@@ -1630,11 +1630,14 @@ export class AgentSession {
 
 	/**
 	 * Get available thinking levels for current model.
-	 * The provider will clamp to what the specific model supports internally.
+	 * Extended levels are exposed only when the current model declares support.
 	 */
 	getAvailableThinkingLevels(): ThinkingLevel[] {
 		if (!this.supportsThinking()) return ["off"];
-		return this.supportsXhighThinking() ? THINKING_LEVELS_WITH_XHIGH : THINKING_LEVELS;
+		const supportedLevels = this.model ? getSupportedThinkingLevels(this.model) : [];
+		return THINKING_LEVELS_WITH_XHIGH.filter(
+			(level) => level === "off" || THINKING_LEVELS.includes(level) || supportedLevels.includes(level),
+		);
 	}
 
 	/**
