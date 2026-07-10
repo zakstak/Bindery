@@ -81,20 +81,36 @@ fn compact_preview(value: &str, max_len: usize) -> String {
     if trimmed.chars().count() <= max_len {
         return trimmed.to_string();
     }
-    trimmed.chars().take(max_len.saturating_sub(1)).collect::<String>() + "…"
+    trimmed
+        .chars()
+        .take(max_len.saturating_sub(1))
+        .collect::<String>()
+        + "…"
 }
 
 fn bindery_meta_for(event: &Value) -> Option<Value> {
     let event_type = event.get("type").and_then(Value::as_str)?;
     match event_type {
         "response" => {
-            let command = event.get("command").and_then(Value::as_str).unwrap_or("unknown");
-            let success = event.get("success").and_then(Value::as_bool).unwrap_or(false);
+            let command = event
+                .get("command")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            let success = event
+                .get("success")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
             let preview = if success {
                 if let Some(data) = event.get("data") {
                     if command == "get_state" {
-                        let session = data.get("sessionName").and_then(Value::as_str).unwrap_or("session ready");
-                        let model = data.get("model").and_then(model_label).unwrap_or_else(|| "state updated".to_string());
+                        let session = data
+                            .get("sessionName")
+                            .and_then(Value::as_str)
+                            .unwrap_or("session ready");
+                        let model = data
+                            .get("model")
+                            .and_then(model_label)
+                            .unwrap_or_else(|| "state updated".to_string());
                         format!("{session} · {model}")
                     } else if command == "set_model" {
                         data.get("id")
@@ -158,13 +174,19 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
                             .get("models")
                             .and_then(Value::as_array)
                             .map_or(0, |models| models.len());
-                        format!("{count} model{} available", if count == 1 { "" } else { "s" })
+                        format!(
+                            "{count} model{} available",
+                            if count == 1 { "" } else { "s" }
+                        )
                     } else if command == "get_fork_messages" {
                         let count = data
                             .get("messages")
                             .and_then(Value::as_array)
                             .map_or(0, |messages| messages.len());
-                        format!("{count} fork point{} available", if count == 1 { "" } else { "s" })
+                        format!(
+                            "{count} fork point{} available",
+                            if count == 1 { "" } else { "s" }
+                        )
                     } else {
                         format!("{command} ok")
                     }
@@ -190,7 +212,12 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
                 .get("message")
                 .and_then(Value::as_str)
                 .map(ToString::to_string)
-                .or_else(|| event.get("title").and_then(Value::as_str).map(ToString::to_string))
+                .or_else(|| {
+                    event
+                        .get("title")
+                        .and_then(Value::as_str)
+                        .map(ToString::to_string)
+                })
                 .or_else(|| {
                     event
                         .get("widgetLines")
@@ -207,7 +234,10 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
             }))
         }
         "tool_execution_start" | "tool_execution_end" => {
-            let command = event.get("command").and_then(Value::as_str).unwrap_or("tool");
+            let command = event
+                .get("command")
+                .and_then(Value::as_str)
+                .unwrap_or("tool");
             let phase = if event_type.ends_with("start") {
                 "start"
             } else if event.get("success").and_then(Value::as_bool) == Some(false) {
@@ -246,7 +276,10 @@ fn bindery_meta_for(event: &Value) -> Option<Value> {
             }))
         }
         "agent_start" | "agent_end" => {
-            let label = event.get("label").and_then(Value::as_str).unwrap_or("agent");
+            let label = event
+                .get("label")
+                .and_then(Value::as_str)
+                .unwrap_or("agent");
             Some(json!({
                 "kind": "agent",
                 "title": if event_type.ends_with("start") { "agent start" } else { "agent end" },
@@ -327,17 +360,20 @@ pub fn router(config: AppConfig) -> Router {
         .with_state(config)
 }
 
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(config): State<AppConfig>,
-) -> impl IntoResponse {
+async fn ws_handler(ws: WebSocketUpgrade, State(config): State<AppConfig>) -> impl IntoResponse {
     ws.on_upgrade(move |socket| handle_socket(socket, config))
 }
 
 async fn handle_socket(mut socket: WebSocket, config: AppConfig) {
     info!("WebSocket connection opened — spawning agent");
 
-    let mut client = match RpcClient::spawn(&config.agent.cli_path, &config.agent.cwd, &config.agent.env).await {
+    let mut client = match RpcClient::spawn(
+        &config.agent.cli_path,
+        &config.agent.cwd,
+        &config.agent.env,
+    )
+    .await
+    {
         Ok(c) => c,
         Err(e) => {
             warn!("failed to spawn agent: {e}");

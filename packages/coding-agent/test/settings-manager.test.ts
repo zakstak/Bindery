@@ -32,6 +32,7 @@ describe("SettingsManager", () => {
 				JSON.stringify({
 					defaultThinkingLevel: "low",
 					defaultModel: "claude-sonnet",
+					theme: "dark",
 				}),
 			);
 
@@ -216,7 +217,7 @@ describe("SettingsManager", () => {
 		it("should not create .pi folder when only reading project settings", () => {
 			// Create agent dir with global settings, but NO .pi folder in project
 			const settingsPath = join(agentDir, "settings.json");
-			writeFileSync(settingsPath, JSON.stringify({ theme: "dark" }));
+			writeFileSync(settingsPath, JSON.stringify({ defaultThinkingLevel: "low", theme: "dark" }));
 
 			// Delete the .pi folder that beforeEach created
 			rmSync(join(projectDir, ".pi"), { recursive: true });

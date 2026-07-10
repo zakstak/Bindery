@@ -2,7 +2,7 @@
  * Tool wrappers for extensions.
  */
 
-import type { AgentTool, AgentToolUpdateCallback } from "@mariozechner/pi-agent-core";
+import type { AgentTool, AgentToolUpdateCallback } from "@earendil-works/pi-agent-core";
 import type { ExtensionRunner } from "./runner.js";
 import type { RegisteredTool, ToolCallEventResult } from "./types.js";
 
@@ -18,7 +18,7 @@ export function wrapRegisteredTool(registeredTool: RegisteredTool, runner: Exten
 		description: definition.description,
 		parameters: definition.parameters,
 		execute: (toolCallId, params, signal, onUpdate) =>
-			definition.execute(toolCallId, params, signal, onUpdate, runner.createContext()),
+			definition.execute(toolCallId, params as Record<string, unknown>, signal, onUpdate, runner.createContext()),
 	};
 }
 
@@ -40,10 +40,11 @@ export function wrapToolWithExtensions<T>(tool: AgentTool<any, T>, runner: Exten
 		...tool,
 		execute: async (
 			toolCallId: string,
-			params: Record<string, unknown>,
+			params: unknown,
 			signal?: AbortSignal,
 			onUpdate?: AgentToolUpdateCallback<T>,
 		) => {
+			const input = params as Record<string, unknown>;
 			// Emit tool_call event - extensions can block execution
 			if (runner.hasHandlers("tool_call")) {
 				try {
@@ -51,7 +52,7 @@ export function wrapToolWithExtensions<T>(tool: AgentTool<any, T>, runner: Exten
 						type: "tool_call",
 						toolName: tool.name,
 						toolCallId,
-						input: params,
+						input,
 					})) as ToolCallEventResult | undefined;
 
 					if (callResult?.block) {
@@ -76,7 +77,7 @@ export function wrapToolWithExtensions<T>(tool: AgentTool<any, T>, runner: Exten
 						type: "tool_result",
 						toolName: tool.name,
 						toolCallId,
-						input: params,
+						input,
 						content: result.content,
 						details: result.details,
 						isError: false,
@@ -98,7 +99,7 @@ export function wrapToolWithExtensions<T>(tool: AgentTool<any, T>, runner: Exten
 						type: "tool_result",
 						toolName: tool.name,
 						toolCallId,
-						input: params,
+						input,
 						content: [{ type: "text", text: err instanceof Error ? err.message : String(err) }],
 						details: undefined,
 						isError: true,

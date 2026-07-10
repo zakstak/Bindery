@@ -1,14 +1,14 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent } from "@mariozechner/pi-agent-core";
+import { Agent } from "@earendil-works/pi-agent-core";
 import {
 	type AssistantMessage,
 	type AssistantMessageEvent,
 	EventStream,
 	getModel,
 	type Model,
-} from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-ai/compat";
 import { afterEach, describe, expect, it } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
@@ -179,7 +179,7 @@ describe("task contract helpers", () => {
 			.getEntries()
 			.find((entry) => entry.type === "custom_message" && entry.customType === TASK_CONTEXT_CUSTOM_TYPE);
 		expect(taskContext).toBeDefined();
-		if (!taskContext || taskContext.type !== "custom_message") {
+		if (taskContext?.type !== "custom_message") {
 			throw new Error("Expected task context custom message");
 		}
 		expect(typeof taskContext.content).toBe("string");
@@ -270,7 +270,7 @@ describe("task contract helpers", () => {
 			(message) => message.role === "custom" && message.customType === TASK_RESULT_CONTEXT_CUSTOM_TYPE,
 		);
 		expect(resumedTaskResult).toBeDefined();
-		if (!resumedTaskResult || resumedTaskResult.role !== "custom") {
+		if (resumedTaskResult?.role !== "custom") {
 			throw new Error("Expected resumed task result custom message");
 		}
 		const resumedTaskResultSummary =

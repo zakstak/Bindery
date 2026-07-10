@@ -1,11 +1,13 @@
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
 use bindery::{serve_until_shutdown, AppConfig};
+use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[command(name = "bindery")]
-#[command(about = "Coding agent web UI — loopback Axum server bridging the browser to the agent RPC process")]
+#[command(
+    about = "Coding agent web UI — loopback Axum server bridging the browser to the agent RPC process"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Command,

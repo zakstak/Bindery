@@ -19,7 +19,10 @@ struct MockTaskState {
 }
 
 fn current_model_label(model: &Value) -> String {
-    let provider = model.get("provider").and_then(Value::as_str).unwrap_or("mock");
+    let provider = model
+        .get("provider")
+        .and_then(Value::as_str)
+        .unwrap_or("mock");
     let id = model
         .get("id")
         .or_else(|| model.get("modelId"))
@@ -74,7 +77,7 @@ fn prompt_message_content(prompt: &str, images: &[Value]) -> Vec<Value> {
 pub fn router() -> Router {
     Router::new()
         .route("/ws/mock", get(ws_handler))
-        .route("/api/mock/inspect/:agent_id", get(inspect_handler))
+        .route("/api/mock/inspect/{agent_id}", get(inspect_handler))
 }
 
 async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
@@ -716,7 +719,10 @@ async fn play_sequence(socket: &mut WebSocket, events: Vec<MockEvent>) -> bool {
 
 async fn send_json(socket: &mut WebSocket, payload: Value) -> Result<(), ()> {
     let text = serde_json::to_string(&payload).map_err(|_| ())?;
-    socket.send(Message::Text(text.into())).await.map_err(|_| ())
+    socket
+        .send(Message::Text(text.into()))
+        .await
+        .map_err(|_| ())
 }
 
 fn build_boot_sequence() -> Vec<MockEvent> {
@@ -781,7 +787,12 @@ fn build_boot_sequence() -> Vec<MockEvent> {
     ]
 }
 
-fn build_prompt_sequence(prompt_index: u32, prompt: &str, images: &[Value], model: &Value) -> Vec<MockEvent> {
+fn build_prompt_sequence(
+    prompt_index: u32,
+    prompt: &str,
+    images: &[Value],
+    model: &Value,
+) -> Vec<MockEvent> {
     let turn_label = format!("mock-turn-{prompt_index}");
     let user_message_id = format!("mock-user-{prompt_index}");
     let assistant_message_id = format!("mock-assistant-{prompt_index}");

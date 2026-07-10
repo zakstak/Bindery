@@ -11,8 +11,8 @@
 import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, type ThinkingLevel } from "@mariozechner/pi-agent-core";
-import { getModel, type Model } from "@mariozechner/pi-ai";
+import { Agent, type ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { getModel, type Model } from "@earendil-works/pi-ai/compat";
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { ModelRegistry } from "../src/core/model-registry.js";
@@ -60,7 +60,8 @@ describe.skipIf(!HAS_ANTIGRAVITY_AUTH)("Compaction with thinking models (Antigra
 		modelId: "claude-opus-4-5-thinking" | "claude-sonnet-4-5",
 		thinkingLevel: ThinkingLevel = "high",
 	) {
-		const model = getModel("google-antigravity", modelId);
+		const getLegacyModel = getModel as unknown as (provider: string, id: string) => Model<any> | undefined;
+		const model = getLegacyModel("google-antigravity", modelId);
 		if (!model) {
 			throw new Error(`Model not found: google-antigravity/${modelId}`);
 		}

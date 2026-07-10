@@ -1,14 +1,14 @@
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent } from "@mariozechner/pi-agent-core";
+import { Agent } from "@earendil-works/pi-agent-core";
 import {
 	type AssistantMessage,
 	type AssistantMessageEvent,
 	EventStream,
 	getModel,
 	type Model,
-} from "@mariozechner/pi-ai";
+} from "@earendil-works/pi-ai/compat";
 import { afterEach, describe, expect, it } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
@@ -207,9 +207,7 @@ describe("prompt proposal runtime lifecycle", () => {
 		const context = await createRuntimeSession("Approved prompt");
 		await seedPendingProposal(context);
 
-		const available = await context.modelRegistry.getAvailable();
-		const currentModel = context.session.model;
-		const nextModel = available.find((model) => model.id !== currentModel?.id);
+		const nextModel = getModel("anthropic", "claude-opus-4-6");
 		expect(nextModel).toBeDefined();
 
 		await context.session.setModel(nextModel!);

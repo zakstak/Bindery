@@ -2,8 +2,8 @@
  * Model resolution, scoping, and initial selection
  */
 
-import type { ThinkingLevel } from "@mariozechner/pi-agent-core";
-import { type Api, type KnownProvider, type Model, modelsAreEqual } from "@mariozechner/pi-ai";
+import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { type Api, type Model, modelsAreEqual } from "@earendil-works/pi-ai/compat";
 import { minimatch } from "minimatch";
 import { isValidThinkingLevel } from "../cli/args.js";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.js";
@@ -11,7 +11,7 @@ import type { ModelRegistry } from "./model-registry.js";
 import { SUPPORTED_AUTH_PROVIDERS } from "./supported-providers.js";
 
 /** Default model IDs for built-in auth-supported providers */
-export const defaultModelPerProvider: Partial<Record<KnownProvider, string>> = {
+export const defaultModelPerProvider: Partial<Record<string, string>> = {
 	openai: "gpt-5.4",
 	"openai-codex": "gpt-5.4",
 	google: "gemini-2.5-pro",
@@ -101,7 +101,7 @@ function buildFallbackModel(provider: string, modelId: string, availableModels: 
 	const providerModels = availableModels.filter((m) => m.provider === provider);
 	if (providerModels.length === 0) return undefined;
 
-	const defaultId = defaultModelPerProvider[provider as KnownProvider];
+	const defaultId = defaultModelPerProvider[provider];
 	const baseModel = defaultId
 		? (providerModels.find((m) => m.id === defaultId) ?? providerModels[0])
 		: providerModels[0];
