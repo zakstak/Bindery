@@ -58,6 +58,36 @@ describe("extensions discovery", () => {
 		expect(path.basename(result.extensions[0].path)).toBe("foo.js");
 	});
 
+	it("loads project extensions that import the public Pi helper packages", async () => {
+		const projectDir = fs.mkdtempSync(path.join(process.cwd(), ".pi-extension-project-"));
+		const projectExtensionsDir = path.join(projectDir, ".pi", "extensions");
+
+		try {
+			fs.mkdirSync(projectExtensionsDir, { recursive: true });
+			fs.writeFileSync(
+				path.join(projectExtensionsDir, "uses-pi-helpers.ts"),
+				`
+					import { Agent } from "@earendil-works/pi-agent-core";
+					import { getModel } from "@earendil-works/pi-ai/compat";
+
+					export default function(pi) {
+						void Agent;
+						void getModel;
+						pi.registerCommand("pi-helpers", { handler: async () => {} });
+					}
+				`,
+			);
+
+			const result = await discoverAndLoadExtensions([], projectDir, tempDir);
+
+			expect(result.errors).toHaveLength(0);
+			expect(result.extensions).toHaveLength(1);
+			expect(result.extensions[0].commands.has("pi-helpers")).toBe(true);
+		} finally {
+			fs.rmSync(projectDir, { recursive: true, force: true });
+		}
+	});
+
 	it("discovers subdirectory with index.ts", async () => {
 		const subdir = path.join(extensionsDir, "my-extension");
 		fs.mkdirSync(subdir);
