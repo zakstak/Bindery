@@ -59,7 +59,7 @@ describe("extensions discovery", () => {
 	});
 
 	it("loads project extensions that import the public Pi helper packages", async () => {
-		const projectDir = fs.mkdtempSync(path.join(process.cwd(), ".pi-extension-project-"));
+		const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-external-extension-project-"));
 		const projectExtensionsDir = path.join(projectDir, ".pi", "extensions");
 
 		try {

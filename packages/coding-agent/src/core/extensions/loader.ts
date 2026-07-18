@@ -3,6 +3,7 @@
  */
 
 import * as fs from "node:fs";
+import { registerHooks } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 import { register } from "tsx/esm/api";
@@ -214,6 +215,20 @@ function createExtensionAPI(
 // Install the tsx loader once so all import() calls handle .ts files.
 const tsxCleanup = register();
 
+const publicPiHelperPackages = ["@earendil-works/pi-agent-core", "@earendil-works/pi-ai"];
+const piHelperResolutionHooks = registerHooks({
+	resolve(specifier, context, nextResolve) {
+		const isPublicPiHelper = publicPiHelperPackages.some(
+			(packageName) => specifier === packageName || specifier.startsWith(`${packageName}/`),
+		);
+		if (!isPublicPiHelper) {
+			return nextResolve(specifier, context);
+		}
+
+		return nextResolve(specifier, { ...context, parentURL: import.meta.url });
+	},
+});
+
 async function loadExtensionModule(extensionPath: string) {
 	const module = await import(extensionPath);
 	const factory = module.default as ExtensionFactory;
@@ -222,6 +237,7 @@ async function loadExtensionModule(extensionPath: string) {
 
 /** Unregister the tsx loader. Exposed for testing. */
 export function unregisterTsxLoader(): void {
+	piHelperResolutionHooks.deregister();
 	tsxCleanup();
 }
 
